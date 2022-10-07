@@ -187,15 +187,30 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 	String name = CV_STRING(frm, 1);
 	bool result = false;
+	vector<int> params = vector<int>();
+
+	if (RXA_TYPE(frm, 4) == RXT_BLOCK) {
+		REBSER *cmds;
+		REBCNT index, type;
+		RXIARG arg1,arg2;
+		cmds = (REBSER*)RXA_SERIES(frm, 4);
+		index = RXA_INDEX(frm, 4);
+		while (index+1 < cmds->tail
+			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg1)
+			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg2)) {
+			params.push_back(arg1.int32a);
+    		params.push_back(arg2.int32a);
+		}
+	}
 
 	if (FRM_IS_HANDLE(2, Handle_cvMat)) {
-		result = imwrite(name, *(Mat*)RXA_HANDLE(frm, 2));
+		result = imwrite(name, *(Mat*)RXA_HANDLE(frm, 2), params);
 	} else { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 2);
 		image = Mat(arg.width, arg.height, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
-		result = imwrite(name, image);
+		result = imwrite(name, image, params);
 	}
 	return result ? RXR_VALUE : RXR_FALSE;
 }
@@ -204,7 +219,7 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	// check if name was provided or use default
 	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : CV_STRING(frm, 3);
 
-	if (FRM_IS_HANDLE(2, Handle_cvMat)) {
+	if (FRM_IS_HANDLE(1, Handle_cvMat)) {
 		imshow(name, *(Mat*)RXA_HANDLE(frm, 1));
 	} else { // input is Rebol image
 		Mat image;

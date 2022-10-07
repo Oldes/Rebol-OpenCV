@@ -57,8 +57,13 @@ with cv [
             if k = 27 [break]     ;; exit on ESC key
             wait 0.01             ;; let Rebol breath as well
         ]
+        destroyAllWindows
         ;; try to save the last resolved frame into a file...
-        imwrite %test.jpg :frame 
+        print "Saving the last frame into test images..."
+        imwrite %test.jpg :frame
+        imwrite/with %test_9.png :frame [IMWRITE_PNG_COMPRESSION 9]
+        imwrite/with %test_0.png :frame [IMWRITE_PNG_COMPRESSION 0]
+        imwrite/with %test.webp  :frame [IMWRITE_WEBP_QUALITY 80]
     ]
     print "closing.."
     free :cam

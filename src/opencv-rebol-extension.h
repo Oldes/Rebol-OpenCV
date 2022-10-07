@@ -74,7 +74,7 @@ MyCommandPointer Command[] = {
 	"test: command [\"Simple OpenCV test\"]\n"\
 	"startWindowThread: command []\n"\
 	"imread: command [src [file!]]\n"\
-	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!]]\n"\
+	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] /name \"Optional window name\" window [any-string!]]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
@@ -87,3 +87,31 @@ MyCommandPointer Command[] = {
 	"free: command [\"Release VideoCapture or Mat handle\" class [handle!]]\n"\
 	"init-words words: [] []\n"\
 	"protect/hide 'init-words\n"\
+	"; imwrite params..\n"\
+	"IMWRITE_JPEG_QUALITY: 1\n"\
+	"IMWRITE_JPEG_PROGRESSIVE: 2\n"\
+	"IMWRITE_JPEG_OPTIMIZE: 3\n"\
+	"IMWRITE_JPEG_RST_INTERVAL: 4\n"\
+	"IMWRITE_JPEG_LUMA_QUALITY: 5\n"\
+	"IMWRITE_JPEG_CHROMA_QUALITY: 6\n"\
+	"IMWRITE_JPEG_SAMPLING_FACTOR: 7\n"\
+	"IMWRITE_PNG_COMPRESSION: 16\n"\
+	"IMWRITE_PNG_STRATEGY: 17\n"\
+	"IMWRITE_PNG_BILEVEL: 18\n"\
+	"IMWRITE_PXM_BINARY: 32\n"\
+	"IMWRITE_EXR_TYPE: 48\n"\
+	"IMWRITE_EXR_COMPRESSION: 49\n"\
+	"IMWRITE_WEBP_QUALITY: 64\n"\
+	"IMWRITE_PAM_TUPLETYPE: 128\n"\
+	"IMWRITE_TIFF_RESUNIT: 256\n"\
+	"IMWRITE_TIFF_XDPI: 257\n"\
+	"IMWRITE_TIFF_YDPI: 258\n"\
+	"IMWRITE_TIFF_COMPRESSION: 259\n"\
+	"IMWRITE_JPEG2000_COMPRESSION_X1000: 272\n"\
+	"\n"\
+	"; ImwritePNGFlags\n"\
+	"IMWRITE_PNG_STRATEGY_DEFAULT:      0\n"\
+	"IMWRITE_PNG_STRATEGY_FILTERED:     1\n"\
+	"IMWRITE_PNG_STRATEGY_HUFFMAN_ONLY: 2\n"\
+	"IMWRITE_PNG_STRATEGY_RLE:          3\n"\
+	"IMWRITE_PNG_STRATEGY_FIXED:        4\n"\
