@@ -1,6 +1,10 @@
 # Rebol/OpenCV
 
-Initial implementation of the OpenCV extension for [Rebol3](https://github.com/Oldes/Rebol3)
+Initial implementation of the OpenCV extension for [Rebol3](https://github.com/Oldes/Rebol3).
+
+So far it is considered just like a proof of concept and tested only on macOS with [OpenCV installed using homebrew](https://formulae.brew.sh/formula/opencv)!
+
+Feature requests are welcome.
 
 ## Usage
 
