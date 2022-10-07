@@ -1,0 +1,9 @@
+/*
+!/.gitignore
+!/.github
+!/.editorconfig
+!/rebol
+!/src
+!/test
+!/Rebol-OpenCV.nest
+!/README.md

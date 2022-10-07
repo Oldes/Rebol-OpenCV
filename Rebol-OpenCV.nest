@@ -1,0 +1,120 @@
+;-    .-.                                                                       
+;-   /'v'\   SISKIN-Builder 3.9.0 project file                                  
+;-  (/uOu\)  https://github.com/Siskin-framework/Builder/                       
+;-===="="=======================================================================
+
+
+compiler: clang
+version: 4.6.0
+
+define: USE_TRACES
+cppflag: "-std=c++11"
+lflag: "-lstdc++"
+
+
+;- options common for all Rebol extensions ----------------------
+#if Windows? [
+	define: TO_WINDOWS
+	define: _CRT_SECURE_NO_WARNINGS
+]
+#if macOS?   [
+	define: TO_OSX
+	define: HAS_BOOL
+]
+#if Linux? [
+	define: TO_LINUX
+]
+
+define: ENDIAN_LITTLE
+
+target-x86: [
+	arch: x86
+	#if Windows? [ defines: [ TO_WIN32 _WIN32 ] ]
+	#if Linux?   [ defines: [ TO_LINUX_X86    ] ]
+]
+target-x64: [
+	arch: x64
+	defines: [
+		_FILE_OFFSET_BITS=64
+		__LP64__ ; has long (integer) 64 bits
+	]
+	#if Windows? [ defines: [ TO_WIN32_X64 _WIN32 ] ]
+	#if Linux?   [ defines: [ TO_LINUX_X64        ] ]
+	#if macOS?   [ defines: [ TO_OSX_X64          ] flags: ["-arch x86_64"] ]
+]
+target-arm64: [
+	arch: arm64
+	;flags: ["-arch arm64"]
+	flags: "-target arm64-apple-darwin"
+	define: _FILE_OFFSET_BITS=64
+	define: __LP64__ ; has long (integer) 64 bits
+	define: __arm64__
+	define: TO_OSX_X64
+]
+;----------------------------------------------------------------
+
+
+source: %src/
+files: [
+	%opencv-rebol-extension.c
+	%opencv-commands.cpp
+]
+include: [
+	%src/
+	%rebol/src/include/
+]
+
+cflags:  [-fpermissive]
+flags:   [-O2 shared]
+
+#if Posix? [
+	cflags: [-fPIC -pthread ]
+	;libraries: [%pthread]
+]
+
+#if posix? [
+	include: %/usr/local/include/
+	library: %/usr/local/lib/opencv/
+	library: %opencv_core
+	library: %opencv_features2d
+	library: %opencv_highgui
+	library: %opencv_imgcodecs
+	library: %opencv_imgproc
+]
+
+;- generate main extension header --------------------------------
+do %src/opencv-rebol-extension.r3 
+
+
+eggs: only [
+	#if Windows? [
+		"Rebol openCV extension: windows_x86" [
+			name: %opencv-windows-x86
+			:target-x86
+		]
+		"Rebol openCV extension: windows_x64" [
+			name: %opencv-windows-x64
+			:target-x64
+		]
+	]
+	#if macOS? [
+		"Rebol openCV extension: macos_x64" [
+			name: %opencv-macos-x64
+			:target-x64
+		]
+		"Rebol openCV extension: macos_arm64" [
+			name: %opencv-macos-arm64
+			:target-arm64
+		]
+	]
+	#if Linux? [
+		"Rebol openCV extension: linux_x86" [
+			name: %opencv-linux-x86
+			:target-x86
+		]
+		"Rebol openCV extension: linux_x64" [
+			name: %opencv-linux-x64
+			:target-x64
+		]
+	]
+]
