@@ -1,16 +1,36 @@
 #include "opencv2/opencv.hpp"
 
-#include "reb-host.h"
-#include "host-lib.h"
+#include "common.h"
 
 #define COMMAND           extern "C" int
-#define CV_STRING(frm, n) (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data))
-#define PAIR_X(frm, n)    (int)RXA_ARG(frm,n).pair.x
-#define PAIR_Y(frm, n)    (int)RXA_ARG(frm,2).pair.y
+#define CV_STRING(frm, n) (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data)) //TODO: only ansii yet!
+#define PAIR_X(frm, n)    (int)RXA_PAIR(frm,n).x
+#define PAIR_Y(frm, n)    (int)RXA_PAIR(frm,2).y
+#define FRM_IS_HANDLE(n, t) (RXA_TYPE(frm,n) == RXT_HANDLE && RXA_HANDLE_TYPE(frm, n) == t)
 
 using namespace cv;
 using namespace std;
 
+extern REBCNT Handle_cvVideoCapture;
+extern REBCNT Handle_cvMat;
+
+// TODO: automatic releasing unreferenced handles is not working now!
+extern "C" void* releaseVideoCapture(void* cls) {
+	printf("cls %p\n", cls);
+	if (cls != NULL) {
+		VideoCapture *cap = (VideoCapture*)cls;
+		cap->release();
+	}
+	return NULL;
+}
+extern "C" void* releaseMat(void* cls) {
+	printf("cls %p\n", cls);
+	if (cls != NULL) {
+		Mat *mat = (Mat*)cls;
+		mat->release();
+	}
+	return NULL;
+}
 
 COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 	Mat image;
@@ -30,6 +50,80 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
+COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
+	VideoCapture *cap;
+	int deviceID;
+
+	cap = new VideoCapture();
+
+	if (RXA_TYPE(frm, 1) == RXT_INTEGER) {
+		cap->open(RXA_INT32(frm,1), CAP_ANY);
+	} else {
+		cap->open(CV_STRING(frm,1), CAP_ANY);
+	}	
+	
+	debug_print("cap %p\n", cap);
+	if (!cap->isOpened()) {
+		cap->release();
+		return RXR_FALSE;
+	}
+
+//	cout<<cap->getBackendName()<<endl;
+
+	RXA_HANDLE(frm, 1) = cap;
+	RXA_HANDLE_TYPE(frm, 1) = Handle_cvVideoCapture;
+	RXA_HANDLE_FLAGS(frm, 1) = HANDLE_CONTEXT;
+	RXA_TYPE(frm, 1) = RXT_HANDLE;
+	return RXR_VALUE;
+}
+
+COMMAND cmd_free(RXIFRM *frm, void *ctx) {
+	REBCNT type = RXA_HANDLE_TYPE(frm, 1);
+	if (type == Handle_cvVideoCapture) {
+		VideoCapture *cap;
+		cap = (VideoCapture*)RXA_HANDLE(frm, 1);
+		debug_print("free cap %p\n", cap);
+		if (cap == NULL) return RXR_FALSE;
+		cap->release();
+		RXA_HANDLE(frm, 1) = NULL;
+		return RXR_TRUE;
+	}
+	else if (type == Handle_cvMat) {
+		Mat *mat = (Mat*)RXA_HANDLE(frm, 1);
+		debug_print("free mat %p\n", mat);
+		if (mat == NULL) return RXR_FALSE;
+		mat->release();
+		RXA_HANDLE(frm, 1) = NULL;
+		return RXR_TRUE;
+	}
+	return RXR_NONE;
+}
+
+COMMAND cmd_read(RXIFRM *frm, void *ctx) {
+	VideoCapture *cap;
+	Mat *frame;
+
+	if(!FRM_IS_HANDLE(1, Handle_cvVideoCapture))
+		return RXR_FALSE;
+
+	cap = (VideoCapture*)RXA_HANDLE(frm, 1);
+	if (!cap->isOpened()) return RXR_NONE;
+
+	if (FRM_IS_HANDLE(3, Handle_cvMat)) {
+		frame = (Mat*)RXA_HANDLE(frm, 3);
+	} else {
+		frame = new Mat();
+	}
+
+	cap->read(*frame);
+	if (frame->empty()) return RXR_NONE;
+	//imshow("Live", *frame);
+	RXA_HANDLE(frm, 1) = frame;
+	RXA_HANDLE_TYPE(frm, 1) = Handle_cvMat;
+	RXA_HANDLE_FLAGS(frm, 1) = HANDLE_CONTEXT;
+	RXA_TYPE(frm, 1) = RXT_HANDLE;
+	return RXR_VALUE;
+}
 
 COMMAND cmd_pollKey(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_INTEGER;
@@ -75,12 +169,12 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	Mat image;
 	REBSER* reb_image;
 
-    image = imread(CV_STRING(frm,1), IMREAD_UNCHANGED);
-    if (image.empty()) return RXR_NONE;
-    image.convertTo(image, CV_8UC4);
+	image = imread(CV_STRING(frm,1), IMREAD_UNCHANGED);
+	if (image.empty()) return RXR_NONE;
+	image.convertTo(image, CV_8UC4);
 
-    reb_image = (REBSER *)RL_MAKE_IMAGE(image.cols, image.rows);
-    memcpy(reb_image->data, image.data, 4*image.cols*image.rows);
+	reb_image = (REBSER *)RL_MAKE_IMAGE(image.cols, image.rows);
+	memcpy(reb_image->data, image.data, 4*image.cols*image.rows);
 
 	RXA_TYPE(frm, 1) = RXT_IMAGE;
 	RXA_ARG(frm, 1).width  = image.cols;
@@ -91,19 +185,18 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 }
 
 COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
-	Mat image;
-	String name;
-	RXIARG arg;
-
-	// only image is allowed so no need to validate the input arg
-	arg = RXA_ARG(frm, 1);
-	image = Mat(arg.width, arg.height, CV_8UC4);
-	image.data = ((REBSER*)arg.series)->data;
-
 	// check if name was provided or use default
-	name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : CV_STRING(frm, 3);
+	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : CV_STRING(frm, 3);
 
-	imshow(name, image);
+	if (RXA_TYPE(frm, 1) == RXT_IMAGE) {
+		Mat image;
+		RXIARG arg = RXA_ARG(frm, 1);
+		image = Mat(arg.width, arg.height, CV_8UC4);
+		image.data = ((REBSER*)arg.series)->data;
+		imshow(name, image);
+	} else {
+		imshow(name, *(Mat*)RXA_HANDLE(frm, 1));
+	}
 
 	return RXR_TRUE;
 }

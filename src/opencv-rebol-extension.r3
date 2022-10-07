@@ -18,10 +18,11 @@ commands: [
 	imread: [src [file!]]
 	imshow: [
 		"Displays an image in the specified window."
-		src [image!]
+		src [image! handle!]
 		/name "Optional window name"
 		 window [any-string!]
 	]
+	
 	
 	pollKey: ["Polls for a pressed key."]
 	waitKey: ["Waits for a pressed key." delay [integer!] "In millisecons; infinitely when <=0"]
@@ -38,6 +39,21 @@ commands: [
 	]
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
 
+
+	VideoCapture: [
+		"Initialize new VideoCapture class"
+		src [integer! file!]
+	]
+	read: [
+		"Grabs, decodes and returns the next video frame"
+		src [handle!] "VideoCapture"
+		/into "Optional existing Mat handle"
+		 dst [handle!] "Mat"
+	]
+	free: [
+		"Release VideoCapture or Mat handle"
+		class [handle!]
+	]
 	;--------------------------
 ]
 

@@ -22,6 +22,9 @@ enum ext_commands {
 	CMD_OPENCV_RESIZEWINDOW,
 	CMD_OPENCV_MOVEWINDOW,
 	CMD_OPENCV_DESTROYALLWINDOWS,
+	CMD_OPENCV_VIDEOCAPTURE,
+	CMD_OPENCV_READ,
+	CMD_OPENCV_FREE,
 };
 enum ext_cmd_words {W_OPENCV_CMD_0,
 };
@@ -40,6 +43,9 @@ int cmd_namedWindow(RXIFRM *frm, void *ctx);
 int cmd_resizeWindow(RXIFRM *frm, void *ctx);
 int cmd_moveWindow(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
+int cmd_VideoCapture(RXIFRM *frm, void *ctx);
+int cmd_read(RXIFRM *frm, void *ctx);
+int cmd_free(RXIFRM *frm, void *ctx);
 
 typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 MyCommandPointer Command[] = {
@@ -54,6 +60,9 @@ MyCommandPointer Command[] = {
 	cmd_resizeWindow,
 	cmd_moveWindow,
 	cmd_destroyAllWindows,
+	cmd_VideoCapture,
+	cmd_read,
+	cmd_free,
 };
 
 #define OPENCV_EXT_INIT_CODE \
@@ -62,12 +71,15 @@ MyCommandPointer Command[] = {
 	"test: command [\"Simple OpenCV test\"]\n"\
 	"startWindowThread: command []\n"\
 	"imread: command [src [file!]]\n"\
-	"imshow: command [\"Displays an image in the specified window.\" src [image!] /name \"Optional window name\" window [any-string!]]\n"\
+	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] /name \"Optional window name\" window [any-string!]]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
 	"resizeWindow: command [\"Resizes the window to the specified size.\" window [any-string!] size [pair!]]\n"\
 	"moveWindow: command [\"Moves the window to the specified position.\" window [any-string!] pos [pair!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
+	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file!]]\n"\
+	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
+	"free: command [\"Release VideoCapture or Mat handle\" class [handle!]]\n"\
 	"init-words words: [] []\n"\
 	"protect/hide 'init-words\n"\

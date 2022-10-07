@@ -11,7 +11,8 @@ RL_LIB *RL; // Link back to reb-lib from embedded extensions
 //==== Globals ===============================//
 u32*   opencv_cmd_words;
 u32*   opencv_arg_words;
-//REBCNT Handle_cvMat;
+REBCNT Handle_cvVideoCapture;
+REBCNT Handle_cvMat;
 
 REBDEC doubles[DOUBLE_BUFFER_SIZE];
 RXIARG arg[ARG_BUFFER_SIZE];
@@ -25,12 +26,12 @@ int cmd_init_words(RXIFRM *frm, void *ctx) {
 	return RXR_NONE;
 }
 
-
-//extern void* releaseCvMat(void* cl);
+extern void* releaseVideoCapture(void* cls);
+extern void* releaseMat(void* cls);
 
 
 RXIEXT const char *RX_Init(int opts, RL_LIB *lib) {
-    RL = lib;
+	RL = lib;
 	REBYTE ver[8];
 	RL_VERSION(ver);
 	debug_print("RXinit opencv-extension; Rebol v%i.%i.%i\n", ver[1], ver[2], ver[3]);
@@ -39,12 +40,13 @@ RXIEXT const char *RX_Init(int opts, RL_LIB *lib) {
 		debug_print("Needs at least Rebol v%i.%i.%i!\n", MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD);
 		return 0;
 	}
-    if (!CHECK_STRUCT_ALIGN) {
-    	trace("CHECK_STRUCT_ALIGN failed!");
-    	return 0;
-    }
-    //Handle_cvMat = RL_REGISTER_HANDLE((REBYTE*)"cvMat", sizeof(void*), releaseCvMat);
-    return init_block;
+	if (!CHECK_STRUCT_ALIGN) {
+		trace("CHECK_STRUCT_ALIGN failed!");
+		return 0;
+	}
+	Handle_cvVideoCapture = RL_REGISTER_HANDLE((REBYTE*)"cvVideoCapture", sizeof(void*), releaseVideoCapture);
+	Handle_cvMat = RL_REGISTER_HANDLE((REBYTE*)"cvMat", sizeof(void*), releaseMat);
+	return init_block;
 }
 
 

@@ -80,6 +80,7 @@ flags:   [-O2 shared]
 	library: %opencv_highgui
 	library: %opencv_imgcodecs
 	library: %opencv_imgproc
+	library: %opencv_videoio
 ]
 
 ;- generate main extension header --------------------------------
