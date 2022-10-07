@@ -5,6 +5,8 @@
 
 #define COMMAND           extern "C" int
 #define CV_STRING(frm, n) (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data))
+#define PAIR_X(frm, n)    (int)RXA_ARG(frm,n).pair.x
+#define PAIR_Y(frm, n)    (int)RXA_ARG(frm,2).pair.y
 
 using namespace cv;
 using namespace std;
@@ -23,6 +25,7 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 	drawKeypoints (image , keypoints , image_with_keypoints );
 
 	imshow("Display window", image_with_keypoints);
+	moveWindow("Display window", 300, 300);
 	int k = waitKey(0); // Wait for a keystroke in the window
 	return RXR_UNSET;
 }
@@ -41,13 +44,29 @@ COMMAND cmd_waitKey(RXIFRM *frm, void *ctx) {
 
 
 COMMAND cmd_namedWindow(RXIFRM *frm, void *ctx) {
-	namedWindow(CV_STRING(frm,1), 0 );
+	namedWindow(CV_STRING(frm,1), WINDOW_NORMAL );
+	return RXR_UNSET;
+}
+
+COMMAND cmd_resizeWindow(RXIFRM *frm, void *ctx) {
+	resizeWindow(CV_STRING(frm,1), PAIR_X(frm,2), PAIR_Y(frm,2));
+	return RXR_UNSET;
+}
+
+COMMAND cmd_moveWindow(RXIFRM *frm, void *ctx) {
+	moveWindow(CV_STRING(frm,1), PAIR_X(frm,2), PAIR_Y(frm,2));
 	return RXR_UNSET;
 }
 
 COMMAND cmd_destroyAllWindows(RXIFRM *frm, void *ctx) {
 	destroyAllWindows();
 	pollKey();
+	return RXR_UNSET;
+}
+
+
+COMMAND cmd_startWindowThread(RXIFRM *frm, void *ctx) {
+	startWindowThread();
 	return RXR_UNSET;
 }
 

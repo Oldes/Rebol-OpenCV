@@ -13,6 +13,8 @@ commands: [
 
 	test: [{Simple OpenCV test}]
 
+	startWindowThread: []
+
 	imread: [src [file!]]
 	imshow: [
 		"Displays an image in the specified window."
@@ -24,6 +26,16 @@ commands: [
 	pollKey: ["Polls for a pressed key."]
 	waitKey: ["Waits for a pressed key." delay [integer!] "In millisecons; infinitely when <=0"]
 	namedWindow: ["Creates a window." name [any-string!]]
+	resizeWindow: [
+		"Resizes the window to the specified size."
+		window [any-string!]
+		size   [pair!]
+	]
+	moveWindow: [
+		"Moves the window to the specified position."
+		window [any-string!]
+		pos    [pair!]
+	]
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
 
 	;--------------------------
