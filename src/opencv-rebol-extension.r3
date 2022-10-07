@@ -16,6 +16,11 @@ commands: [
 	startWindowThread: []
 
 	imread: [src [file!]]
+	imwrite: [
+		"Saves an image to a specified file."
+		name [any-string!]
+		image [image! handle!]
+	]
 	imshow: [
 		"Displays an image in the specified window."
 		src [image! handle!]
@@ -23,7 +28,7 @@ commands: [
 		 window [any-string!]
 	]
 	
-	
+
 	pollKey: ["Polls for a pressed key."]
 	waitKey: ["Waits for a pressed key." delay [integer!] "In millisecons; infinitely when <=0"]
 	namedWindow: ["Creates a window." name [any-string!]]

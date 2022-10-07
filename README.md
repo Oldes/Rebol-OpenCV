@@ -52,7 +52,9 @@ with cv [
             k: pollKey            ;; check if there was any key pressed
             if k = 27 [break]     ;; exit on ESC key
             wait 0.01             ;; let Rebol breath as well
-        ]  
+        ]
+        ;; try to save the last resolved frame into a file...
+        imwrite %test.jpg :frame 
     ]
     print "closing.."
     free :cam

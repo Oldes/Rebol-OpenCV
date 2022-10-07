@@ -184,19 +184,34 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
+	String name = CV_STRING(frm, 1);
+	bool result = false;
+
+	if (FRM_IS_HANDLE(2, Handle_cvMat)) {
+		result = imwrite(name, *(Mat*)RXA_HANDLE(frm, 2));
+	} else { // input is Rebol image
+		Mat image;
+		RXIARG arg = RXA_ARG(frm, 2);
+		image = Mat(arg.width, arg.height, CV_8UC4);
+		image.data = ((REBSER*)arg.series)->data;
+		result = imwrite(name, image);
+	}
+	return result ? RXR_VALUE : RXR_FALSE;
+}
+
 COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	// check if name was provided or use default
 	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : CV_STRING(frm, 3);
 
-	if (RXA_TYPE(frm, 1) == RXT_IMAGE) {
+	if (FRM_IS_HANDLE(2, Handle_cvMat)) {
+		imshow(name, *(Mat*)RXA_HANDLE(frm, 1));
+	} else { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 1);
 		image = Mat(arg.width, arg.height, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
 		imshow(name, image);
-	} else {
-		imshow(name, *(Mat*)RXA_HANDLE(frm, 1));
 	}
-
 	return RXR_TRUE;
 }
