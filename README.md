@@ -52,6 +52,7 @@ with cv [
     if frame [
         forever [
             read/into :cam :frame ;; reusing existing frame
+            blur/border frame 64x64 BORDER_REPLICATE  ;; blur the frame using kernel of size 64x64 pixels
             imshow :frame
             k: pollKey            ;; check if there was any key pressed
             if k = 27 [break]     ;; exit on ESC key
@@ -60,10 +61,10 @@ with cv [
         destroyAllWindows
         ;; try to save the last resolved frame into a file...
         print "Saving the last frame into test images..."
-        imwrite %test.jpg :frame
-        imwrite/with %test_9.png :frame [IMWRITE_PNG_COMPRESSION 9]
-        imwrite/with %test_0.png :frame [IMWRITE_PNG_COMPRESSION 0]
-        imwrite/with %test.webp  :frame [IMWRITE_WEBP_QUALITY 80]
+        prin "test.jpg   " probe imwrite %test.jpg :frame
+        prin "test_9.png " probe imwrite/with %test_9.png :frame [IMWRITE_PNG_COMPRESSION 9]
+        prin "test_0.png " probe imwrite/with %test_0.png :frame [IMWRITE_PNG_COMPRESSION 0]
+        prin "test.webp  " probe imwrite/with %test.webp  :frame [IMWRITE_WEBP_QUALITY 80]
     ]
     print "closing.."
     free :cam

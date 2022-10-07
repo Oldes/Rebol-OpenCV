@@ -29,6 +29,14 @@ commands: [
 		/name "Optional window name"
 		 window [any-string!]
 	]
+
+	blur: [
+		"Blurs an image using the normalized box filter."
+		src [image! handle!]
+		size [pair!] "blurring kernel size"
+		/border "border mode used to extrapolate pixels outside of the image"
+		type [integer!] "one of: [0 1 2 4 5 16]"
+	]
 	
 
 	pollKey: ["Polls for a pressed key."]
@@ -131,7 +139,18 @@ IMWRITE_PNG_STRATEGY_DEFAULT:      0
 IMWRITE_PNG_STRATEGY_FILTERED:     1
 IMWRITE_PNG_STRATEGY_HUFFMAN_ONLY: 2
 IMWRITE_PNG_STRATEGY_RLE:          3
-IMWRITE_PNG_STRATEGY_FIXED:        4}
+IMWRITE_PNG_STRATEGY_FIXED:        4
+
+; BorderTypes
+BORDER_CONSTANT: 0
+BORDER_REPLICATE: 1
+BORDER_REFLECT: 2
+BORDER_WRAP: 3
+BORDER_REFLECT_101: 4
+BORDER_TRANSPARENT: 5
+BORDER_REFLECT101: BORDER_REFLECT_101
+BORDER_DEFAULT: BORDER_REFLECT_101
+BORDER_ISOLATED: 16}
 
 ;print header
 

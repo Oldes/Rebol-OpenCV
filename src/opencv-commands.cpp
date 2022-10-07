@@ -230,3 +230,22 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	}
 	return RXR_TRUE;
 }
+
+
+COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
+	// check if name was provided or use default
+	Size ksize = Size(PAIR_X(frm, 2), PAIR_Y(frm, 2));
+	Point anchor = Point(-1, -1);
+	int borderType = RXA_TYPE(frm, 4) == RXT_INTEGER ? RXA_INT32(frm, 4) : BORDER_DEFAULT;
+
+	if (FRM_IS_HANDLE(1, Handle_cvMat)) {
+		blur(*(Mat*)RXA_HANDLE(frm, 1), *(Mat*)RXA_HANDLE(frm, 1), ksize, anchor, borderType);
+	} else { // input is Rebol image
+		Mat image;
+		RXIARG arg = RXA_ARG(frm, 1);
+		image = Mat(arg.width, arg.height, CV_8UC4);
+		image.data = ((REBSER*)arg.series)->data;
+		blur(image, image, ksize, anchor, borderType);
+	}
+	return RXR_VALUE;
+}

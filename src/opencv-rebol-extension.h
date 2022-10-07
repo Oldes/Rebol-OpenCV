@@ -17,6 +17,7 @@ enum ext_commands {
 	CMD_OPENCV_IMREAD,
 	CMD_OPENCV_IMWRITE,
 	CMD_OPENCV_IMSHOW,
+	CMD_OPENCV_BLUR,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
 	CMD_OPENCV_NAMEDWINDOW,
@@ -39,6 +40,7 @@ int cmd_startWindowThread(RXIFRM *frm, void *ctx);
 int cmd_imread(RXIFRM *frm, void *ctx);
 int cmd_imwrite(RXIFRM *frm, void *ctx);
 int cmd_imshow(RXIFRM *frm, void *ctx);
+int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
@@ -57,6 +59,7 @@ MyCommandPointer Command[] = {
 	cmd_imread,
 	cmd_imwrite,
 	cmd_imshow,
+	cmd_blur,
 	cmd_pollKey,
 	cmd_waitKey,
 	cmd_namedWindow,
@@ -76,6 +79,7 @@ MyCommandPointer Command[] = {
 	"imread: command [src [file!]]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] /name \"Optional window name\" window [any-string!]]\n"\
+	"blur: command [\"Blurs an image using the normalized box filter.\" src [image! handle!] size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
@@ -115,3 +119,14 @@ MyCommandPointer Command[] = {
 	"IMWRITE_PNG_STRATEGY_HUFFMAN_ONLY: 2\n"\
 	"IMWRITE_PNG_STRATEGY_RLE:          3\n"\
 	"IMWRITE_PNG_STRATEGY_FIXED:        4\n"\
+	"\n"\
+	"; BorderTypes\n"\
+	"BORDER_CONSTANT: 0\n"\
+	"BORDER_REPLICATE: 1\n"\
+	"BORDER_REFLECT: 2\n"\
+	"BORDER_WRAP: 3\n"\
+	"BORDER_REFLECT_101: 4\n"\
+	"BORDER_TRANSPARENT: 5\n"\
+	"BORDER_REFLECT101: BORDER_REFLECT_101\n"\
+	"BORDER_DEFAULT: BORDER_REFLECT_101\n"\
+	"BORDER_ISOLATED: 16\n"\
