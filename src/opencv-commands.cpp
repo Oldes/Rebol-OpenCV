@@ -20,7 +20,6 @@ using namespace std;
 extern REBCNT Handle_cvVideoCapture;
 extern REBCNT Handle_cvMat;
 
-// TODO: automatic releasing unreferenced handles is not working now!
 extern "C" void* releaseVideoCapture(void* cls) {
 	debug_print("GC VideoCapture class %p\n", cls);
 	if (cls != NULL) {
@@ -89,6 +88,41 @@ COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
 //	cout<<cap->getBackendName()<<endl;
 
 	return initRXHandle(frm, 1, cap, Handle_cvVideoCapture);
+}
+
+
+COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
+	int propid = RXA_INT32(frm, 2);
+	double result = 0;
+
+	if (!RXA_HANDLE_CONTEXT(frm, 1)) return RXR_FALSE;
+
+	
+	if (ARG_Is_VideoCapture(1)) {
+		VideoCapture *cap = ARG_VideoCapture(1);
+		result = cap->get(propid);
+	} else {
+		return RXR_FALSE;
+	}
+	RXA_TYPE(frm, 1) = RXT_DECIMAL;
+	RXA_DEC64(frm, 1) = result;
+	return RXR_VALUE;
+}
+
+COMMAND cmd_set_property(RXIFRM *frm, void *ctx) {
+	int propid   = RXA_INT32(frm, 2);
+	double value = RXA_DEC64(frm, 3);
+	bool result = FALSE;
+
+	if (!RXA_HANDLE_CONTEXT(frm, 1)) return RXR_FALSE;
+
+	if (ARG_Is_VideoCapture(1)) {
+		VideoCapture *cap = ARG_VideoCapture(1);
+		result = cap->set(propid, value);
+	}
+	RXA_TYPE(frm, 1) = RXT_LOGIC;
+	RXA_LOGIC(frm, 1) = result;
+	return RXR_VALUE;
 }
 
 COMMAND cmd_free(RXIFRM *frm, void *ctx) {

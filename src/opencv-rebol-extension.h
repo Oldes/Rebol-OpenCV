@@ -14,6 +14,8 @@ enum ext_commands {
 	CMD_OPENCV_INIT_WORDS,
 	CMD_OPENCV_TEST,
 	CMD_OPENCV_STARTWINDOWTHREAD,
+	CMD_OPENCV_GET_PROPERTY,
+	CMD_OPENCV_SET_PROPERTY,
 	CMD_OPENCV_IMREAD,
 	CMD_OPENCV_IMWRITE,
 	CMD_OPENCV_IMSHOW,
@@ -39,6 +41,8 @@ enum ext_arg_words {W_OPENCV_ARG_0,
 int cmd_init_words(RXIFRM *frm, void *ctx);
 int cmd_test(RXIFRM *frm, void *ctx);
 int cmd_startWindowThread(RXIFRM *frm, void *ctx);
+int cmd_get_property(RXIFRM *frm, void *ctx);
+int cmd_set_property(RXIFRM *frm, void *ctx);
 int cmd_imread(RXIFRM *frm, void *ctx);
 int cmd_imwrite(RXIFRM *frm, void *ctx);
 int cmd_imshow(RXIFRM *frm, void *ctx);
@@ -60,6 +64,8 @@ MyCommandPointer Command[] = {
 	cmd_init_words,
 	cmd_test,
 	cmd_startWindowThread,
+	cmd_get_property,
+	cmd_set_property,
 	cmd_imread,
 	cmd_imwrite,
 	cmd_imshow,
@@ -82,6 +88,8 @@ MyCommandPointer Command[] = {
 	"init-words: command [cmd-words [block!] arg-words [block!]]\n"\
 	"test: command [\"Simple OpenCV test\"]\n"\
 	"startWindowThread: command []\n"\
+	"get-property: command [\"Returns a property value\" obj [handle!] \"VideoCapture handle\" property [integer!]]\n"\
+	"set-property: command [obj [handle!] \"VideoCapture handle\" property [integer!] value [decimal!]]\n"\
 	"imread: command [src [file!]]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] /name \"Optional window name\" window [any-string!]]\n"\
@@ -381,4 +389,57 @@ MyCommandPointer Command[] = {
 	"COLOR_BayerGB2RGBA: COLOR_BayerGR2BGRA\n"\
 	"COLOR_BayerRG2RGBA: COLOR_BayerBG2BGRA\n"\
 	"COLOR_BayerGR2RGBA: COLOR_BayerGB2BGRA\n"\
+	"\n"\
+	"; VideoCaptureProperties\n"\
+	"CAP_PROP_POS_MSEC: 0\n"\
+	"CAP_PROP_POS_FRAMES: 1\n"\
+	"CAP_PROP_POS_AVI_RATIO: 2\n"\
+	"CAP_PROP_FRAME_WIDTH: 3\n"\
+	"CAP_PROP_FRAME_HEIGHT: 4\n"\
+	"CAP_PROP_FPS: 5\n"\
+	"CAP_PROP_FOURCC: 6\n"\
+	"CAP_PROP_FRAME_COUNT: 7\n"\
+	"CAP_PROP_FORMAT: 8\n"\
+	"CAP_PROP_MODE: 9\n"\
+	"CAP_PROP_BRIGHTNESS: 10\n"\
+	"CAP_PROP_CONTRAST: 11\n"\
+	"CAP_PROP_SATURATION: 12\n"\
+	"CAP_PROP_HUE: 13\n"\
+	"CAP_PROP_GAIN: 14\n"\
+	"CAP_PROP_EXPOSURE: 15\n"\
+	"CAP_PROP_CONVERT_RGB: 16\n"\
+	"CAP_PROP_WHITE_BALANCE_BLUE_U: 17\n"\
+	"CAP_PROP_RECTIFICATION: 18\n"\
+	"CAP_PROP_MONOCHROME: 19\n"\
+	"CAP_PROP_SHARPNESS: 20\n"\
+	"CAP_PROP_AUTO_EXPOSURE: 21\n"\
+	"CAP_PROP_GAMMA: 22\n"\
+	"CAP_PROP_TEMPERATURE: 23\n"\
+	"CAP_PROP_TRIGGER: 24\n"\
+	"CAP_PROP_TRIGGER_DELAY: 25\n"\
+	"CAP_PROP_WHITE_BALANCE_RED_V: 26\n"\
+	"CAP_PROP_ZOOM: 27\n"\
+	"CAP_PROP_FOCUS: 28\n"\
+	"CAP_PROP_GUID: 29\n"\
+	"CAP_PROP_ISO_SPEED: 30\n"\
+	"CAP_PROP_BACKLIGHT: 32\n"\
+	"CAP_PROP_PAN: 33\n"\
+	"CAP_PROP_TILT: 34\n"\
+	"CAP_PROP_ROLL: 35\n"\
+	"CAP_PROP_IRIS: 36\n"\
+	"CAP_PROP_SETTINGS: 37\n"\
+	"CAP_PROP_BUFFERSIZE: 38\n"\
+	"CAP_PROP_AUTOFOCUS: 39\n"\
+	"CAP_PROP_SAR_NUM: 40\n"\
+	"CAP_PROP_SAR_DEN: 41\n"\
+	"CAP_PROP_BACKEND: 42\n"\
+	"CAP_PROP_CHANNEL: 43\n"\
+	"CAP_PROP_AUTO_WB: 44\n"\
+	"CAP_PROP_WB_TEMPERATURE: 45\n"\
+	"CAP_PROP_CODEC_PIXEL_FORMAT: 46\n"\
+	"CAP_PROP_BITRATE: 47\n"\
+	"CAP_PROP_ORIENTATION_META: 48\n"\
+	"CAP_PROP_ORIENTATION_AUTO: 49\n"\
+	"CAP_PROP_OPEN_TIMEOUT_MSEC: 53\n"\
+	"CAP_PROP_READ_TIMEOUT_MSEC: 54\n"\
 	"\n"\
