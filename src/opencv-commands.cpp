@@ -171,7 +171,7 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 
 	image = imread(CV_STRING(frm,1), IMREAD_UNCHANGED);
 	if (image.empty()) return RXR_NONE;
-	image.convertTo(image, CV_8UC4);
+	cvtColor(image, image, COLOR_BGR2BGRA);
 
 	reb_image = (REBSER *)RL_MAKE_IMAGE(image.cols, image.rows);
 	memcpy(reb_image->data, image.data, 4*image.cols*image.rows);
@@ -231,9 +231,32 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	return RXR_TRUE;
 }
 
+COMMAND cmd_bilateralFilter(RXIFRM *frm, void *ctx) {
+	int d             = RXA_INT32(frm, 2);
+	double sigmaColor = RXA_DEC64(frm, 3);
+	double sigmaSpace = RXA_DEC64(frm, 4);
+	int borderType = RXA_TYPE(frm, 5) == RXT_INTEGER ? RXA_INT32(frm, 5) : BORDER_DEFAULT;
+
+	if (FRM_IS_HANDLE(1, Handle_cvMat)) {
+		Mat *img = (Mat*)RXA_HANDLE(frm, 1);
+		Mat tmp;
+		bilateralFilter(*img, tmp, d, sigmaColor, sigmaSpace, borderType);
+		cvtColor(tmp, *img, COLOR_BGR2BGRA);
+	} else { // input is Rebol image
+		Mat image, src, tmp;
+		RXIARG arg = RXA_ARG(frm, 1);
+		image = Mat(arg.width, arg.height, CV_8UC4);
+		image.data = ((REBSER*)arg.series)->data;
+		// Rebol image is stored as BGRA, but the filter accpets only BGR
+		cvtColor(image, src, COLOR_BGRA2BGR);
+		bilateralFilter(src, tmp, d, sigmaColor, sigmaSpace, borderType);
+		// and convert it back to BGRA in the Rebol image data
+		cvtColor(tmp, image, COLOR_BGR2BGRA);
+	}
+	return RXR_VALUE;
+}
 
 COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
-	// check if name was provided or use default
 	Size ksize = Size(PAIR_X(frm, 2), PAIR_Y(frm, 2));
 	Point anchor = Point(-1, -1);
 	int borderType = RXA_TYPE(frm, 4) == RXT_INTEGER ? RXA_INT32(frm, 4) : BORDER_DEFAULT;

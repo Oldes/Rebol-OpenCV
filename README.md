@@ -72,3 +72,12 @@ with cv [
     print "done"
 ]
 ```
+
+Using bilateral filter to remove noise from an image:
+```rebol
+cv: import %opencv.rebx
+img: cv/imread %image/taj.jpg
+filtered: cv/bilateralFilter img 15 75.0 75.0
+cv/imwrite %image/taj-bfilter.jpg :filtered
+```
+

@@ -17,6 +17,7 @@ enum ext_commands {
 	CMD_OPENCV_IMREAD,
 	CMD_OPENCV_IMWRITE,
 	CMD_OPENCV_IMSHOW,
+	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
@@ -40,6 +41,7 @@ int cmd_startWindowThread(RXIFRM *frm, void *ctx);
 int cmd_imread(RXIFRM *frm, void *ctx);
 int cmd_imwrite(RXIFRM *frm, void *ctx);
 int cmd_imshow(RXIFRM *frm, void *ctx);
+int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
@@ -59,6 +61,7 @@ MyCommandPointer Command[] = {
 	cmd_imread,
 	cmd_imwrite,
 	cmd_imshow,
+	cmd_bilateralFilter,
 	cmd_blur,
 	cmd_pollKey,
 	cmd_waitKey,
@@ -79,7 +82,8 @@ MyCommandPointer Command[] = {
 	"imread: command [src [file!]]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] /name \"Optional window name\" window [any-string!]]\n"\
-	"blur: command [\"Blurs an image using the normalized box filter.\" src [image! handle!] size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\

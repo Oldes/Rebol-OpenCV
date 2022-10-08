@@ -30,9 +30,19 @@ commands: [
 		 window [any-string!]
 	]
 
+	bilateralFilter: [
+		"Applies the bilateral filter to an image."
+		image [image! handle!]
+		diameter [integer!]
+		sigmaColor [decimal!]
+		sigmaSpace [decimal!]
+		/border "border mode used to extrapolate pixels outside of the image"
+		type [integer!] "one of: [0 1 2 4 5 16]"
+	]
+
 	blur: [
 		"Blurs an image using the normalized box filter."
-		src [image! handle!]
+		image [image! handle!]
 		size [pair!] "blurring kernel size"
 		/border "border mode used to extrapolate pixels outside of the image"
 		type [integer!] "one of: [0 1 2 4 5 16]"
