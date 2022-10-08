@@ -10,6 +10,7 @@
 #define FRM_IS_HANDLE(n, t)     (RXA_TYPE(frm,n) == RXT_HANDLE && RXA_HANDLE_TYPE(frm, n) == t)
 #define ARG_Is_Mat(n)           FRM_IS_HANDLE(n, Handle_cvMat)
 #define ARG_Is_VideoCapture(n)  FRM_IS_HANDLE(n, Handle_cvVideoCapture)
+#define ARG_Is_Image(n)         (RXA_TYPE(frm,n) == RXT_IMAGE)
 #define ARG_Mat(n)              (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 
@@ -121,7 +122,7 @@ COMMAND cmd_read(RXIFRM *frm, void *ctx) {
 	cap = ARG_VideoCapture(1);
 	if (!cap->isOpened()) return RXR_NONE;
 
-	if (FRM_IS_HANDLE(3, Handle_cvMat)) {
+	if (FRM_IS_HANDLE(3, Handle_cvMat) && ARG_Mat(3)) {
 		frame = ARG_Mat(3);
 	} else {
 		frame = new Mat();
@@ -215,6 +216,7 @@ COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 	}
 
 	if (ARG_Is_Mat(2)) {
+		if (!ARG_Mat(2)) return RXR_FALSE;
 		result = imwrite(name, *ARG_Mat(2), params);
 	} else { // input is Rebol image
 		Mat image;
@@ -231,6 +233,7 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : CV_STRING(frm, 3);
 
 	if (ARG_Is_Mat(1)) {
+		if (!ARG_Mat(1)) return RXR_FALSE;
 		imshow(name, *ARG_Mat(1));
 	} else { // input is Rebol image
 		Mat image;
@@ -251,6 +254,7 @@ COMMAND cmd_bilateralFilter(RXIFRM *frm, void *ctx) {
 	if (ARG_Is_Mat(1)) {
 		Mat *img = ARG_Mat(1);
 		Mat tmp;
+		if (!img) return RXR_FALSE;
 		bilateralFilter(*img, tmp, d, sigmaColor, sigmaSpace, borderType);
 		cvtColor(tmp, *img, COLOR_BGR2BGRA);
 	} else { // input is Rebol image
@@ -273,6 +277,7 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 	int borderType = RXA_TYPE(frm, 4) == RXT_INTEGER ? RXA_INT32(frm, 4) : BORDER_DEFAULT;
 
 	if (ARG_Is_Mat(1)) {
+		if (!ARG_Mat(1)) return RXR_FALSE;
 		blur(*ARG_Mat(1), *ARG_Mat(1), ksize, anchor, borderType);
 	} else { // input is Rebol image
 		Mat image;
@@ -291,6 +296,7 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 	dst = new Mat();
 
 	if (ARG_Is_Mat(1)) {
+		if (!ARG_Mat(1)) return RXR_FALSE;
 		cvtColor(*ARG_Mat(1), *dst, code);
 	} else { // input is Rebol image
 		Mat image;
