@@ -1086,7 +1086,10 @@ typedef struct Reb_Handle_Spec {
 } REBHSP;
 
 typedef struct Reb_Handle_Context {
-	REBYTE *data;
+	union {
+		REBYTE *data;
+		void *handle;
+	};
 	REBCNT  sym;      // Index of the word's symbol. Used as a handle's type!
 	REBFLG  flags:16; // Handle_Flags (HANDLE_CONTEXT_MARKED and HANDLE_CONTEXT_USED)
 	REBCNT  index:16; // Index into Reb_Handle_Spec value
