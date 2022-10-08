@@ -4,6 +4,14 @@ Initial implementation of the OpenCV extension for [Rebol3](https://github.com/O
 
 So far it is considered just like a proof of concept and tested only on macOS with [OpenCV installed using homebrew](https://formulae.brew.sh/formula/opencv)!
 
+
+When building on macOS, the setup expects, that OpenCV includes and libs are accessible. So it is recommanded to use something like:
+```
+ln -s /opt/homebrew/Cellar/opencv/4.6.0/include/opencv4/opencv2 /usr/local/include/opencv2
+ln -s /opt/homebrew/Cellar/opencv/4.6.0/lib /usr/local/lib/opencv
+```
+To import the extension from Rebol on macOS, the Rebol must be signed with entitlemens containing `com.apple.security.cs.disable-library-validation` as `true`. 
+
 Feature requests are welcome.
 
 ## Usage
