@@ -89,3 +89,12 @@ filtered: cv/bilateralFilter img 15 75.0 75.0
 cv/imwrite %image/taj-bfilter.jpg :filtered
 ```
 
+Color space conversion:
+```rebol
+cv: import %opencv.rebx
+img: cv/imread %image/taj-bfilter.jpg
+hls: cv/cvtColor img cv/COLOR_BGR2HLS
+gre: cv/cvtColor img cv/COLOR_BGR2GRAY
+cv/imwrite %image/taj-hls.jpg  :hls
+cv/imwrite %image/taj-grey.jpg :gre
+```

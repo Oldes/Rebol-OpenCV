@@ -272,3 +272,26 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 	}
 	return RXR_VALUE;
 }
+
+COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
+	Mat *dst;
+	int code = RXA_INT32(frm, 2);
+
+	dst = new Mat();
+
+	if (FRM_IS_HANDLE(1, Handle_cvMat)) {
+		cvtColor(*(Mat*)RXA_HANDLE(frm, 1), *dst, code);
+	} else { // input is Rebol image
+		Mat image;
+		RXIARG arg = RXA_ARG(frm, 1);
+		image = Mat(arg.width, arg.height, CV_8UC4);
+		image.data = ((REBSER*)arg.series)->data;
+		cvtColor(image, *dst, code);
+	}
+	RXA_HANDLE(frm, 1) = dst;
+	RXA_HANDLE_TYPE(frm, 1) = Handle_cvMat;
+	RXA_HANDLE_FLAGS(frm, 1) = HANDLE_CONTEXT;
+	RXA_TYPE(frm, 1) = RXT_HANDLE;
+	return RXR_VALUE;
+}
+
