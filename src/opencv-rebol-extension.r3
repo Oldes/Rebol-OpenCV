@@ -86,11 +86,24 @@ commands: [
 		"Initialize new VideoCapture class"
 		src [integer! file!]
 	]
+	VideoWriter: [
+		"Initialize new VideoWriter class"
+		src    [integer! file!]
+		fourcc [integer!] "4-character code of codec used to compress the frames"
+		fps    [number!]  "Framerate of the created video stream"
+		size   [pair!]    "Size of the video frames"
+	]
+
 	read: [
 		"Grabs, decodes and returns the next video frame"
 		src [handle!] "VideoCapture"
 		/into "Optional existing Mat handle"
 		 dst [handle!] "Mat"
+	]
+	write: [
+		"Writes the next video frame"
+		dst [handle!] "VideoWriter"
+		frame [image! handle!]
 	]
 	free: [
 		"Release VideoCapture or Mat handle"

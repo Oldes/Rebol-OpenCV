@@ -98,3 +98,43 @@ gre: cv/cvtColor img cv/COLOR_BGR2GRAY
 cv/imwrite %image/taj-hls.jpg  :hls
 cv/imwrite %image/taj-grey.jpg :gre
 ```
+
+Saving video from the camera:
+```rebol
+cv: import %opencv.rebx
+with cv [
+    ;; initialize video input from a file...
+    ;cam: VideoCapture %test.mp4
+    ;; or from a camera device...
+    cam: VideoCapture 0
+    unless cam [print "Failed to initialize VideoCapture" quit]
+
+    ;; resolve input frame size...
+    size: as-pair get-property cam CAP_PROP_FRAME_WIDTH
+                  get-property cam CAP_PROP_FRAME_HEIGHT
+
+    print ["Input frame size:" size]
+
+    ;set-property cam CAP_PROP_POS_FRAMES 2000.0 // can be used to set position in the video (file input)
+
+    if frame: read :cam [
+        ;; initialize VideoWriter (when 0 is used as fourcc parameter, than the output will be MJPG)
+        out: VideoWriter %out.avi 0 24 size
+        unless out [print "Failed to initialize VideoWriter!" quit]
+
+        ;; grab 100 frames maximum...
+        loop 100 [ 
+            read/into :cam :frame    ;; reusing existing frame
+            write out :frame         ;; frame frame to the output video
+            imshow :frame            ;; and also show it in the window
+            if pollKey = 27 [break]  ;; exit on ESC key
+            wait 0.01                ;; let Rebol breath as well
+        ]
+        destroyAllWindows
+    ]
+    free :out
+    free :cam
+    free :frame
+    print "done"
+]
+```

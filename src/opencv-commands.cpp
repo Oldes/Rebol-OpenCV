@@ -3,27 +3,41 @@
 #include "common.h"
 
 #define COMMAND           extern "C" int
-#define CV_STRING(frm, n) (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data)) //TODO: only ansii yet!
 #define PAIR_X(frm, n)    (int)RXA_PAIR(frm,n).x
-#define PAIR_Y(frm, n)    (int)RXA_PAIR(frm,2).y
+#define PAIR_Y(frm, n)    (int)RXA_PAIR(frm,n).y
 
 #define FRM_IS_HANDLE(n, t)     (RXA_TYPE(frm,n) == RXT_HANDLE && RXA_HANDLE_TYPE(frm, n) == t)
 #define ARG_Is_Mat(n)           FRM_IS_HANDLE(n, Handle_cvMat)
 #define ARG_Is_VideoCapture(n)  FRM_IS_HANDLE(n, Handle_cvVideoCapture)
+#define ARG_Is_VideoWriter(n)   FRM_IS_HANDLE(n, Handle_cvVideoWriter)
 #define ARG_Is_Image(n)         (RXA_TYPE(frm,n) == RXT_IMAGE)
 #define ARG_Mat(n)              (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
+#define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
+#define ARG_Double(n)           (RXA_TYPE(frm,n) == RXT_DECIMAL ? RXA_DEC64(frm,n) : (double)RXA_INT64(frm,n))
+#define ARG_Int(n)              (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : (int)RXA_DEC64(frm,n))
+#define ARG_Size(n)             Size(PAIR_X(frm,n), PAIR_Y(frm,n))
+#define ARG_String(n)           (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data)) //TODO: only ansii yet!
 
 using namespace cv;
 using namespace std;
 
 extern REBCNT Handle_cvVideoCapture;
+extern REBCNT Handle_cvVideoWriter;
 extern REBCNT Handle_cvMat;
 
 extern "C" void* releaseVideoCapture(void* cls) {
 	debug_print("GC VideoCapture class %p\n", cls);
 	if (cls != NULL) {
 		VideoCapture *cap = (VideoCapture*)cls;
+		cap->release();
+	}
+	return NULL;
+}
+extern "C" void* releaseVideoWriter(void* cls) {
+	debug_print("GC VideoWriter class %p\n", cls);
+	if (cls != NULL) {
+		VideoWriter *cap = (VideoWriter*)cls;
 		cap->release();
 	}
 	return NULL;
@@ -74,9 +88,9 @@ COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
 	cap = new VideoCapture();
 
 	if (RXA_TYPE(frm, 1) == RXT_INTEGER) {
-		cap->open(RXA_INT32(frm,1), CAP_ANY);
+		cap->open(ARG_Int(1), CAP_ANY);
 	} else {
-		cap->open(CV_STRING(frm,1), CAP_ANY);
+		cap->open(ARG_String(1), CAP_ANY);
 	}	
 	
 	debug_print("cap %p\n", cap);
@@ -90,6 +104,28 @@ COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
 	return initRXHandle(frm, 1, cap, Handle_cvVideoCapture);
 }
 
+COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
+	VideoWriter *writer;
+
+	String name  = ARG_String(1);
+	int    codec = ARG_Int(2);
+	double fps   = ARG_Double(3);
+	Size   size  = ARG_Size(4);
+
+	cout << size << endl;
+
+	if (!codec) codec = VideoWriter::fourcc('M', 'J', 'P', 'G');
+
+	writer = new VideoWriter();
+
+	writer->open(name, codec, fps, size, TRUE);
+	if (!writer->isOpened()) {
+		writer->release();
+		return RXR_FALSE;
+	}
+
+	return initRXHandle(frm, 1, writer, Handle_cvVideoWriter);
+}
 
 COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 	int propid = RXA_INT32(frm, 2);
@@ -127,17 +163,24 @@ COMMAND cmd_set_property(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 	REBCNT type = RXA_HANDLE_TYPE(frm, 1);
-	if (type == Handle_cvVideoCapture) {
+
+	if (type == Handle_cvMat) {
+		Mat *mat = ARG_Mat(1);
+		debug_print("Free Mat %p\n", mat);
+		if (mat == NULL) return RXR_FALSE;
+		mat->release();
+	}
+	else if (type == Handle_cvVideoCapture) {
 		VideoCapture *cap = ARG_VideoCapture(1);
-		debug_print("free cap %p\n", cap);
+		debug_print("Free VideoCapture %p\n", cap);
 		if (cap == NULL) return RXR_FALSE;
 		cap->release();
 	}
-	else if (type == Handle_cvMat) {
-		Mat *mat = ARG_Mat(1);
-		debug_print("free mat %p\n", mat);
-		if (mat == NULL) return RXR_FALSE;
-		mat->release();
+	else if (type == Handle_cvVideoWriter) {
+		VideoWriter *writer = ARG_VideoWriter(1);
+		debug_print("Free VideoWriter %p\n", writer);
+		if (writer == NULL) return RXR_FALSE;
+		writer->release();
 	}
 	else {
 		return RXR_NONE;
@@ -170,6 +213,28 @@ COMMAND cmd_read(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_write(RXIFRM *frm, void *ctx) {
+	VideoWriter *writer;
+
+	if(!ARG_Is_VideoWriter(1))
+		return RXR_FALSE;
+
+	writer = ARG_VideoWriter(1);
+	if (!writer || !writer->isOpened()) return RXR_NONE;
+
+	if (ARG_Is_Mat(2)) {
+		if (!ARG_Mat(2)) return RXR_FALSE;
+		writer->write(*ARG_Mat(2));
+	} else { // input is Rebol image
+		Mat image;
+		RXIARG arg = RXA_ARG(frm, 2);
+		image = Mat(arg.width, arg.height, CV_8UC4);
+		image.data = ((REBSER*)arg.series)->data;
+		writer->write(image);
+	}
+	return RXR_UNSET;
+}
+
 COMMAND cmd_pollKey(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_INTEGER;
 	RXA_ARG(frm, 1).int64 = pollKey();
@@ -183,17 +248,17 @@ COMMAND cmd_waitKey(RXIFRM *frm, void *ctx) {
 
 
 COMMAND cmd_namedWindow(RXIFRM *frm, void *ctx) {
-	namedWindow(CV_STRING(frm,1), WINDOW_NORMAL );
+	namedWindow(ARG_String(1), WINDOW_NORMAL );
 	return RXR_UNSET;
 }
 
 COMMAND cmd_resizeWindow(RXIFRM *frm, void *ctx) {
-	resizeWindow(CV_STRING(frm,1), PAIR_X(frm,2), PAIR_Y(frm,2));
+	resizeWindow(ARG_String(1), PAIR_X(frm,2), PAIR_Y(frm,2));
 	return RXR_UNSET;
 }
 
 COMMAND cmd_moveWindow(RXIFRM *frm, void *ctx) {
-	moveWindow(CV_STRING(frm,1), PAIR_X(frm,2), PAIR_Y(frm,2));
+	moveWindow(ARG_String(1), PAIR_X(frm,2), PAIR_Y(frm,2));
 	return RXR_UNSET;
 }
 
@@ -214,7 +279,7 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	Mat image;
 	REBSER* reb_image;
 
-	image = imread(CV_STRING(frm,1), IMREAD_UNCHANGED);
+	image = imread(ARG_String(1), IMREAD_UNCHANGED);
 	if (image.empty()) return RXR_NONE;
 	cvtColor(image, image, COLOR_BGR2BGRA);
 
@@ -230,7 +295,7 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 }
 
 COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
-	String name = CV_STRING(frm, 1);
+	String name = ARG_String(1);
 	bool result = false;
 	vector<int> params = vector<int>();
 
@@ -245,7 +310,7 @@ COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg1)
 			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg2)) {
 			params.push_back(arg1.int32a);
-    		params.push_back(arg2.int32a);
+			params.push_back(arg2.int32a);
 		}
 	}
 
@@ -264,7 +329,7 @@ COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	// check if name was provided or use default
-	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : CV_STRING(frm, 3);
+	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : ARG_String(3);
 
 	if (ARG_Is_Mat(1)) {
 		if (!ARG_Mat(1)) return RXR_FALSE;
