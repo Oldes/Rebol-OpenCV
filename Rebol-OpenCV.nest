@@ -8,13 +8,9 @@ compiler: clang
 version: 4.6.0
 
 define: USE_TRACES
-cppflag: "-std=c++11"
-lflag: "-lstdc++"
-
 
 ;- options common for all Rebol extensions ----------------------
 #if Windows? [
-	define: TO_WINDOWS
 	define: _CRT_SECURE_NO_WARNINGS
 ]
 #if macOS?   [
@@ -73,6 +69,8 @@ flags:   [-O2 shared]
 ]
 
 #if posix? [
+	cppflag: "-std=c++11"
+	lflag: "-lstdc++"
 	include: %/usr/local/include/
 	library: %/usr/local/lib/opencv/
 	library: %opencv_core
@@ -82,6 +80,11 @@ flags:   [-O2 shared]
 	library: %opencv_imgproc
 	library: %opencv_videoio
 ]
+#if Windows?  [
+	compiler: clang
+	include: %/c/SDKs/OpenCV_v4.6/build/include/
+	library: %/c/SDKs/OpenCV_v4.6/build/x64/vc15/lib/opencv_world460
+]
 
 ;- generate main extension header --------------------------------
 do %src/opencv-rebol-extension.r3 
@@ -89,10 +92,6 @@ do %src/opencv-rebol-extension.r3
 
 eggs: only [
 	#if Windows? [
-		"Rebol openCV extension: windows_x86" [
-			name: %opencv-windows-x86
-			:target-x86
-		]
 		"Rebol openCV extension: windows_x64" [
 			name: %opencv-windows-x64
 			:target-x64

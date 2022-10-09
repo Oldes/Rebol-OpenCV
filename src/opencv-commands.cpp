@@ -1,6 +1,8 @@
 #include "opencv2/opencv.hpp"
 
-#include "common.h"
+extern "C" {
+	#include "common.h"
+}
 
 #define COMMAND           extern "C" int
 #define PAIR_X(frm, n)    (int)RXA_PAIR(frm,n).x
@@ -24,33 +26,35 @@
 using namespace cv;
 using namespace std;
 
-extern REBCNT Handle_cvVideoCapture;
-extern REBCNT Handle_cvVideoWriter;
-extern REBCNT Handle_cvMat;
+extern "C" {
+	extern REBCNT Handle_cvVideoCapture;
+	extern REBCNT Handle_cvVideoWriter;
+	extern REBCNT Handle_cvMat;
 
-extern "C" void* releaseVideoCapture(void* cls) {
-	debug_print("GC VideoCapture class %p\n", cls);
-	if (cls != NULL) {
-		VideoCapture *cap = (VideoCapture*)cls;
-		cap->release();
+	void* releaseVideoCapture(void* cls) {
+		debug_print("GC VideoCapture class %p\n", cls);
+		if (cls != NULL) {
+			VideoCapture *cap = (VideoCapture*)cls;
+			cap->release();
+		}
+		return NULL;
 	}
-	return NULL;
-}
-extern "C" void* releaseVideoWriter(void* cls) {
-	debug_print("GC VideoWriter class %p\n", cls);
-	if (cls != NULL) {
-		VideoWriter *cap = (VideoWriter*)cls;
-		cap->release();
+	void* releaseVideoWriter(void* cls) {
+		debug_print("GC VideoWriter class %p\n", cls);
+		if (cls != NULL) {
+			VideoWriter *cap = (VideoWriter*)cls;
+			cap->release();
+		}
+		return NULL;
 	}
-	return NULL;
-}
-extern "C" void* releaseMat(void* cls) {
-	debug_print("GC Mat class %p\n", cls);
-	if (cls != NULL) {
-		Mat *mat = (Mat*)cls;
-		mat->release();
+	void* releaseMat(void* cls) {
+		debug_print("GC Mat class %p\n", cls);
+		if (cls != NULL) {
+			Mat *mat = (Mat*)cls;
+			mat->release();
+		}
+		return NULL;
 	}
-	return NULL;
 }
 
 static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type) {
