@@ -11,6 +11,8 @@
 #define ARG_Is_VideoCapture(n)  FRM_IS_HANDLE(n, Handle_cvVideoCapture)
 #define ARG_Is_VideoWriter(n)   FRM_IS_HANDLE(n, Handle_cvVideoWriter)
 #define ARG_Is_Image(n)         (RXA_TYPE(frm,n) == RXT_IMAGE)
+#define ARG_Is_Pair(n)          (RXA_TYPE(frm,n) == RXT_PAIR)
+#define ARG_Is_Integer(n)       (RXA_TYPE(frm,n) == RXT_INTEGER)
 #define ARG_Mat(n)              (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
@@ -61,6 +63,13 @@ static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type) {
 	RXA_HANDLE_FLAGS(frm, 1) = HANDLE_CONTEXT;
 	RXA_TYPE(frm, 1) = RXT_HANDLE;
 	return RXR_VALUE;
+}
+
+static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
+	RXIARG arg = RXA_ARG(frm, index);
+	Mat *mat = new Mat(arg.width, arg.height, CV_8UC4);
+	mat->data = ((REBSER*)arg.series)->data;
+	return mat;
 }
 
 COMMAND cmd_test(RXIFRM *frm, void *ctx) {
@@ -405,5 +414,55 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 		cvtColor(image, *dst, code);
 	}
 	return initRXHandle(frm, 1, dst, Handle_cvMat);
+}
+
+COMMAND cmd_resize(RXIFRM *frm, void *ctx) {
+	Mat *src;
+	Mat *dst;
+	Size size;
+	int interpolation = INTER_LINEAR;
+	bool newHandle = FALSE;
+
+	if (ARG_Is_Mat(1) && ARG_Mat(1)) { 
+		src = ARG_Mat(1);
+	} else if (ARG_Is_Image(1)) { // input is Rebol image
+		src = new_Mat_From_Image_Arg(frm, 1); // delete before return!
+	} else return RXR_NONE;
+
+	if (ARG_Is_Mat(4) && ARG_Mat(4)) { // /into handle
+		dst = ARG_Mat(4);
+	} else {
+		newHandle = TRUE;
+		dst = new Mat();
+	}
+
+	if (ARG_Is_Pair(2)) {
+		size = ARG_Size(2);
+	} else {
+		double scale = RXA_DEC64(frm, 2);
+		size = src->size();
+		size.width *= scale;
+		size.height *= scale;
+	}
+
+	if (ARG_Is_Integer(6)) {
+		interpolation = ARG_Int(6);
+	}
+	
+	resize(*src, *dst, size, 0, 0, interpolation);
+
+	if (ARG_Is_Image(1)) {
+		// if input was Rebol image, release the temporary Mat created from it
+		delete src;
+	}
+
+	if (newHandle) {
+		return initRXHandle(frm, 1, dst, Handle_cvMat);
+	}
+	else {
+		// requested output to given existing array
+		RXA_ARG(frm, 1) = RXA_ARG(frm, 4);
+		return RXR_VALUE;
+	}
 }
 

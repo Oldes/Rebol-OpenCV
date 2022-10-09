@@ -22,6 +22,7 @@ enum ext_commands {
 	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_CVTCOLOR,
+	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
 	CMD_OPENCV_NAMEDWINDOW,
@@ -51,6 +52,7 @@ int cmd_imshow(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
+int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
@@ -76,6 +78,7 @@ MyCommandPointer Command[] = {
 	cmd_bilateralFilter,
 	cmd_blur,
 	cmd_cvtColor,
+	cmd_resize,
 	cmd_pollKey,
 	cmd_waitKey,
 	cmd_namedWindow,
@@ -97,11 +100,12 @@ MyCommandPointer Command[] = {
 	"get-property: command [\"Returns a property value\" obj [handle!] \"VideoCapture handle\" property [integer!]]\n"\
 	"set-property: command [obj [handle!] \"VideoCapture handle\" property [integer!] value [decimal!]]\n"\
 	"imread: command [src [file!]]\n"\
-	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
-	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] /name \"Optional window name\" window [any-string!]]\n"\
-	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
-	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
-	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] code [integer!]]\n"\
+	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] \"Image or cvMat handle\" /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
+	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] \"Image or cvMat handle\" /name \"Optional window name\" window [any-string!]]\n"\
+	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] \"Image or cvMat handle\" diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] \"Image or cvMat handle\" size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
+	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
@@ -109,7 +113,7 @@ MyCommandPointer Command[] = {
 	"moveWindow: command [\"Moves the window to the specified position.\" window [any-string!] pos [pair!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file!]]\n"\
-	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file!] fourcc [integer!] {4-character code of codec used to compress the frames} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
+	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
 	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
 	"free: command [\"Release VideoCapture or Mat handle\" class [handle!]]\n"\
@@ -450,4 +454,13 @@ MyCommandPointer Command[] = {
 	"CAP_PROP_ORIENTATION_AUTO: 49\n"\
 	"CAP_PROP_OPEN_TIMEOUT_MSEC: 53\n"\
 	"CAP_PROP_READ_TIMEOUT_MSEC: 54\n"\
+	"\n"\
+	"; InterpolationFlags\n"\
+	"INTER_NEAREST: 0\n"\
+	"INTER_LINEAR: 1\n"\
+	"INTER_CUBIC: 2\n"\
+	"INTER_AREA: 3\n"\
+	"INTER_LANCZOS4: 4\n"\
+	"INTER_LINEAR_EXACT: 5\n"\
+	"INTER_NEAREST_EXACT: 6\n"\
 	"\n"\

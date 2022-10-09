@@ -30,20 +30,20 @@ commands: [
 	imwrite: [
 		"Saves an image to a specified file."
 		name [any-string!]
-		image [image! handle!]
+		image [image! handle!] "Image or cvMat handle"
 		/with "Format-specific parameters encoded as pairs"
 		params [block!] "integer pairs (words are resolved)"
 	]
 	imshow: [
 		"Displays an image in the specified window."
-		src [image! handle!]
+		src [image! handle!] "Image or cvMat handle"
 		/name "Optional window name"
 		 window [any-string!]
 	]
 
 	bilateralFilter: [
 		"Applies the bilateral filter to an image."
-		image [image! handle!]
+		image [image! handle!] "Image or cvMat handle"
 		diameter [integer!]
 		sigmaColor [decimal!]
 		sigmaSpace [decimal!]
@@ -53,7 +53,7 @@ commands: [
 
 	blur: [
 		"Blurs an image using the normalized box filter."
-		image [image! handle!]
+		image [image! handle!] "Image or cvMat handle"
 		size [pair!] "blurring kernel size"
 		/border "border mode used to extrapolate pixels outside of the image"
 		type [integer!] "one of: [0 1 2 4 5 16]"
@@ -61,8 +61,18 @@ commands: [
 
 	cvtColor: [
 		"Converts an image from one color space to another."
-		image [image! handle!]
+		image [image! handle!] "Image or cvMat handle"
 		code [integer!]
+	]
+
+	resize: [
+		"Resizes an image."
+		image [image! handle!] "Image or cvMat handle"
+		size  [pair! percent!]
+		/into
+		target [handle!] "cvMat"
+		/with
+		interpolation [integer!]
 	]
 	
 
@@ -487,6 +497,15 @@ CAP_PROP_ORIENTATION_META: 48
 CAP_PROP_ORIENTATION_AUTO: 49
 CAP_PROP_OPEN_TIMEOUT_MSEC: 53
 CAP_PROP_READ_TIMEOUT_MSEC: 54
+
+; InterpolationFlags
+INTER_NEAREST: 0
+INTER_LINEAR: 1
+INTER_CUBIC: 2
+INTER_AREA: 3
+INTER_LANCZOS4: 4
+INTER_LINEAR_EXACT: 5
+INTER_NEAREST_EXACT: 6
 }
 
 ;print header
