@@ -89,7 +89,7 @@ commands: [
 	VideoWriter: [
 		"Initialize new VideoWriter class"
 		src    [integer! file!]
-		fourcc [integer!] "4-character code of codec used to compress the frames"
+		codec  [integer!] "4-character code of codec used to compress the frames (mp4ra.org/#/codecs)"
 		fps    [number!]  "Framerate of the created video stream"
 		size   [pair!]    "Size of the video frames"
 	]

@@ -118,14 +118,14 @@ with cv [
     ;set-property cam CAP_PROP_POS_FRAMES 2000.0 // can be used to set position in the video (file input)
 
     if frame: read :cam [
-        ;; initialize VideoWriter (when 0 is used as fourcc parameter, than the output will be MJPG)
+        ;; initialize VideoWriter (when 0 is used as codec parameter, than the output will be MJPG)
         out: VideoWriter %out.avi 0 24 size
         unless out [print "Failed to initialize VideoWriter!" quit]
 
         ;; grab 100 frames maximum...
         loop 100 [ 
             read/into :cam :frame    ;; reusing existing frame
-            write out :frame         ;; frame frame to the output video
+            write out :frame         ;; append the frame to the output video
             imshow :frame            ;; and also show it in the window
             if pollKey = 27 [break]  ;; exit on ESC key
             wait 0.01                ;; let Rebol breath as well
