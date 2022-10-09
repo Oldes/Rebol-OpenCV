@@ -138,3 +138,17 @@ with cv [
     print "done"
 ]
 ```
+VideoWriter expects integer for its codec input. It is possible to use function like this for the conversion:
+```rebol
+fourcc: func[
+    "Converts fourcc codec integer to string and back"
+    codec [any-string! binary! number!]][
+    either number? codec [
+        to string! reverse trim to binary! to integer! codec
+    ][
+        to integer! reverse to binary! codec
+    ]
+]
+fourcc "avc1"    ;== 828601953
+fourcc 828601953 ;== "avc1"
+```
