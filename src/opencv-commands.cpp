@@ -71,7 +71,7 @@ static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type) {
 
 static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
 	RXIARG arg = RXA_ARG(frm, index);
-	Mat *mat = new Mat(arg.width, arg.height, CV_8UC4);
+	Mat *mat = new Mat(arg.height, arg.width, CV_8UC4);
 	mat->data = ((REBSER*)arg.series)->data;
 	return mat;
 }
@@ -241,7 +241,7 @@ COMMAND cmd_write(RXIFRM *frm, void *ctx) {
 	} else { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 2);
-		image = Mat(arg.width, arg.height, CV_8UC4);
+		image = Mat(arg.height, arg.width, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
 		writer->write(image);
 	}
@@ -330,10 +330,10 @@ COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 	if (ARG_Is_Mat(2)) {
 		if (!ARG_Mat(2)) return RXR_FALSE;
 		result = imwrite(name, *ARG_Mat(2), params);
-	} else { // input is Rebol image
+	} else if(ARG_Is_Image(2)) { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 2);
-		image = Mat(arg.width, arg.height, CV_8UC4);
+		image = Mat(arg.height, arg.width, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
 		result = imwrite(name, image, params);
 	}
@@ -347,10 +347,11 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	if (ARG_Is_Mat(1)) {
 		if (!ARG_Mat(1)) return RXR_FALSE;
 		imshow(name, *ARG_Mat(1));
-	} else { // input is Rebol image
+	} else if(ARG_Is_Image(1)) { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 1);
-		image = Mat(arg.width, arg.height, CV_8UC4);
+		//printf("img %i %i\n", arg.width, arg.height);
+		image = Mat( arg.height, arg.width, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
 		imshow(name, image);
 	}
@@ -369,10 +370,10 @@ COMMAND cmd_bilateralFilter(RXIFRM *frm, void *ctx) {
 		if (!img) return RXR_FALSE;
 		bilateralFilter(*img, tmp, d, sigmaColor, sigmaSpace, borderType);
 		cvtColor(tmp, *img, COLOR_BGR2BGRA);
-	} else { // input is Rebol image
+	} else if(ARG_Is_Image(1)) { // input is Rebol image
 		Mat image, src, tmp;
 		RXIARG arg = RXA_ARG(frm, 1);
-		image = Mat(arg.width, arg.height, CV_8UC4);
+		image = Mat(arg.height, arg.width, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
 		// Rebol image is stored as BGRA, but the filter accpets only BGR
 		cvtColor(image, src, COLOR_BGRA2BGR);
@@ -391,10 +392,10 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 	if (ARG_Is_Mat(1)) {
 		if (!ARG_Mat(1)) return RXR_FALSE;
 		blur(*ARG_Mat(1), *ARG_Mat(1), ksize, anchor, borderType);
-	} else { // input is Rebol image
+	} else if(ARG_Is_Image(1)) { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 1);
-		image = Mat(arg.width, arg.height, CV_8UC4);
+		image = Mat(arg.height, arg.width, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
 		blur(image, image, ksize, anchor, borderType);
 	}
@@ -410,10 +411,10 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 	if (ARG_Is_Mat(1)) {
 		if (!ARG_Mat(1)) return RXR_FALSE;
 		cvtColor(*ARG_Mat(1), *dst, code);
-	} else { // input is Rebol image
+	} else if(ARG_Is_Image(1)) { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 1);
-		image = Mat(arg.width, arg.height, CV_8UC4);
+		image = Mat(arg.height, arg.width, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
 		cvtColor(image, *dst, code);
 	}
