@@ -23,6 +23,14 @@ extern "C" {
 #define ARG_Size(n)             Size(PAIR_X(frm,n), PAIR_Y(frm,n))
 #define ARG_String(n)           (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data)) //TODO: only ansii yet!
 
+enum MatProperties {
+	MAT_SIZE = 1,
+	MAT_TYPE,
+	MAT_CHANNELS,
+	MAT_BINARY,
+	MAT_IMAGE,
+};
+
 using namespace cv;
 using namespace std;
 
@@ -176,8 +184,60 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 	if (ARG_Is_VideoCapture(1)) {
 		VideoCapture *cap = ARG_VideoCapture(1);
 		result = cap->get(propid);
-	} else {
-		return RXR_FALSE;
+	}
+	else if (ARG_Is_Mat(1) && ARG_Mat(1)) {
+		Mat *mat = ARG_Mat(1);
+		switch(propid){
+			case MAT_SIZE: {
+				Size size = mat->size();
+				RXA_TYPE(frm,1) = RXT_PAIR;
+				RXA_PAIR(frm,1).x = size.width;
+				RXA_PAIR(frm,1).y = size.height;
+				return RXR_VALUE;
+			}
+			case MAT_TYPE: {
+				RXA_TYPE(frm,1) = RXT_INTEGER;
+				RXA_ARG(frm,1).int64 = mat->type();
+				return RXR_VALUE;
+			}
+			case MAT_CHANNELS: {
+				RXA_TYPE(frm,1) = RXT_INTEGER;
+				RXA_ARG(frm,1).int64 = mat->channels();
+				return RXR_VALUE;
+			}
+			case MAT_BINARY: {
+				int bytes = mat->elemSize() * mat->cols * mat->rows;
+				REBSER *bin = (REBSER *)RL_MAKE_STRING(bytes, FALSE);
+				//TODO: expects, that data are continuous!
+				memcpy(bin->data, mat->data,  bytes);
+				SERIES_TAIL(bin) = bytes;
+				RXA_SERIES(frm, 1) = bin;
+				RXA_TYPE  (frm, 1) = RXT_BINARY;
+				RXA_INDEX (frm, 1) = 0;
+				return RXR_VALUE;
+			}
+			case MAT_IMAGE: {
+				Mat tmp;
+				int channels = mat->channels();
+				if (channels == 1)
+					cvtColor(*mat, tmp, COLOR_GRAY2BGRA);
+				else if (channels == 3 || channels == 4)
+					cvtColor(*mat, tmp, COLOR_BGR2BGRA);
+				else return RXR_NONE;
+
+				REBSER *reb_image = (REBSER *)RL_MAKE_IMAGE(tmp.cols, tmp.rows);
+				memcpy(reb_image->data, tmp.data, tmp.elemSize()*tmp.cols*tmp.rows);
+
+				RXA_TYPE(frm, 1) = RXT_IMAGE;
+				RXA_ARG(frm, 1).width  = tmp.cols;
+				RXA_ARG(frm, 1).height = tmp.rows;
+				RXA_ARG(frm, 1).image  = reb_image;
+				return RXR_VALUE;
+			}
+		}
+	}
+	else {
+		return RXR_NONE;
 	}
 	RXA_TYPE(frm, 1) = RXT_DECIMAL;
 	RXA_DEC64(frm, 1) = result;

@@ -29,7 +29,7 @@ with cv [
     print "Press any key inside the opened window!"
     waitKey 0                  ;; wait for any key in the opened window
 
-    img: imread %/Users/oldes/GIT/Builder/assets/siskin-512.png
+    img: imread %image/mask.png
     if img [
         imshow img             ;; show the image using default name
         imshow/name img win    ;; show the image in the existing named window (resized)
@@ -45,6 +45,20 @@ with cv [
     destroyAllWindows
 ]
 ```
+
+Getting `cvMat` properties:
+```rebol
+with cv [
+    img: imread %image/mask.png
+    mat: resize img 10%
+    probe get-property mat MAT_SIZE
+    probe get-property mat MAT_TYPE
+    probe get-property mat MAT_CHANNELS
+    probe get-property mat MAT_BINARY
+    probe get-property mat MAT_IMAGE
+]
+```
+
 
 Video input example:
 ```rebol

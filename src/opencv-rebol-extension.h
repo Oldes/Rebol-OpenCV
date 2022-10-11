@@ -479,6 +479,13 @@ MyCommandPointer Command[] = {
 	"CAP_PROP_OPEN_TIMEOUT_MSEC: 53\n"\
 	"CAP_PROP_READ_TIMEOUT_MSEC: 54\n"\
 	"\n"\
+	"; MatProperties\n"\
+	"MAT_SIZE: 1\n"\
+	"MAT_TYPE: 2\n"\
+	"MAT_CHANNELS: 3\n"\
+	"MAT_BINARY: 4\n"\
+	"MAT_IMAGE: 5\n"\
+	"\n"\
 	"; InterpolationFlags\n"\
 	"INTER_NEAREST: 0\n"\
 	"INTER_LINEAR: 1\n"\
