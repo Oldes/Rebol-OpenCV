@@ -471,3 +471,20 @@ COMMAND cmd_resize(RXIFRM *frm, void *ctx) {
 	}
 }
 
+COMMAND cmd_threshold(RXIFRM *frm, void *ctx) {
+	Mat *src;
+	Mat *dst;
+
+	if (ARG_Is_Mat(1) && ARG_Mat(1)) { 
+		src = ARG_Mat(1);
+	} else return RXR_NONE;
+
+	if (ARG_Is_Mat(2) && ARG_Mat(2)) { 
+		dst = ARG_Mat(2);
+	} else return RXR_NONE;
+
+	RXA_TYPE(frm, 1) = RXT_DECIMAL;
+	RXA_DEC64(frm, 1) = threshold(*src, *dst, ARG_Double(3), ARG_Double(4), ARG_Int(5));
+	return RXR_VALUE;
+}
+

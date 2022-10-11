@@ -23,6 +23,7 @@ enum ext_commands {
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_CVTCOLOR,
 	CMD_OPENCV_RESIZE,
+	CMD_OPENCV_THRESHOLD,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
 	CMD_OPENCV_NAMEDWINDOW,
@@ -53,6 +54,7 @@ int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
 int cmd_resize(RXIFRM *frm, void *ctx);
+int cmd_threshold(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
@@ -79,6 +81,7 @@ MyCommandPointer Command[] = {
 	cmd_blur,
 	cmd_cvtColor,
 	cmd_resize,
+	cmd_threshold,
 	cmd_pollKey,
 	cmd_waitKey,
 	cmd_namedWindow,
@@ -106,6 +109,7 @@ MyCommandPointer Command[] = {
 	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] \"Image or cvMat handle\" size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
 	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
+	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle!] thresh [number!] maxval [number!] type [integer!]]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
@@ -464,3 +468,12 @@ MyCommandPointer Command[] = {
 	"INTER_LINEAR_EXACT: 5\n"\
 	"INTER_NEAREST_EXACT: 6\n"\
 	"\n"\
+	"; ThresholdTypes\n"\
+	"THRESH_BINARY: 0\n"\
+	"THRESH_BINARY_INV: 1\n"\
+	"THRESH_TRUNC: 2\n"\
+	"THRESH_TOZERO: 3\n"\
+	"THRESH_TOZERO_INV: 4\n"\
+	"THRESH_MASK: 7\n"\
+	"THRESH_OTSU: 8\n"\
+	"THRESH_TRIANGLE: 16\n"\
