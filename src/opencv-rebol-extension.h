@@ -24,12 +24,17 @@ enum ext_commands {
 	CMD_OPENCV_CVTCOLOR,
 	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_THRESHOLD,
+	CMD_OPENCV_BITWISE_AND,
+	CMD_OPENCV_BITWISE_OR,
+	CMD_OPENCV_BITWISE_XOR,
+	CMD_OPENCV_BITWISE_NOT,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
 	CMD_OPENCV_NAMEDWINDOW,
 	CMD_OPENCV_RESIZEWINDOW,
 	CMD_OPENCV_MOVEWINDOW,
 	CMD_OPENCV_DESTROYALLWINDOWS,
+	CMD_OPENCV_MAT,
 	CMD_OPENCV_VIDEOCAPTURE,
 	CMD_OPENCV_VIDEOWRITER,
 	CMD_OPENCV_READ,
@@ -55,12 +60,17 @@ int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
 int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
+int cmd_bitwise_and(RXIFRM *frm, void *ctx);
+int cmd_bitwise_or(RXIFRM *frm, void *ctx);
+int cmd_bitwise_xor(RXIFRM *frm, void *ctx);
+int cmd_bitwise_not(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
 int cmd_resizeWindow(RXIFRM *frm, void *ctx);
 int cmd_moveWindow(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
+int cmd_Mat(RXIFRM *frm, void *ctx);
 int cmd_VideoCapture(RXIFRM *frm, void *ctx);
 int cmd_VideoWriter(RXIFRM *frm, void *ctx);
 int cmd_read(RXIFRM *frm, void *ctx);
@@ -82,12 +92,17 @@ MyCommandPointer Command[] = {
 	cmd_cvtColor,
 	cmd_resize,
 	cmd_threshold,
+	cmd_bitwise_and,
+	cmd_bitwise_or,
+	cmd_bitwise_xor,
+	cmd_bitwise_not,
 	cmd_pollKey,
 	cmd_waitKey,
 	cmd_namedWindow,
 	cmd_resizeWindow,
 	cmd_moveWindow,
 	cmd_destroyAllWindows,
+	cmd_Mat,
 	cmd_VideoCapture,
 	cmd_VideoWriter,
 	cmd_read,
@@ -110,12 +125,17 @@ MyCommandPointer Command[] = {
 	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
 	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle!] thresh [number!] maxval [number!] type [integer!]]\n"\
+	"bitwise-and: command [{Computes bitwise conjunction of the two arrays (dst = src1 & src2)} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"bitwise-or: command [{Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"bitwise-xor: command [\"Calculates the per-element bit-wise \" exclusive or \" operation on two arrays or an array and a scalar.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"bitwise-not: command [\"Inverts every bit of an array.\" src [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
 	"resizeWindow: command [\"Resizes the window to the specified size.\" window [any-string!] size [pair!]]\n"\
 	"moveWindow: command [\"Moves the window to the specified position.\" window [any-string!] pos [pair!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
+	"Mat: command [\"Initialize new Mat class\" spec [pair! handle! image!] /as type [integer!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file!]]\n"\
 	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\

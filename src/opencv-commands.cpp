@@ -94,6 +94,32 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
+COMMAND cmd_Mat(RXIFRM *frm, void *ctx) {
+	Mat *mat;
+	Size size;
+	int type;
+	
+	if (ARG_Is_Image(1)) {
+		mat = new_Mat_From_Image_Arg(frm, 1);
+	} else {
+		if(ARG_Is_Mat(1)) {
+			if (!ARG_Mat(1)) return RXR_NONE;
+			mat = ARG_Mat(1);
+			size = mat->size();
+			type = mat->type();
+		}
+		else {
+			size = ARG_Size(1);
+		}
+		if (ARG_Is_Integer(3)) {
+			type = ARG_Int(3);
+		}
+		mat = new Mat(size, type, Scalar(0,0,0));
+	}
+
+	return initRXHandle(frm, 1, mat, Handle_cvMat);
+}
+
 COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
 	VideoCapture *cap;
 	int deviceID;
@@ -486,5 +512,106 @@ COMMAND cmd_threshold(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_DECIMAL;
 	RXA_DEC64(frm, 1) = threshold(*src, *dst, ARG_Double(3), ARG_Double(4), ARG_Int(5));
 	return RXR_VALUE;
+}
+
+
+enum  BitwiseOp {
+  BITWISE_AND = 0,
+  BITWISE_OR  = 1,
+  BITWISE_XOR = 2,
+};
+
+static int bitwise_op(RXIFRM *frm, void *ctx, int op) {
+	Mat *src1;
+	Mat *src2;
+	Mat *dst;
+	Mat *mask = NULL;
+	bool newHandle = FALSE;
+
+	src1 = ARG_Mat(1);
+	src2 = ARG_Mat(2);
+
+	if (ARG_Is_Mat(4)) { // /into handle
+		dst = ARG_Mat(4);
+	} else {
+		newHandle = TRUE;
+		dst = new Mat();
+	}
+
+	if (ARG_Is_Mat(6)) { // mask
+		mask = ARG_Mat(6);
+	}
+
+	if (!src1 || !src2 || !dst ) return RXR_NONE;
+
+	if (mask) {
+		switch (op){
+			case BITWISE_AND: bitwise_and(*src1, *src2, *dst, *mask); break;
+			case BITWISE_OR:  bitwise_or(*src1, *src2, *dst, *mask); break;
+			case BITWISE_XOR: bitwise_xor(*src1, *src2, *dst, *mask); break;
+		}
+	} else {
+		switch (op){
+			case BITWISE_AND: bitwise_and(*src1, *src2, *dst); break;
+			case BITWISE_OR:  bitwise_or(*src1, *src2, *dst); break;
+			case BITWISE_XOR: bitwise_xor(*src1, *src2, *dst); break;
+		}
+	}
+
+	if (newHandle) {
+		return initRXHandle(frm, 1, dst, Handle_cvMat);
+	}
+	else {
+		// requested output to given existing array
+		RXA_ARG(frm, 1) = RXA_ARG(frm, 4);
+		return RXR_VALUE;
+	}
+}
+
+COMMAND cmd_bitwise_and(RXIFRM *frm, void *ctx) {
+	return bitwise_op(frm, ctx, BITWISE_AND);
+}
+COMMAND cmd_bitwise_or(RXIFRM *frm, void *ctx) {
+	return bitwise_op(frm, ctx, BITWISE_AND);
+}
+COMMAND cmd_bitwise_xor(RXIFRM *frm, void *ctx) {
+	return bitwise_op(frm, ctx, BITWISE_AND);
+}
+
+COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
+	Mat *src;
+	Mat *dst;
+	Mat *mask = NULL;
+	bool newHandle = FALSE;
+
+	src = ARG_Mat(1);
+
+	if (ARG_Is_Mat(3)) { // /into handle
+		dst = ARG_Mat(3);
+	} else {
+		newHandle = TRUE;
+		dst = new Mat();
+	}
+
+	if (ARG_Is_Mat(5)) { // mask
+		mask = ARG_Mat(5);
+	}
+
+	if (!src || !dst ) return RXR_NONE;
+
+	if (mask) {
+		bitwise_not(*src, *dst, *mask);
+	} else {
+		bitwise_not(*src, *dst);
+	}
+
+	if (newHandle) {
+		return initRXHandle(frm, 1, dst, Handle_cvMat);
+	}
+	else {
+		// requested output to given existing array
+		RXA_ARG(frm, 1) = RXA_ARG(frm, 3);
+		return RXR_VALUE;
+	}
 }
 

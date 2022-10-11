@@ -84,6 +84,41 @@ commands: [
 		type [integer!]
 	]
 	
+	bitwise-and: [
+		"Computes bitwise conjunction of the two arrays (dst = src1 & src2)"
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/mask
+		m    [handle!] "cvMat"
+	]
+	bitwise-or: [
+		"Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/mask
+		m    [handle!] "cvMat"
+	]
+	bitwise-xor: [
+		"Calculates the per-element bit-wise "exclusive or" operation on two arrays or an array and a scalar."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/mask
+		m    [handle!] "cvMat"
+	]
+	bitwise-not: [
+		"Inverts every bit of an array."
+		src [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/mask
+		m    [handle!] "cvMat"
+	]
 
 	pollKey: ["Polls for a pressed key."]
 	waitKey: ["Waits for a pressed key." delay [integer!] "In millisecons; infinitely when <=0"]
@@ -101,6 +136,11 @@ commands: [
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
 
 
+	Mat: [
+		"Initialize new Mat class"
+		spec [pair! handle! image!]
+		/as type [integer!]
+	]
 	VideoCapture: [
 		"Initialize new VideoCapture class"
 		src [integer! file!]
