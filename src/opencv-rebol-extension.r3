@@ -133,6 +133,12 @@ commands: [
 		window [any-string!]
 		pos    [pair!]
 	]
+	setWindowProperty: [
+		"Changes parameters of a window dynamically."
+		name [any-string!]
+		property [integer!]
+		value [number!]
+	]
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
 
 
@@ -546,6 +552,23 @@ CAP_PROP_ORIENTATION_META: 48
 CAP_PROP_ORIENTATION_AUTO: 49
 CAP_PROP_OPEN_TIMEOUT_MSEC: 53
 CAP_PROP_READ_TIMEOUT_MSEC: 54
+
+; WindowPropertyFlags
+WND_PROP_FULLSCREEN: 0
+WND_PROP_AUTOSIZE: 1
+WND_PROP_ASPECT_RATIO: 2
+WND_PROP_OPENGL: 3
+WND_PROP_VISIBLE: 4
+WND_PROP_TOPMOST: 5
+; WindowFlags
+WINDOW_NORMAL: 0
+WINDOW_AUTOSIZE: 1  ;0x00000001
+WINDOW_OPENGL: 4096 ;0x00001000
+WINDOW_FULLSCREEN: 1
+WINDOW_FREERATIO: 256 ;0x00000100
+WINDOW_KEEPRATIO: 0
+WINDOW_GUI_EXPANDED: 0
+WINDOW_GUI_NORMAL: 16
 
 ; MatProperties
 MAT_SIZE: 1

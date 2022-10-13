@@ -33,6 +33,7 @@ enum ext_commands {
 	CMD_OPENCV_NAMEDWINDOW,
 	CMD_OPENCV_RESIZEWINDOW,
 	CMD_OPENCV_MOVEWINDOW,
+	CMD_OPENCV_SETWINDOWPROPERTY,
 	CMD_OPENCV_DESTROYALLWINDOWS,
 	CMD_OPENCV_MAT,
 	CMD_OPENCV_VIDEOCAPTURE,
@@ -69,6 +70,7 @@ int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
 int cmd_resizeWindow(RXIFRM *frm, void *ctx);
 int cmd_moveWindow(RXIFRM *frm, void *ctx);
+int cmd_setWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
 int cmd_Mat(RXIFRM *frm, void *ctx);
 int cmd_VideoCapture(RXIFRM *frm, void *ctx);
@@ -101,6 +103,7 @@ MyCommandPointer Command[] = {
 	cmd_namedWindow,
 	cmd_resizeWindow,
 	cmd_moveWindow,
+	cmd_setWindowProperty,
 	cmd_destroyAllWindows,
 	cmd_Mat,
 	cmd_VideoCapture,
@@ -134,6 +137,7 @@ MyCommandPointer Command[] = {
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
 	"resizeWindow: command [\"Resizes the window to the specified size.\" window [any-string!] size [pair!]]\n"\
 	"moveWindow: command [\"Moves the window to the specified position.\" window [any-string!] pos [pair!]]\n"\
+	"setWindowProperty: command [\"Changes parameters of a window dynamically.\" name [any-string!] property [integer!] value [number!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"Mat: command [\"Initialize new Mat class\" spec [pair! handle! image!] /as type [integer!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file!]]\n"\
@@ -478,6 +482,23 @@ MyCommandPointer Command[] = {
 	"CAP_PROP_ORIENTATION_AUTO: 49\n"\
 	"CAP_PROP_OPEN_TIMEOUT_MSEC: 53\n"\
 	"CAP_PROP_READ_TIMEOUT_MSEC: 54\n"\
+	"\n"\
+	"; WindowPropertyFlags\n"\
+	"WND_PROP_FULLSCREEN: 0\n"\
+	"WND_PROP_AUTOSIZE: 1\n"\
+	"WND_PROP_ASPECT_RATIO: 2\n"\
+	"WND_PROP_OPENGL: 3\n"\
+	"WND_PROP_VISIBLE: 4\n"\
+	"WND_PROP_TOPMOST: 5\n"\
+	"; WindowFlags\n"\
+	"WINDOW_NORMAL: 0\n"\
+	"WINDOW_AUTOSIZE: 1  ;0x00000001\n"\
+	"WINDOW_OPENGL: 4096 ;0x00001000\n"\
+	"WINDOW_FULLSCREEN: 1\n"\
+	"WINDOW_FREERATIO: 256 ;0x00000100\n"\
+	"WINDOW_KEEPRATIO: 0\n"\
+	"WINDOW_GUI_EXPANDED: 0\n"\
+	"WINDOW_GUI_NORMAL: 16\n"\
 	"\n"\
 	"; MatProperties\n"\
 	"MAT_SIZE: 1\n"\

@@ -361,6 +361,11 @@ COMMAND cmd_moveWindow(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
+COMMAND cmd_setWindowProperty(RXIFRM *frm, void *ctx) {
+	setWindowProperty(ARG_String(1), ARG_Int(2), ARG_Double(3));
+	return RXR_UNSET;
+}
+
 COMMAND cmd_destroyAllWindows(RXIFRM *frm, void *ctx) {
 	destroyAllWindows();
 	pollKey();
