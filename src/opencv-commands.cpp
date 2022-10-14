@@ -411,12 +411,13 @@ COMMAND cmd_moveWindow(RXIFRM *frm, void *ctx) {
 }
 
 COMMAND cmd_getWindowProperty(RXIFRM *frm, void *ctx) {
-	getWindowProperty(ARG_String(1), ARG_Int(2));
-	return RXR_UNSET;
+	RXA_TYPE(frm, 1) = RXT_DECIMAL;
+	RXA_DEC64(frm, 1) = getWindowProperty(ARG_String(1), ARG_Int(2));
+	return RXR_VALUE;
 }
 
 COMMAND cmd_setWindowProperty(RXIFRM *frm, void *ctx) {
-	setWindowProperty(ARG_String(1), ARG_Int(2), ARG_Double(3));
+	setWindowProperty(ARG_String(1), ARG_Int(2), ARG_Int(3));
 	return RXR_UNSET;
 }
 
@@ -635,6 +636,23 @@ COMMAND cmd_threshold(RXIFRM *frm, void *ctx) {
 
 	RXA_TYPE(frm, 1) = RXT_DECIMAL;
 	RXA_DEC64(frm, 1) = threshold(*src, *dst, ARG_Double(3), ARG_Double(4), ARG_Int(5));
+	return RXR_VALUE;
+}
+
+
+COMMAND cmd_addWeighted(RXIFRM *frm, void *ctx) {
+	Mat *src1    = ARG_Mat(1);
+	double alpha = ARG_Double(2);
+	Mat *src2    = ARG_Mat(3);
+	double beta  = ARG_Double(4);
+	double delta = ARG_Double(5); 
+	Mat *dst     = ARG_Mat(6);
+
+	if(!src1 || !src2 || !dst) return RXR_NONE;
+
+	addWeighted(*src1, alpha, *src2, beta, delta, *dst);
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 6);
 	return RXR_VALUE;
 }
 

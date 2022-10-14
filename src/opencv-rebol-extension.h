@@ -24,6 +24,7 @@ enum ext_commands {
 	CMD_OPENCV_CVTCOLOR,
 	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_THRESHOLD,
+	CMD_OPENCV_ADDWEIGHTED,
 	CMD_OPENCV_BITWISE_AND,
 	CMD_OPENCV_BITWISE_OR,
 	CMD_OPENCV_BITWISE_XOR,
@@ -63,6 +64,7 @@ int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
 int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
+int cmd_addWeighted(RXIFRM *frm, void *ctx);
 int cmd_bitwise_and(RXIFRM *frm, void *ctx);
 int cmd_bitwise_or(RXIFRM *frm, void *ctx);
 int cmd_bitwise_xor(RXIFRM *frm, void *ctx);
@@ -98,6 +100,7 @@ MyCommandPointer Command[] = {
 	cmd_cvtColor,
 	cmd_resize,
 	cmd_threshold,
+	cmd_addWeighted,
 	cmd_bitwise_and,
 	cmd_bitwise_or,
 	cmd_bitwise_xor,
@@ -134,6 +137,7 @@ MyCommandPointer Command[] = {
 	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
 	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle!] thresh [number!] maxval [number!] type [integer!]]\n"\
+	"addWeighted: command [\"Calculates the weighted sum of two arrays.\" src1 [handle!] \"cvMat\" alpha [number!] \"weight of the first array elements.\" src2 [handle!] \"cvMat\" beta [number!] \"weight of the second array elements.\" gamma [number!] \"scalar added to each sum.\" dst [handle!] \"cvMat\"]\n"\
 	"bitwise-and: command [{Computes bitwise conjunction of the two arrays (dst = src1 & src2)} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-or: command [{Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-xor: command [\"Calculates the per-element bit-wise \" exclusive or \" operation on two arrays or an array and a scalar.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\

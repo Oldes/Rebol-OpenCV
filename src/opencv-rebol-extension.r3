@@ -85,6 +85,16 @@ commands: [
 		maxval [number!]
 		type [integer!]
 	]
+
+	addWeighted: [
+		"Calculates the weighted sum of two arrays."
+		src1 [handle!] "cvMat"
+		alpha [number!] "weight of the first array elements."
+		src2 [handle!] "cvMat"
+		beta [number!] "weight of the second array elements."
+		gamma [number!]	"scalar added to each sum."
+		dst [handle!] "cvMat"
+	]
 	
 	bitwise-and: [
 		"Computes bitwise conjunction of the two arrays (dst = src1 & src2)"
