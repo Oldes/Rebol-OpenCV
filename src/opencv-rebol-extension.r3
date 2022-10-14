@@ -159,8 +159,8 @@ commands: [
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
 	destroyWindow: ["Destroys the specified window." window [any-string!]]
 
-	Mat: [
-		"Initialize new Mat class"
+	Matrix: [
+		"Initialize new cvMat class"
 		spec [pair! handle! image!]
 		/as type [integer!]
 	]

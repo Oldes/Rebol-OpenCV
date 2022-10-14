@@ -148,7 +148,7 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
-COMMAND cmd_Mat(RXIFRM *frm, void *ctx) {
+COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	Mat *mat;
 	Size size;
 	int type;

@@ -38,7 +38,7 @@ enum ext_commands {
 	CMD_OPENCV_SETWINDOWPROPERTY,
 	CMD_OPENCV_DESTROYALLWINDOWS,
 	CMD_OPENCV_DESTROYWINDOW,
-	CMD_OPENCV_MAT,
+	CMD_OPENCV_MATRIX,
 	CMD_OPENCV_VIDEOCAPTURE,
 	CMD_OPENCV_VIDEOWRITER,
 	CMD_OPENCV_READ,
@@ -78,7 +78,7 @@ int cmd_getWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_setWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
 int cmd_destroyWindow(RXIFRM *frm, void *ctx);
-int cmd_Mat(RXIFRM *frm, void *ctx);
+int cmd_Matrix(RXIFRM *frm, void *ctx);
 int cmd_VideoCapture(RXIFRM *frm, void *ctx);
 int cmd_VideoWriter(RXIFRM *frm, void *ctx);
 int cmd_read(RXIFRM *frm, void *ctx);
@@ -114,7 +114,7 @@ MyCommandPointer Command[] = {
 	cmd_setWindowProperty,
 	cmd_destroyAllWindows,
 	cmd_destroyWindow,
-	cmd_Mat,
+	cmd_Matrix,
 	cmd_VideoCapture,
 	cmd_VideoWriter,
 	cmd_read,
@@ -151,7 +151,7 @@ MyCommandPointer Command[] = {
 	"setWindowProperty: command [\"Changes parameters of a window dynamically.\" name [any-string!] property [integer!] value [number!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"destroyWindow: command [\"Destroys the specified window.\" window [any-string!]]\n"\
-	"Mat: command [\"Initialize new Mat class\" spec [pair! handle! image!] /as type [integer!]]\n"\
+	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image!] /as type [integer!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
 	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
@@ -538,3 +538,13 @@ MyCommandPointer Command[] = {
 	"THRESH_MASK: 7\n"\
 	"THRESH_OTSU: 8\n"\
 	"THRESH_TRIANGLE: 16\n"\
+	"\n"\
+	"; Depths:\n"\
+	"CV_8U:   0\n"\
+	"CV_8S:   1\n"\
+	"CV_16U:  2\n"\
+	"CV_16S:  3\n"\
+	"CV_32S:  4\n"\
+	"CV_32F:  5\n"\
+	"CV_64F:  6\n"\
+	"\n"\
