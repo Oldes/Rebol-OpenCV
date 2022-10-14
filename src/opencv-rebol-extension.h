@@ -515,9 +515,10 @@ MyCommandPointer Command[] = {
 	"; MatProperties\n"\
 	"MAT_SIZE: 1\n"\
 	"MAT_TYPE: 2\n"\
-	"MAT_CHANNELS: 3\n"\
-	"MAT_BINARY: 4\n"\
-	"MAT_IMAGE: 5\n"\
+	"MAT_DEPTH: 3\n"\
+	"MAT_CHANNELS: 4\n"\
+	"MAT_BINARY: 5\n"\
+	"MAT_IMAGE: 6\n"\
 	"\n"\
 	"; InterpolationFlags\n"\
 	"INTER_NEAREST: 0\n"\

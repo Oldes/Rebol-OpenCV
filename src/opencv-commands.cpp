@@ -26,6 +26,7 @@ extern "C" {
 enum MatProperties {
 	MAT_SIZE = 1,
 	MAT_TYPE,
+	MAT_DEPTH,
 	MAT_CHANNELS,
 	MAT_BINARY,
 	MAT_IMAGE,
@@ -246,6 +247,11 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 			case MAT_TYPE: {
 				RXA_TYPE(frm,1) = RXT_INTEGER;
 				RXA_ARG(frm,1).int64 = mat->type();
+				return RXR_VALUE;
+			}
+			case MAT_DEPTH: {
+				RXA_TYPE(frm,1) = RXT_INTEGER;
+				RXA_ARG(frm,1).int64 = mat->depth();
 				return RXR_VALUE;
 			}
 			case MAT_CHANNELS: {
