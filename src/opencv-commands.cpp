@@ -85,20 +85,65 @@ static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
 }
 
 COMMAND cmd_test(RXIFRM *frm, void *ctx) {
-	Mat image;
-	image = imread("/Users/oldes/GIT/Builder/assets/siskin-512.png", IMREAD_UNCHANGED);
-	if(image.empty()) return RXR_NONE;
+	Mat src;
+    // use default camera as video source
+    VideoCapture cap(0);
+    // check if we succeeded
+    if (!cap.isOpened()) {
+        cerr << "ERROR! Unable to open camera\n";
+        return -1;
+    }
+    // get one frame from camera to know frame size and type
+    cap >> src;
+    // check if we succeeded
+    if (src.empty()) {
+        cerr << "ERROR! blank frame grabbed\n";
+        return -1;
+    }
+    bool isColor = (src.type() == CV_8UC3);
+    //--- INITIALIZE VIDEOWRITER
+    VideoWriter writer;
+    int codec = VideoWriter::fourcc('M', 'J', 'P', 'G');  // select desired codec (must be available at runtime)
+    double fps = 25.0;                          // framerate of the created video stream
+    string filename = "./live.avi";             // name of the output video file
+    writer.open(filename, codec, fps, src.size(), isColor);
+    // check if we succeeded
+    if (!writer.isOpened()) {
+        cerr << "Could not open the output video file for write\n";
+        return -1;
+    }
+    //--- GRAB AND WRITE LOOP
+    cout << "Writing videofile: " << filename << endl
+         << "Press any key to terminate" << endl;
+    for (;;)
+    {
+        // check if we succeeded
+        if (!cap.read(src)) {
+            cerr << "ERROR! blank frame grabbed\n";
+            continue;
+        }
+        // encode the frame into the videofile stream
+        writer.write(src);
+        // show live and wait for a key with timeout long enough to show images
+        imshow("Live", src);
+        if (waitKey(5) >= 0)
+            break;
+    }
 
-	auto detector = SiftFeatureDetector::create();
-	vector <cv::KeyPoint> keypoints;
-	detector->detect(image, keypoints);
-	// Show the keypoints on the image.
-	Mat image_with_keypoints ;
-	drawKeypoints (image , keypoints , image_with_keypoints );
-
-	imshow("Display window", image_with_keypoints);
-	moveWindow("Display window", 300, 300);
-	int k = waitKey(0); // Wait for a keystroke in the window
+//	Mat image;
+//	image = imread("/Users/oldes/GIT/Builder/assets/siskin-512.png", IMREAD_UNCHANGED);
+//	if(image.empty()) return RXR_NONE;
+//
+//	auto detector = SiftFeatureDetector::create();
+//	vector <cv::KeyPoint> keypoints;
+//	detector->detect(image, keypoints);
+//	// Show the keypoints on the image.
+//	Mat image_with_keypoints ;
+//	drawKeypoints (image , keypoints , image_with_keypoints );
+//
+//	imshow("Display window", image_with_keypoints);
+//	moveWindow("Display window", 300, 300);
+//	int k = waitKey(0); // Wait for a keystroke in the window
 	return RXR_UNSET;
 }
 
@@ -165,11 +210,14 @@ COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
 
 	writer = new VideoWriter();
 
-	writer->open(name, codec, fps, size, TRUE);
+	writer->open(name, codec, fps, size, true);
 	if (!writer->isOpened()) {
+		puts("Not opened!");
 		writer->release();
 		return RXR_FALSE;
 	}
+
+	cout << writer->getBackendName() << endl;
 
 	return initRXHandle(frm, 1, writer, Handle_cvVideoWriter);
 }
@@ -325,13 +373,14 @@ COMMAND cmd_write(RXIFRM *frm, void *ctx) {
 		if (!ARG_Mat(2)) return RXR_FALSE;
 		writer->write(*ARG_Mat(2));
 	} else { // input is Rebol image
-		Mat image;
+		Mat image , mat;
 		RXIARG arg = RXA_ARG(frm, 2);
 		image = Mat(arg.height, arg.width, CV_8UC4);
 		image.data = ((REBSER*)arg.series)->data;
-		writer->write(image);
+		image.convertTo(mat, CV_8UC3);
+		writer->write(mat);
 	}
-	return RXR_UNSET;
+	return RXR_TRUE;
 }
 
 COMMAND cmd_pollKey(RXIFRM *frm, void *ctx) {
@@ -358,6 +407,11 @@ COMMAND cmd_resizeWindow(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_moveWindow(RXIFRM *frm, void *ctx) {
 	moveWindow(ARG_String(1), PAIR_X(frm,2), PAIR_Y(frm,2));
+	return RXR_UNSET;
+}
+
+COMMAND cmd_getWindowProperty(RXIFRM *frm, void *ctx) {
+	getWindowProperty(ARG_String(1), ARG_Int(2));
 	return RXR_UNSET;
 }
 

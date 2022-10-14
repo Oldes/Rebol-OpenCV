@@ -26,7 +26,9 @@ commands: [
 		value [decimal!]
 	]
 
-	imread: [src [file!]]
+	imread: [
+		src [file! string!]
+	]
 	imwrite: [
 		"Saves an image to a specified file."
 		name [any-string!]
@@ -133,6 +135,11 @@ commands: [
 		window [any-string!]
 		pos    [pair!]
 	]
+	getWindowProperty: [
+		"Provides parameters of a window."
+		name [any-string!]
+		property [integer!]
+	]
 	setWindowProperty: [
 		"Changes parameters of a window dynamically."
 		name [any-string!]
@@ -149,11 +156,11 @@ commands: [
 	]
 	VideoCapture: [
 		"Initialize new VideoCapture class"
-		src [integer! file!]
+		src [integer! file! string!]
 	]
 	VideoWriter: [
 		"Initialize new VideoWriter class"
-		src    [integer! file!]
+		src    [integer! file! string!]
 		codec  [integer!] "4-character code of codec used to compress the frames (mp4ra.org/#/codecs)"
 		fps    [number!]  "Framerate of the created video stream"
 		size   [pair!]    "Size of the video frames"

@@ -33,6 +33,7 @@ enum ext_commands {
 	CMD_OPENCV_NAMEDWINDOW,
 	CMD_OPENCV_RESIZEWINDOW,
 	CMD_OPENCV_MOVEWINDOW,
+	CMD_OPENCV_GETWINDOWPROPERTY,
 	CMD_OPENCV_SETWINDOWPROPERTY,
 	CMD_OPENCV_DESTROYALLWINDOWS,
 	CMD_OPENCV_MAT,
@@ -70,6 +71,7 @@ int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
 int cmd_resizeWindow(RXIFRM *frm, void *ctx);
 int cmd_moveWindow(RXIFRM *frm, void *ctx);
+int cmd_getWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_setWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
 int cmd_Mat(RXIFRM *frm, void *ctx);
@@ -103,6 +105,7 @@ MyCommandPointer Command[] = {
 	cmd_namedWindow,
 	cmd_resizeWindow,
 	cmd_moveWindow,
+	cmd_getWindowProperty,
 	cmd_setWindowProperty,
 	cmd_destroyAllWindows,
 	cmd_Mat,
@@ -120,7 +123,7 @@ MyCommandPointer Command[] = {
 	"startWindowThread: command []\n"\
 	"get-property: command [\"Returns a property value\" obj [handle!] \"VideoCapture handle\" property [integer!]]\n"\
 	"set-property: command [obj [handle!] \"VideoCapture handle\" property [integer!] value [decimal!]]\n"\
-	"imread: command [src [file!]]\n"\
+	"imread: command [src [file! string!]]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] \"Image or cvMat handle\" /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] \"Image or cvMat handle\" /name \"Optional window name\" window [any-string!]]\n"\
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] \"Image or cvMat handle\" diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
@@ -137,11 +140,12 @@ MyCommandPointer Command[] = {
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
 	"resizeWindow: command [\"Resizes the window to the specified size.\" window [any-string!] size [pair!]]\n"\
 	"moveWindow: command [\"Moves the window to the specified position.\" window [any-string!] pos [pair!]]\n"\
+	"getWindowProperty: command [\"Provides parameters of a window.\" name [any-string!] property [integer!]]\n"\
 	"setWindowProperty: command [\"Changes parameters of a window dynamically.\" name [any-string!] property [integer!] value [number!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"Mat: command [\"Initialize new Mat class\" spec [pair! handle! image!] /as type [integer!]]\n"\
-	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file!]]\n"\
-	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
+	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
+	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
 	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
 	"free: command [\"Release VideoCapture or Mat handle\" class [handle!]]\n"\
