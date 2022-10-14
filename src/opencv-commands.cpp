@@ -426,6 +426,11 @@ COMMAND cmd_destroyAllWindows(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
+COMMAND cmd_destroyWindow(RXIFRM *frm, void *ctx) {
+	destroyWindow(ARG_String(1));
+	return RXR_UNSET;
+}
+
 
 COMMAND cmd_startWindowThread(RXIFRM *frm, void *ctx) {
 	startWindowThread();

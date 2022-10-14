@@ -36,6 +36,7 @@ enum ext_commands {
 	CMD_OPENCV_GETWINDOWPROPERTY,
 	CMD_OPENCV_SETWINDOWPROPERTY,
 	CMD_OPENCV_DESTROYALLWINDOWS,
+	CMD_OPENCV_DESTROYWINDOW,
 	CMD_OPENCV_MAT,
 	CMD_OPENCV_VIDEOCAPTURE,
 	CMD_OPENCV_VIDEOWRITER,
@@ -74,6 +75,7 @@ int cmd_moveWindow(RXIFRM *frm, void *ctx);
 int cmd_getWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_setWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
+int cmd_destroyWindow(RXIFRM *frm, void *ctx);
 int cmd_Mat(RXIFRM *frm, void *ctx);
 int cmd_VideoCapture(RXIFRM *frm, void *ctx);
 int cmd_VideoWriter(RXIFRM *frm, void *ctx);
@@ -108,6 +110,7 @@ MyCommandPointer Command[] = {
 	cmd_getWindowProperty,
 	cmd_setWindowProperty,
 	cmd_destroyAllWindows,
+	cmd_destroyWindow,
 	cmd_Mat,
 	cmd_VideoCapture,
 	cmd_VideoWriter,
@@ -143,6 +146,7 @@ MyCommandPointer Command[] = {
 	"getWindowProperty: command [\"Provides parameters of a window.\" name [any-string!] property [integer!]]\n"\
 	"setWindowProperty: command [\"Changes parameters of a window dynamically.\" name [any-string!] property [integer!] value [number!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
+	"destroyWindow: command [\"Destroys the specified window.\" window [any-string!]]\n"\
 	"Mat: command [\"Initialize new Mat class\" spec [pair! handle! image!] /as type [integer!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
 	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\

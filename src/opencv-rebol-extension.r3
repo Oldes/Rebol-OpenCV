@@ -147,7 +147,7 @@ commands: [
 		value [number!]
 	]
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
-
+	destroyWindow: ["Destroys the specified window." window [any-string!]]
 
 	Mat: [
 		"Initialize new Mat class"
