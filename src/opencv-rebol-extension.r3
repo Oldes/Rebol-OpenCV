@@ -191,6 +191,14 @@ commands: [
 		"Release VideoCapture or Mat handle"
 		class [handle!]
 	]
+
+	getTickCount: ["Returns the number of ticks."]
+	getTickFrequency: ["Returns the number of ticks per second."]
+	getNumThreads: ["Returns the number of threads used by OpenCV for parallel regions."]
+	getVersionString: ["Returns library version string."]
+	getBuildInformation: ["Returns full configuration time cmake output."]
+	useOptimized: ["Returns the status of optimized code usage."]
+	setUseOptimized: ["Enables or disables the optimized code." onoff [logic!]]
 	;--------------------------
 ]
 

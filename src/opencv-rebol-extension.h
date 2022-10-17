@@ -44,6 +44,13 @@ enum ext_commands {
 	CMD_OPENCV_READ,
 	CMD_OPENCV_WRITE,
 	CMD_OPENCV_FREE,
+	CMD_OPENCV_GETTICKCOUNT,
+	CMD_OPENCV_GETTICKFREQUENCY,
+	CMD_OPENCV_GETNUMTHREADS,
+	CMD_OPENCV_GETVERSIONSTRING,
+	CMD_OPENCV_GETBUILDINFORMATION,
+	CMD_OPENCV_USEOPTIMIZED,
+	CMD_OPENCV_SETUSEOPTIMIZED,
 };
 enum ext_cmd_words {W_OPENCV_CMD_0,
 };
@@ -84,6 +91,13 @@ int cmd_VideoWriter(RXIFRM *frm, void *ctx);
 int cmd_read(RXIFRM *frm, void *ctx);
 int cmd_write(RXIFRM *frm, void *ctx);
 int cmd_free(RXIFRM *frm, void *ctx);
+int cmd_getTickCount(RXIFRM *frm, void *ctx);
+int cmd_getTickFrequency(RXIFRM *frm, void *ctx);
+int cmd_getNumThreads(RXIFRM *frm, void *ctx);
+int cmd_getVersionString(RXIFRM *frm, void *ctx);
+int cmd_getBuildInformation(RXIFRM *frm, void *ctx);
+int cmd_useOptimized(RXIFRM *frm, void *ctx);
+int cmd_setUseOptimized(RXIFRM *frm, void *ctx);
 
 typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 MyCommandPointer Command[] = {
@@ -120,6 +134,13 @@ MyCommandPointer Command[] = {
 	cmd_read,
 	cmd_write,
 	cmd_free,
+	cmd_getTickCount,
+	cmd_getTickFrequency,
+	cmd_getNumThreads,
+	cmd_getVersionString,
+	cmd_getBuildInformation,
+	cmd_useOptimized,
+	cmd_setUseOptimized,
 };
 
 #define OPENCV_EXT_INIT_CODE \
@@ -157,6 +178,13 @@ MyCommandPointer Command[] = {
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
 	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
 	"free: command [\"Release VideoCapture or Mat handle\" class [handle!]]\n"\
+	"getTickCount: command [\"Returns the number of ticks.\"]\n"\
+	"getTickFrequency: command [\"Returns the number of ticks per second.\"]\n"\
+	"getNumThreads: command [{Returns the number of threads used by OpenCV for parallel regions.}]\n"\
+	"getVersionString: command [\"Returns library version string.\"]\n"\
+	"getBuildInformation: command [\"Returns full configuration time cmake output.\"]\n"\
+	"useOptimized: command [\"Returns the status of optimized code usage.\"]\n"\
+	"setUseOptimized: command [\"Enables or disables the optimized code.\" onoff [logic!]]\n"\
 	"init-words words: [] []\n"\
 	"protect/hide 'init-words\n"\
 	"; imwrite params..\n"\

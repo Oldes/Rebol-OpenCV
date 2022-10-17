@@ -763,3 +763,49 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	}
 }
 
+COMMAND cmd_getTickCount(RXIFRM *frm, void *ctx) {
+	RXA_TYPE(frm, 1) = RXT_INTEGER;
+	RXA_INT64(frm, 1) = getTickCount();
+	return RXR_VALUE;
+}
+COMMAND cmd_getTickFrequency(RXIFRM *frm, void *ctx) {
+	RXA_TYPE(frm, 1) = RXT_DECIMAL;
+	RXA_DEC64(frm, 1) = getTickFrequency();
+	return RXR_VALUE;
+}
+COMMAND cmd_getNumThreads(RXIFRM *frm, void *ctx) {
+	RXA_TYPE(frm, 1) = RXT_INTEGER;
+	RXA_INT64(frm, 1) = getNumThreads();
+	return RXR_VALUE;
+}
+COMMAND cmd_getVersionString(RXIFRM *frm, void *ctx) {
+	String version = getVersionString();
+	int len = version.length();
+	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
+	memcpy(ser->data, version.c_str(),  len);
+	SERIES_TAIL(ser) = len;
+	RXA_TYPE  (frm, 1) = RXT_STRING;
+	RXA_SERIES(frm, 1) = ser;
+	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
+}
+COMMAND cmd_getBuildInformation(RXIFRM *frm, void *ctx) {
+	String str = getBuildInformation();
+	int len = str.length();
+	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
+	memcpy(ser->data, str.c_str(),  len);
+	SERIES_TAIL(ser) = len;
+	RXA_TYPE  (frm, 1) = RXT_STRING;
+	RXA_SERIES(frm, 1) = ser;
+	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
+}
+COMMAND cmd_useOptimized(RXIFRM *frm, void *ctx) {
+	RXA_TYPE(frm, 1) = RXT_LOGIC;
+	RXA_LOGIC(frm, 1) = useOptimized();
+	return RXR_VALUE;
+}
+COMMAND cmd_setUseOptimized(RXIFRM *frm, void *ctx) {
+	setUseOptimized(RXA_LOGIC(frm, 1));
+	return RXR_VALUE;
+}
