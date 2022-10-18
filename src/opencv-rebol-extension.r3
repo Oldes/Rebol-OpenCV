@@ -132,6 +132,15 @@ commands: [
 		m    [handle!] "cvMat"
 	]
 
+	convertTo: [
+		"Converts an array to another data type with optional scaling."
+		src   [handle!] "cvMat"
+		dst   [handle!] "cvMat"
+		type  [integer!]
+		alpha [number!]
+		beta  [number!]
+	]
+
 	pollKey: ["Polls for a pressed key."]
 	waitKey: ["Waits for a pressed key." delay [integer!] "In millisecons; infinitely when <=0"]
 	namedWindow: ["Creates a window." name [any-string!]]

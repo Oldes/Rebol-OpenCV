@@ -29,6 +29,7 @@ enum ext_commands {
 	CMD_OPENCV_BITWISE_OR,
 	CMD_OPENCV_BITWISE_XOR,
 	CMD_OPENCV_BITWISE_NOT,
+	CMD_OPENCV_CONVERTTO,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
 	CMD_OPENCV_NAMEDWINDOW,
@@ -76,6 +77,7 @@ int cmd_bitwise_and(RXIFRM *frm, void *ctx);
 int cmd_bitwise_or(RXIFRM *frm, void *ctx);
 int cmd_bitwise_xor(RXIFRM *frm, void *ctx);
 int cmd_bitwise_not(RXIFRM *frm, void *ctx);
+int cmd_convertTo(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
@@ -119,6 +121,7 @@ MyCommandPointer Command[] = {
 	cmd_bitwise_or,
 	cmd_bitwise_xor,
 	cmd_bitwise_not,
+	cmd_convertTo,
 	cmd_pollKey,
 	cmd_waitKey,
 	cmd_namedWindow,
@@ -163,6 +166,7 @@ MyCommandPointer Command[] = {
 	"bitwise-or: command [{Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-xor: command [\"Calculates the per-element bit-wise \" exclusive or \" operation on two arrays or an array and a scalar.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-not: command [\"Inverts every bit of an array.\" src [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"convertTo: command [{Converts an array to another data type with optional scaling.} src [handle!] \"cvMat\" dst [handle!] \"cvMat\" type [integer!] alpha [number!] beta [number!]]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\

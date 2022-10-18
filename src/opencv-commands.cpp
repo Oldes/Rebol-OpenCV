@@ -763,6 +763,24 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	}
 }
 
+COMMAND cmd_convertTo(RXIFRM *frm, void *ctx) {
+	Mat *src;
+	Mat *dst;
+
+	src = ARG_Mat(1);
+	dst = ARG_Mat(2);
+	if (!src || !dst) return RXR_NONE;
+
+	int    rtype = ARG_Int(3);
+	double alpha = ARG_Double(4);
+	double beta  = ARG_Double(5);
+
+	src->convertTo(*dst, rtype, alpha, beta);
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;	
+}
+
+
 COMMAND cmd_getTickCount(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_INTEGER;
 	RXA_INT64(frm, 1) = getTickCount();
