@@ -4,6 +4,15 @@ extern "C" {
 	#include "common.h"
 }
 
+static char* err_buff[255]; // temporary buffer used to pass an exception messages to Rebol side
+
+#define EXCEPTION_TRY   try {
+#define EXCEPTION_CATCH } catch( cv::Exception& e ) {\
+	snprintf((char*)err_buff, 254,"%s", e.err.c_str());\
+	RXA_SERIES(frm, 1) = (void*)err_buff;\
+	return RXR_ERROR;}
+	// must use the temporary buffer above, because the error String could be freed before used on the Rebol side
+
 #define COMMAND           extern "C" int
 #define PAIR_X(frm, n)    (int)RXA_PAIR(frm,n).x
 #define PAIR_Y(frm, n)    (int)RXA_PAIR(frm,n).y
@@ -30,6 +39,7 @@ enum MatProperties {
 	MAT_CHANNELS,
 	MAT_BINARY,
 	MAT_IMAGE,
+	MAT_VECTOR,
 };
 
 using namespace cv;
@@ -178,13 +188,17 @@ COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
 	VideoCapture *cap;
 	int deviceID;
 
+	EXCEPTION_TRY
+
 	cap = new VideoCapture();
 
 	if (RXA_TYPE(frm, 1) == RXT_INTEGER) {
 		cap->open(ARG_Int(1), CAP_ANY);
 	} else {
 		cap->open(ARG_String(1), CAP_ANY);
-	}	
+	}
+
+	EXCEPTION_CATCH
 	
 	debug_print("cap %p\n", cap);
 	if (!cap->isOpened()) {
@@ -205,7 +219,7 @@ COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
 	double fps   = ARG_Double(3);
 	Size   size  = ARG_Size(4);
 
-	cout << size << endl;
+	EXCEPTION_TRY
 
 	if (!codec) codec = VideoWriter::fourcc('M', 'J', 'P', 'G');
 
@@ -218,7 +232,7 @@ COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
 		return RXR_FALSE;
 	}
 
-	cout << writer->getBackendName() << endl;
+	EXCEPTION_CATCH
 
 	return initRXHandle(frm, 1, writer, Handle_cvVideoWriter);
 }
@@ -288,6 +302,30 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				RXA_ARG(frm, 1).image  = reb_image;
 				return RXR_VALUE;
 			}
+			case MAT_VECTOR: {
+				REBINT type; // int = 0, decimal = 1
+				REBINT sign; // 0 = signed, 1 = unsigned
+				REBINT bits, dims;
+				REBINT size = mat->cols * mat->rows * mat->channels();
+				cout << mat->depth() << endl;
+				switch(mat->depth()) {
+					case CV_8U:  type = 0; sign = 1; bits = 8;  break;
+					case CV_8S:  type = 0; sign = 0; bits = 8;  break;
+					case CV_16U: type = 0; sign = 1; bits = 16; break;
+					case CV_16S: type = 0; sign = 0; bits = 16; break;
+					case CV_32S: type = 0; sign = 0; bits = 32; break;
+					case CV_32F: type = 1; sign = 0; bits = 32; break;
+					case CV_64F: type = 1; sign = 0; bits = 64; break;
+				}
+				int bytes = mat->elemSize() * mat->cols * mat->rows;
+				REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
+				memcpy(vec->data, mat->data,  bytes);
+				SERIES_TAIL(vec) = size;
+				RXA_SERIES(frm, 1) = vec;
+				RXA_TYPE  (frm, 1) = RXT_VECTOR;
+				RXA_INDEX (frm, 1) = 0;
+				return RXR_VALUE;
+			}
 		}
 	}
 	else {
@@ -305,10 +343,13 @@ COMMAND cmd_set_property(RXIFRM *frm, void *ctx) {
 
 	if (!RXA_HANDLE_CONTEXT(frm, 1)) return RXR_FALSE;
 
+	EXCEPTION_TRY
 	if (ARG_Is_VideoCapture(1)) {
 		VideoCapture *cap = ARG_VideoCapture(1);
 		result = cap->set(propid, value);
 	}
+	EXCEPTION_CATCH
+	
 	RXA_TYPE(frm, 1) = RXT_LOGIC;
 	RXA_LOGIC(frm, 1) = result;
 	return RXR_VALUE;
@@ -316,7 +357,8 @@ COMMAND cmd_set_property(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 	REBCNT type = RXA_HANDLE_TYPE(frm, 1);
-
+	
+	EXCEPTION_TRY
 	if (type == Handle_cvMat) {
 		Mat *mat = ARG_Mat(1);
 		debug_print("Free Mat %p\n", mat);
@@ -339,6 +381,8 @@ COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 		return RXR_NONE;
 	}
 	RXA_HANDLE_CONTEXT(frm, 1)->handle = NULL;
+	EXCEPTION_CATCH
+
 	return RXR_TRUE;
 }
 
@@ -360,7 +404,10 @@ COMMAND cmd_read(RXIFRM *frm, void *ctx) {
 			return RXR_FALSE;
 	}
 
+	EXCEPTION_TRY
 	cap->read(*frame);
+	EXCEPTION_CATCH
+
 	if (frame->empty()) return RXR_NONE;
 	
 	return RXR_VALUE;
@@ -375,6 +422,7 @@ COMMAND cmd_write(RXIFRM *frm, void *ctx) {
 	writer = ARG_VideoWriter(1);
 	if (!writer || !writer->isOpened()) return RXR_NONE;
 
+	EXCEPTION_TRY
 	if (ARG_Is_Mat(2)) {
 		if (!ARG_Mat(2)) return RXR_FALSE;
 		writer->write(*ARG_Mat(2));
@@ -386,6 +434,8 @@ COMMAND cmd_write(RXIFRM *frm, void *ctx) {
 		image.convertTo(mat, CV_8UC3);
 		writer->write(mat);
 	}
+	EXCEPTION_CATCH
+
 	return RXR_TRUE;
 }
 
@@ -449,9 +499,11 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	Mat image;
 	REBSER* reb_image;
 
+	EXCEPTION_TRY
 	image = imread(ARG_String(1), IMREAD_UNCHANGED);
 	if (image.empty()) return RXR_NONE;
 	cvtColor(image, image, COLOR_BGR2BGRA);
+	EXCEPTION_CATCH
 
 	reb_image = (REBSER *)RL_MAKE_IMAGE(image.cols, image.rows);
 	memcpy(reb_image->data, image.data, 4*image.cols*image.rows);
@@ -469,6 +521,7 @@ COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 	bool result = false;
 	vector<int> params = vector<int>();
 
+	EXCEPTION_TRY
 	// Prepare optional parameters
 	if (RXA_TYPE(frm, 4) == RXT_BLOCK) {
 		REBSER *cmds;
@@ -494,6 +547,8 @@ COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 		image.data = ((REBSER*)arg.series)->data;
 		result = imwrite(name, image, params);
 	}
+	EXCEPTION_CATCH
+
 	return result ? RXR_VALUE : RXR_FALSE;
 }
 
@@ -521,6 +576,7 @@ COMMAND cmd_bilateralFilter(RXIFRM *frm, void *ctx) {
 	double sigmaSpace = RXA_DEC64(frm, 4);
 	int borderType = RXA_TYPE(frm, 5) == RXT_INTEGER ? RXA_INT32(frm, 5) : BORDER_DEFAULT;
 
+	EXCEPTION_TRY
 	if (ARG_Is_Mat(1)) {
 		Mat *img = ARG_Mat(1);
 		Mat tmp;
@@ -538,6 +594,8 @@ COMMAND cmd_bilateralFilter(RXIFRM *frm, void *ctx) {
 		// and convert it back to BGRA in the Rebol image data
 		cvtColor(tmp, image, COLOR_BGR2BGRA);
 	}
+	EXCEPTION_CATCH
+
 	return RXR_VALUE;
 }
 
@@ -546,6 +604,7 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 	Point anchor = Point(-1, -1);
 	int borderType = RXA_TYPE(frm, 4) == RXT_INTEGER ? RXA_INT32(frm, 4) : BORDER_DEFAULT;
 
+	EXCEPTION_TRY
 	if (ARG_Is_Mat(1)) {
 		if (!ARG_Mat(1)) return RXR_FALSE;
 		blur(*ARG_Mat(1), *ARG_Mat(1), ksize, anchor, borderType);
@@ -556,6 +615,8 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 		image.data = ((REBSER*)arg.series)->data;
 		blur(image, image, ksize, anchor, borderType);
 	}
+	EXCEPTION_CATCH
+
 	return RXR_VALUE;
 }
 
@@ -565,6 +626,7 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 
 	dst = new Mat();
 
+	EXCEPTION_TRY
 	if (ARG_Is_Mat(1)) {
 		if (!ARG_Mat(1)) return RXR_FALSE;
 		cvtColor(*ARG_Mat(1), *dst, code);
@@ -575,6 +637,8 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 		image.data = ((REBSER*)arg.series)->data;
 		cvtColor(image, *dst, code);
 	}
+	EXCEPTION_CATCH
+
 	return initRXHandle(frm, 1, dst, Handle_cvMat);
 }
 
@@ -611,7 +675,9 @@ COMMAND cmd_resize(RXIFRM *frm, void *ctx) {
 		interpolation = ARG_Int(6);
 	}
 	
+	EXCEPTION_TRY
 	resize(*src, *dst, size, 0, 0, interpolation);
+	EXCEPTION_CATCH
 
 	if (ARG_Is_Image(1)) {
 		// if input was Rebol image, release the temporary Mat created from it
@@ -640,8 +706,10 @@ COMMAND cmd_threshold(RXIFRM *frm, void *ctx) {
 		dst = ARG_Mat(2);
 	} else return RXR_NONE;
 
+	EXCEPTION_TRY
 	RXA_TYPE(frm, 1) = RXT_DECIMAL;
 	RXA_DEC64(frm, 1) = threshold(*src, *dst, ARG_Double(3), ARG_Double(4), ARG_Int(5));
+	EXCEPTION_CATCH
 	return RXR_VALUE;
 }
 
@@ -656,25 +724,32 @@ COMMAND cmd_addWeighted(RXIFRM *frm, void *ctx) {
 
 	if(!src1 || !src2 || !dst) return RXR_NONE;
 
+	EXCEPTION_TRY
 	addWeighted(*src1, alpha, *src2, beta, delta, *dst);
+	EXCEPTION_CATCH
 
 	RXA_ARG(frm, 1) = RXA_ARG(frm, 6);
 	return RXR_VALUE;
 }
 
 
-enum  BitwiseOp {
+enum  MatMathOp {
   BITWISE_AND = 0,
   BITWISE_OR  = 1,
   BITWISE_XOR = 2,
+  MATH_ADD,
+  MATH_SUBTRACT,
+  MATH_MULTIPLY = 10,
+  MATH_DIVIDE,
 };
 
-static int bitwise_op(RXIFRM *frm, void *ctx, int op) {
+static int mat_math_op(RXIFRM *frm, void *ctx, int op) {
 	Mat *src1;
 	Mat *src2;
 	Mat *dst;
 	Mat *mask = NULL;
 	bool newHandle = FALSE;
+	double scale = 1;
 
 	src1 = ARG_Mat(1);
 	src2 = ARG_Mat(2);
@@ -685,26 +760,31 @@ static int bitwise_op(RXIFRM *frm, void *ctx, int op) {
 		newHandle = TRUE;
 		dst = new Mat();
 	}
-
-	if (ARG_Is_Mat(6)) { // mask
-		mask = ARG_Mat(6);
+	if (op < 10) {
+		if (ARG_Is_Mat(6)) { // mask
+			mask = ARG_Mat(6);
+		}
+		if(!mask)
+			mask = (Mat*)&noArray();
+	} else {
+		// multiply and divide don't have mask, but scale instead
+		scale = ARG_Double(6);
 	}
 
 	if (!src1 || !src2 || !dst ) return RXR_NONE;
+	
 
-	if (mask) {
-		switch (op){
-			case BITWISE_AND: bitwise_and(*src1, *src2, *dst, *mask); break;
-			case BITWISE_OR:  bitwise_or(*src1, *src2, *dst, *mask); break;
-			case BITWISE_XOR: bitwise_xor(*src1, *src2, *dst, *mask); break;
-		}
-	} else {
-		switch (op){
-			case BITWISE_AND: bitwise_and(*src1, *src2, *dst); break;
-			case BITWISE_OR:  bitwise_or(*src1, *src2, *dst); break;
-			case BITWISE_XOR: bitwise_xor(*src1, *src2, *dst); break;
-		}
+	EXCEPTION_TRY
+	switch (op){
+		case BITWISE_AND:   bitwise_and(*src1, *src2, *dst, *mask); break;
+		case BITWISE_OR:    bitwise_or(*src1, *src2, *dst, *mask); break;
+		case BITWISE_XOR:   bitwise_xor(*src1, *src2, *dst, *mask); break;
+		case MATH_ADD:      add(*src1, *src2, *dst, *mask); break;
+		case MATH_SUBTRACT: subtract(*src1, *src2, *dst, *mask); break;
+		case MATH_MULTIPLY: multiply(*src1, *src2, *dst, scale); break;
+		case MATH_DIVIDE:   divide(*src1, *src2, *dst, scale); break;
 	}
+	EXCEPTION_CATCH
 
 	if (newHandle) {
 		return initRXHandle(frm, 1, dst, Handle_cvMat);
@@ -713,17 +793,29 @@ static int bitwise_op(RXIFRM *frm, void *ctx, int op) {
 		// requested output to given existing array
 		RXA_ARG(frm, 1) = RXA_ARG(frm, 4);
 		return RXR_VALUE;
-	}
+	}	
 }
 
 COMMAND cmd_bitwise_and(RXIFRM *frm, void *ctx) {
-	return bitwise_op(frm, ctx, BITWISE_AND);
+	return mat_math_op(frm, ctx, BITWISE_AND);
 }
 COMMAND cmd_bitwise_or(RXIFRM *frm, void *ctx) {
-	return bitwise_op(frm, ctx, BITWISE_AND);
+	return mat_math_op(frm, ctx, BITWISE_AND);
 }
 COMMAND cmd_bitwise_xor(RXIFRM *frm, void *ctx) {
-	return bitwise_op(frm, ctx, BITWISE_AND);
+	return mat_math_op(frm, ctx, BITWISE_AND);
+}
+COMMAND cmd_add(RXIFRM *frm, void *ctx) {
+	return mat_math_op(frm, ctx, MATH_ADD);
+}
+COMMAND cmd_subtract(RXIFRM *frm, void *ctx) {
+	return mat_math_op(frm, ctx, MATH_SUBTRACT);
+}
+COMMAND cmd_multiply(RXIFRM *frm, void *ctx) {
+	return mat_math_op(frm, ctx, MATH_MULTIPLY);
+}
+COMMAND cmd_divide(RXIFRM *frm, void *ctx) {
+	return mat_math_op(frm, ctx, MATH_DIVIDE);
 }
 
 COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
@@ -746,12 +838,11 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	}
 
 	if (!src || !dst ) return RXR_NONE;
+	if (!mask) mask = (Mat*)&noArray();
 
-	if (mask) {
-		bitwise_not(*src, *dst, *mask);
-	} else {
-		bitwise_not(*src, *dst);
-	}
+	EXCEPTION_TRY
+	bitwise_not(*src, *dst, *mask);
+	EXCEPTION_CATCH
 
 	if (newHandle) {
 		return initRXHandle(frm, 1, dst, Handle_cvMat);
@@ -775,11 +866,15 @@ COMMAND cmd_convertTo(RXIFRM *frm, void *ctx) {
 	double alpha = ARG_Double(4);
 	double beta  = ARG_Double(5);
 
+	EXCEPTION_TRY
 	src->convertTo(*dst, rtype, alpha, beta);
+	EXCEPTION_CATCH
+
 	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
 	return RXR_VALUE;	
 }
 
+// Utility commands:
 
 COMMAND cmd_getTickCount(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_INTEGER;

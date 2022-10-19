@@ -115,7 +115,7 @@ commands: [
 		m    [handle!] "cvMat"
 	]
 	bitwise-xor: [
-		"Calculates the per-element bit-wise "exclusive or" operation on two arrays or an array and a scalar."
+		{Calculates the per-element bit-wise "exclusive or" operation on two arrays or an array and a scalar.}
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
 		/into
@@ -131,14 +131,50 @@ commands: [
 		/mask
 		m    [handle!] "cvMat"
 	]
+	add: [
+		"Calculates the per-element sum of two arrays."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/mask
+		m    [handle!] "cvMat"
+	]
+	subtract: [
+		"Calculates the per-element difference between two arrays."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/mask
+		m    [handle!] "cvMat"
+	]
+	multiply: [
+		"Calculates the per-element scaled product of two arrays."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/scale "scalar factor"
+		s    [number!] "default = 1"
+	]
+	divide: [
+		"Calculates the per-element division of two arrays."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		/into
+		dst  [handle!] "cvMat"
+		/scale "scalar factor"
+		s    [number!] "default = 1"
+	]
 
 	convertTo: [
 		"Converts an array to another data type with optional scaling."
 		src   [handle!] "cvMat"
 		dst   [handle!] "cvMat"
-		type  [integer!]
-		alpha [number!]
-		beta  [number!]
+		type  [integer!] "desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input"
+		alpha [number!] "scale factor"
+		beta  [number!] "delta added to the scaled values"
 	]
 
 	pollKey: ["Polls for a pressed key."]
@@ -170,7 +206,7 @@ commands: [
 
 	Matrix: [
 		"Initialize new cvMat class"
-		spec [pair! handle! image!]
+		spec [pair! handle! image! vector!]
 		/as type [integer!]
 	]
 	VideoCapture: [
@@ -611,6 +647,7 @@ MAT_DEPTH: 3
 MAT_CHANNELS: 4
 MAT_BINARY: 5
 MAT_IMAGE: 6
+MAT_VECTOR: 7
 
 ; InterpolationFlags
 INTER_NEAREST: 0

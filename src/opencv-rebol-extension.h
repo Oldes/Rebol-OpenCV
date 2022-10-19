@@ -29,6 +29,10 @@ enum ext_commands {
 	CMD_OPENCV_BITWISE_OR,
 	CMD_OPENCV_BITWISE_XOR,
 	CMD_OPENCV_BITWISE_NOT,
+	CMD_OPENCV_ADD,
+	CMD_OPENCV_SUBTRACT,
+	CMD_OPENCV_MULTIPLY,
+	CMD_OPENCV_DIVIDE,
 	CMD_OPENCV_CONVERTTO,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
@@ -77,6 +81,10 @@ int cmd_bitwise_and(RXIFRM *frm, void *ctx);
 int cmd_bitwise_or(RXIFRM *frm, void *ctx);
 int cmd_bitwise_xor(RXIFRM *frm, void *ctx);
 int cmd_bitwise_not(RXIFRM *frm, void *ctx);
+int cmd_add(RXIFRM *frm, void *ctx);
+int cmd_subtract(RXIFRM *frm, void *ctx);
+int cmd_multiply(RXIFRM *frm, void *ctx);
+int cmd_divide(RXIFRM *frm, void *ctx);
 int cmd_convertTo(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
@@ -121,6 +129,10 @@ MyCommandPointer Command[] = {
 	cmd_bitwise_or,
 	cmd_bitwise_xor,
 	cmd_bitwise_not,
+	cmd_add,
+	cmd_subtract,
+	cmd_multiply,
+	cmd_divide,
 	cmd_convertTo,
 	cmd_pollKey,
 	cmd_waitKey,
@@ -164,9 +176,13 @@ MyCommandPointer Command[] = {
 	"addWeighted: command [\"Calculates the weighted sum of two arrays.\" src1 [handle!] \"cvMat\" alpha [number!] \"weight of the first array elements.\" src2 [handle!] \"cvMat\" beta [number!] \"weight of the second array elements.\" gamma [number!] \"scalar added to each sum.\" dst [handle!] \"cvMat\"]\n"\
 	"bitwise-and: command [{Computes bitwise conjunction of the two arrays (dst = src1 & src2)} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-or: command [{Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
-	"bitwise-xor: command [\"Calculates the per-element bit-wise \" exclusive or \" operation on two arrays or an array and a scalar.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"bitwise-xor: command [{Calculates the per-element bit-wise \"exclusive or\" operation on two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-not: command [\"Inverts every bit of an array.\" src [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
-	"convertTo: command [{Converts an array to another data type with optional scaling.} src [handle!] \"cvMat\" dst [handle!] \"cvMat\" type [integer!] alpha [number!] beta [number!]]\n"\
+	"add: command [\"Calculates the per-element sum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
+	"divide: command [\"Calculates the per-element division of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
+	"convertTo: command [{Converts an array to another data type with optional scaling.} src [handle!] \"cvMat\" dst [handle!] \"cvMat\" type [integer!] {desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input} alpha [number!] \"scale factor\" beta [number!] \"delta added to the scaled values\"]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
@@ -176,7 +192,7 @@ MyCommandPointer Command[] = {
 	"setWindowProperty: command [\"Changes parameters of a window dynamically.\" name [any-string!] property [integer!] value [number!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"destroyWindow: command [\"Destroys the specified window.\" window [any-string!]]\n"\
-	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image!] /as type [integer!]]\n"\
+	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! vector!] /as type [integer!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
 	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
@@ -551,6 +567,7 @@ MyCommandPointer Command[] = {
 	"MAT_CHANNELS: 4\n"\
 	"MAT_BINARY: 5\n"\
 	"MAT_IMAGE: 6\n"\
+	"MAT_VECTOR: 7\n"\
 	"\n"\
 	"; InterpolationFlags\n"\
 	"INTER_NEAREST: 0\n"\
