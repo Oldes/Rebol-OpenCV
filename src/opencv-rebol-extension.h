@@ -13,27 +13,33 @@
 enum ext_commands {
 	CMD_OPENCV_INIT_WORDS,
 	CMD_OPENCV_TEST,
-	CMD_OPENCV_STARTWINDOWTHREAD,
+	CMD_OPENCV_MATRIX,
+	CMD_OPENCV_VIDEOCAPTURE,
+	CMD_OPENCV_VIDEOWRITER,
+	CMD_OPENCV_FREE,
 	CMD_OPENCV_GET_PROPERTY,
 	CMD_OPENCV_SET_PROPERTY,
+	CMD_OPENCV_READ,
+	CMD_OPENCV_WRITE,
 	CMD_OPENCV_IMREAD,
 	CMD_OPENCV_IMWRITE,
-	CMD_OPENCV_IMSHOW,
+	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_CVTCOLOR,
-	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_THRESHOLD,
+	CMD_OPENCV_ADD,
 	CMD_OPENCV_ADDWEIGHTED,
 	CMD_OPENCV_BITWISE_AND,
+	CMD_OPENCV_BITWISE_NOT,
 	CMD_OPENCV_BITWISE_OR,
 	CMD_OPENCV_BITWISE_XOR,
-	CMD_OPENCV_BITWISE_NOT,
-	CMD_OPENCV_ADD,
-	CMD_OPENCV_SUBTRACT,
-	CMD_OPENCV_MULTIPLY,
 	CMD_OPENCV_DIVIDE,
+	CMD_OPENCV_MULTIPLY,
+	CMD_OPENCV_SUBTRACT,
 	CMD_OPENCV_CONVERTTO,
+	CMD_OPENCV_STARTWINDOWTHREAD,
+	CMD_OPENCV_IMSHOW,
 	CMD_OPENCV_POLLKEY,
 	CMD_OPENCV_WAITKEY,
 	CMD_OPENCV_NAMEDWINDOW,
@@ -43,12 +49,6 @@ enum ext_commands {
 	CMD_OPENCV_SETWINDOWPROPERTY,
 	CMD_OPENCV_DESTROYALLWINDOWS,
 	CMD_OPENCV_DESTROYWINDOW,
-	CMD_OPENCV_MATRIX,
-	CMD_OPENCV_VIDEOCAPTURE,
-	CMD_OPENCV_VIDEOWRITER,
-	CMD_OPENCV_READ,
-	CMD_OPENCV_WRITE,
-	CMD_OPENCV_FREE,
 	CMD_OPENCV_GETTICKCOUNT,
 	CMD_OPENCV_GETTICKFREQUENCY,
 	CMD_OPENCV_GETNUMTHREADS,
@@ -65,27 +65,33 @@ enum ext_arg_words {W_OPENCV_ARG_0,
 
 int cmd_init_words(RXIFRM *frm, void *ctx);
 int cmd_test(RXIFRM *frm, void *ctx);
-int cmd_startWindowThread(RXIFRM *frm, void *ctx);
+int cmd_Matrix(RXIFRM *frm, void *ctx);
+int cmd_VideoCapture(RXIFRM *frm, void *ctx);
+int cmd_VideoWriter(RXIFRM *frm, void *ctx);
+int cmd_free(RXIFRM *frm, void *ctx);
 int cmd_get_property(RXIFRM *frm, void *ctx);
 int cmd_set_property(RXIFRM *frm, void *ctx);
+int cmd_read(RXIFRM *frm, void *ctx);
+int cmd_write(RXIFRM *frm, void *ctx);
 int cmd_imread(RXIFRM *frm, void *ctx);
 int cmd_imwrite(RXIFRM *frm, void *ctx);
-int cmd_imshow(RXIFRM *frm, void *ctx);
+int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
-int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
+int cmd_add(RXIFRM *frm, void *ctx);
 int cmd_addWeighted(RXIFRM *frm, void *ctx);
 int cmd_bitwise_and(RXIFRM *frm, void *ctx);
+int cmd_bitwise_not(RXIFRM *frm, void *ctx);
 int cmd_bitwise_or(RXIFRM *frm, void *ctx);
 int cmd_bitwise_xor(RXIFRM *frm, void *ctx);
-int cmd_bitwise_not(RXIFRM *frm, void *ctx);
-int cmd_add(RXIFRM *frm, void *ctx);
-int cmd_subtract(RXIFRM *frm, void *ctx);
-int cmd_multiply(RXIFRM *frm, void *ctx);
 int cmd_divide(RXIFRM *frm, void *ctx);
+int cmd_multiply(RXIFRM *frm, void *ctx);
+int cmd_subtract(RXIFRM *frm, void *ctx);
 int cmd_convertTo(RXIFRM *frm, void *ctx);
+int cmd_startWindowThread(RXIFRM *frm, void *ctx);
+int cmd_imshow(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
 int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
@@ -95,12 +101,6 @@ int cmd_getWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_setWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
 int cmd_destroyWindow(RXIFRM *frm, void *ctx);
-int cmd_Matrix(RXIFRM *frm, void *ctx);
-int cmd_VideoCapture(RXIFRM *frm, void *ctx);
-int cmd_VideoWriter(RXIFRM *frm, void *ctx);
-int cmd_read(RXIFRM *frm, void *ctx);
-int cmd_write(RXIFRM *frm, void *ctx);
-int cmd_free(RXIFRM *frm, void *ctx);
 int cmd_getTickCount(RXIFRM *frm, void *ctx);
 int cmd_getTickFrequency(RXIFRM *frm, void *ctx);
 int cmd_getNumThreads(RXIFRM *frm, void *ctx);
@@ -113,27 +113,33 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 MyCommandPointer Command[] = {
 	cmd_init_words,
 	cmd_test,
-	cmd_startWindowThread,
+	cmd_Matrix,
+	cmd_VideoCapture,
+	cmd_VideoWriter,
+	cmd_free,
 	cmd_get_property,
 	cmd_set_property,
+	cmd_read,
+	cmd_write,
 	cmd_imread,
 	cmd_imwrite,
-	cmd_imshow,
+	cmd_resize,
 	cmd_bilateralFilter,
 	cmd_blur,
 	cmd_cvtColor,
-	cmd_resize,
 	cmd_threshold,
+	cmd_add,
 	cmd_addWeighted,
 	cmd_bitwise_and,
+	cmd_bitwise_not,
 	cmd_bitwise_or,
 	cmd_bitwise_xor,
-	cmd_bitwise_not,
-	cmd_add,
-	cmd_subtract,
-	cmd_multiply,
 	cmd_divide,
+	cmd_multiply,
+	cmd_subtract,
 	cmd_convertTo,
+	cmd_startWindowThread,
+	cmd_imshow,
 	cmd_pollKey,
 	cmd_waitKey,
 	cmd_namedWindow,
@@ -143,12 +149,6 @@ MyCommandPointer Command[] = {
 	cmd_setWindowProperty,
 	cmd_destroyAllWindows,
 	cmd_destroyWindow,
-	cmd_Matrix,
-	cmd_VideoCapture,
-	cmd_VideoWriter,
-	cmd_read,
-	cmd_write,
-	cmd_free,
 	cmd_getTickCount,
 	cmd_getTickFrequency,
 	cmd_getNumThreads,
@@ -162,27 +162,33 @@ MyCommandPointer Command[] = {
 	"REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: []]\n"\
 	"init-words: command [cmd-words [block!] arg-words [block!]]\n"\
 	"test: command [\"Simple OpenCV test\"]\n"\
-	"startWindowThread: command []\n"\
+	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! vector!] /as type [integer!]]\n"\
+	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
+	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
+	"free: command [\"Release OpenCV handle\" class [handle!] \"Mat, VideoCapture or VideoWriter\"]\n"\
 	"get-property: command [\"Returns a property value\" obj [handle!] \"VideoCapture handle\" property [integer!]]\n"\
 	"set-property: command [obj [handle!] \"VideoCapture handle\" property [integer!] value [decimal!]]\n"\
+	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
+	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
 	"imread: command [src [file! string!]]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] \"Image or cvMat handle\" /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
-	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] \"Image or cvMat handle\" /name \"Optional window name\" window [any-string!]]\n"\
+	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] \"Image or cvMat handle\" diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] \"Image or cvMat handle\" size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
-	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle!] thresh [number!] maxval [number!] type [integer!]]\n"\
+	"add: command [\"Calculates the per-element sum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"addWeighted: command [\"Calculates the weighted sum of two arrays.\" src1 [handle!] \"cvMat\" alpha [number!] \"weight of the first array elements.\" src2 [handle!] \"cvMat\" beta [number!] \"weight of the second array elements.\" gamma [number!] \"scalar added to each sum.\" dst [handle!] \"cvMat\"]\n"\
 	"bitwise-and: command [{Computes bitwise conjunction of the two arrays (dst = src1 & src2)} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"bitwise-not: command [\"Inverts every bit of an array.\" src [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-or: command [{Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-xor: command [{Calculates the per-element bit-wise \"exclusive or\" operation on two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
-	"bitwise-not: command [\"Inverts every bit of an array.\" src [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
-	"add: command [\"Calculates the per-element sum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
-	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
-	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
 	"divide: command [\"Calculates the per-element division of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
+	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
+	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"convertTo: command [{Converts an array to another data type with optional scaling.} src [handle!] \"cvMat\" dst [handle!] \"cvMat\" type [integer!] {desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input} alpha [number!] \"scale factor\" beta [number!] \"delta added to the scaled values\"]\n"\
+	"startWindowThread: command []\n"\
+	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] \"Image or cvMat handle\" /name \"Optional window name\" window [any-string!]]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
 	"waitKey: command [\"Waits for a pressed key.\" delay [integer!] \"In millisecons; infinitely when <=0\"]\n"\
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
@@ -192,12 +198,6 @@ MyCommandPointer Command[] = {
 	"setWindowProperty: command [\"Changes parameters of a window dynamically.\" name [any-string!] property [integer!] value [number!]]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"destroyWindow: command [\"Destroys the specified window.\" window [any-string!]]\n"\
-	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! vector!] /as type [integer!]]\n"\
-	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
-	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
-	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
-	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
-	"free: command [\"Release VideoCapture or Mat handle\" class [handle!]]\n"\
 	"getTickCount: command [\"Returns the number of ticks.\"]\n"\
 	"getTickFrequency: command [\"Returns the number of ticks per second.\"]\n"\
 	"getNumThreads: command [{Returns the number of threads used by OpenCV for parallel regions.}]\n"\
