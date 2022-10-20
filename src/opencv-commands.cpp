@@ -646,6 +646,24 @@ COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_Laplacian(RXIFRM *frm, void *ctx) {
+	Mat *src       = ARG_Mat(1);
+	Mat *dst       = ARG_Mat(2);
+	int ddepth     = ARG_Int(3);
+	int ksize      = ARG_Int(4);
+	double scale   = ARG_Double(5);
+	double delta   = ARG_Double(6);
+	int borderType = BORDER_DEFAULT;
+	
+	if (!dst || !src) return RXR_FALSE;
+
+	EXCEPTION_TRY
+	Laplacian(*src, *dst, ddepth, ksize, scale, delta, borderType);
+	EXCEPTION_CATCH
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
 COMMAND cmd_medianBlur(RXIFRM *frm, void *ctx) {
 	Mat *src = ARG_Mat(1);
 	Mat *dst = ARG_Mat(2);
@@ -892,6 +910,26 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 		RXA_ARG(frm, 1) = RXA_ARG(frm, 3);
 		return RXR_VALUE;
 	}
+}
+
+
+COMMAND cmd_convertScaleAbs(RXIFRM *frm, void *ctx) {
+	Mat *src;
+	Mat *dst;
+
+	src = ARG_Mat(1);
+	dst = ARG_Mat(2);
+	if (!src || !dst) return RXR_NONE;
+
+	double alpha = ARG_Double(3);
+	double beta  = ARG_Double(4);
+
+	EXCEPTION_TRY
+	convertScaleAbs(*src, *dst, alpha, beta);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;	
 }
 
 COMMAND cmd_convertTo(RXIFRM *frm, void *ctx) {

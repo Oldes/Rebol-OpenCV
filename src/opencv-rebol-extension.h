@@ -27,6 +27,7 @@ enum ext_commands {
 	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_GAUSSIANBLUR,
+	CMD_OPENCV_LAPLACIAN,
 	CMD_OPENCV_MEDIANBLUR,
 	CMD_OPENCV_CVTCOLOR,
 	CMD_OPENCV_THRESHOLD,
@@ -36,6 +37,7 @@ enum ext_commands {
 	CMD_OPENCV_BITWISE_NOT,
 	CMD_OPENCV_BITWISE_OR,
 	CMD_OPENCV_BITWISE_XOR,
+	CMD_OPENCV_CONVERTSCALEABS,
 	CMD_OPENCV_DIVIDE,
 	CMD_OPENCV_MULTIPLY,
 	CMD_OPENCV_SUBTRACT,
@@ -81,6 +83,7 @@ int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_GaussianBlur(RXIFRM *frm, void *ctx);
+int cmd_Laplacian(RXIFRM *frm, void *ctx);
 int cmd_medianBlur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
@@ -90,6 +93,7 @@ int cmd_bitwise_and(RXIFRM *frm, void *ctx);
 int cmd_bitwise_not(RXIFRM *frm, void *ctx);
 int cmd_bitwise_or(RXIFRM *frm, void *ctx);
 int cmd_bitwise_xor(RXIFRM *frm, void *ctx);
+int cmd_convertScaleAbs(RXIFRM *frm, void *ctx);
 int cmd_divide(RXIFRM *frm, void *ctx);
 int cmd_multiply(RXIFRM *frm, void *ctx);
 int cmd_subtract(RXIFRM *frm, void *ctx);
@@ -131,6 +135,7 @@ MyCommandPointer Command[] = {
 	cmd_bilateralFilter,
 	cmd_blur,
 	cmd_GaussianBlur,
+	cmd_Laplacian,
 	cmd_medianBlur,
 	cmd_cvtColor,
 	cmd_threshold,
@@ -140,6 +145,7 @@ MyCommandPointer Command[] = {
 	cmd_bitwise_not,
 	cmd_bitwise_or,
 	cmd_bitwise_xor,
+	cmd_convertScaleAbs,
 	cmd_divide,
 	cmd_multiply,
 	cmd_subtract,
@@ -182,6 +188,7 @@ MyCommandPointer Command[] = {
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] \"Image or cvMat handle\" diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] \"Image or cvMat handle\" size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"GaussianBlur: command [\"Blurs an image using a Gaussian filter.\" src [handle!] \"cvMat\" dst [handle!] \"cvMat\" size [pair!] \"blurring kernel size\" sigmaX [number!] sigmaY [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"Laplacian: command [\"Calculates the Laplacian of an image.\" src [handle!] \"Source image\" dst [handle!] {Destination image of the same size and the same number of channels as src} ddepth [number!] \"Desired depth of the destination image\" ksize [number!] {Aperture size used to compute the second-derivative filters. The size must be positive and odd.} scale [number!] \"Scale factor for the computed Laplacian values.\" delta [number!] {Optional delta value that is added to the results prior to storing them in dst.}]\n"\
 	"medianBlur: command [\"Blurs an image using the median filter.\" src [handle!] {input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U} dst [handle!] \"destination array of the same size and type as src\" size [number!] {aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7...}]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle!] thresh [number!] maxval [number!] type [integer!]]\n"\
@@ -191,6 +198,7 @@ MyCommandPointer Command[] = {
 	"bitwise-not: command [\"Inverts every bit of an array.\" src [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-or: command [{Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"bitwise-xor: command [{Calculates the per-element bit-wise \"exclusive or\" operation on two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
+	"convertScaleAbs: command [{Scales, calculates absolute values, and converts the result to 8-bit.} src [handle!] \"cvMat\" dst [handle!] \"cvMat\" alpha [number!] \"default = 1\" beta [number!]]\n"\
 	"divide: command [\"Calculates the per-element division of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
 	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
 	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\

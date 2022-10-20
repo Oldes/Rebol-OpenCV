@@ -141,7 +141,17 @@ commands: [
 	;getGaborKernel
 	;getGaussianKernel
 	;getStructuringElement
-	;Laplacian
+	Laplacian: [
+		"Calculates the Laplacian of an image."
+		src   [handle!] "Source image"
+		dst   [handle!] "Destination image of the same size and the same number of channels as src"
+		ddepth [number!] "Desired depth of the destination image"
+		ksize  [number!] "Aperture size used to compute the second-derivative filters. The size must be positive and odd."
+		scale  [number!] "Scale factor for the computed Laplacian values."
+		delta  [number!] "Optional delta value that is added to the results prior to storing them in dst."
+		;/border "border mode used to extrapolate pixels outside of the image"
+		;type [integer!] "one of: [0 1 2 4 5 16]"
+	]
 	medianBlur: [
 		"Blurs an image using the median filter."
 		src   [handle!] "input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U"
@@ -248,7 +258,13 @@ commands: [
 	;compare
 	;completeSymm 
 	;convertFp16
-	;convertScaleAbs
+	convertScaleAbs: [
+		"Scales, calculates absolute values, and converts the result to 8-bit."
+		src [handle!] "cvMat"
+		dst [handle!] "cvMat"
+		alpha    [number!] "default = 1"
+		beta  [number!]
+	]
 	;copyMakeBorder
 	;copyTo
 	;countNonZero
