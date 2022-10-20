@@ -26,6 +26,7 @@ enum ext_commands {
 	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
+	CMD_OPENCV_GAUSSIANBLUR,
 	CMD_OPENCV_CVTCOLOR,
 	CMD_OPENCV_THRESHOLD,
 	CMD_OPENCV_ADD,
@@ -78,6 +79,7 @@ int cmd_imwrite(RXIFRM *frm, void *ctx);
 int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
+int cmd_GaussianBlur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
 int cmd_add(RXIFRM *frm, void *ctx);
@@ -126,6 +128,7 @@ MyCommandPointer Command[] = {
 	cmd_resize,
 	cmd_bilateralFilter,
 	cmd_blur,
+	cmd_GaussianBlur,
 	cmd_cvtColor,
 	cmd_threshold,
 	cmd_add,
@@ -170,11 +173,12 @@ MyCommandPointer Command[] = {
 	"set-property: command [obj [handle!] \"VideoCapture handle\" property [integer!] value [decimal!]]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
 	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
-	"imread: command [src [file! string!]]\n"\
+	"imread: command [src [file! string!] /image \"as Rebol image instead of default cvMat\"]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] \"Image or cvMat handle\" /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] \"Image or cvMat handle\" diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] \"Image or cvMat handle\" size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"GaussianBlur: command [\"Blurs an image using a Gaussian filter.\" src [handle!] \"cvMat\" dst [handle!] \"cvMat\" size [pair!] \"blurring kernel size\" sigmaX [number!] sigmaY [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle!] thresh [number!] maxval [number!] type [integer!]]\n"\
 	"add: command [\"Calculates the per-element sum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\

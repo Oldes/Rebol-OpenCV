@@ -629,6 +629,23 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
+	Mat *src = ARG_Mat(1);
+	Mat *dst = ARG_Mat(2);
+	Size ksize = Size(PAIR_X(frm, 3), PAIR_Y(frm, 3));
+	double sigmaX = ARG_Double(4);
+	double sigmaY = ARG_Double(5);
+	int borderType = RXA_TYPE(frm, 7) == RXT_INTEGER ? RXA_INT32(frm, 7) : BORDER_DEFAULT;
+	
+	if (!dst || !src) return RXR_FALSE;
+
+	EXCEPTION_TRY
+	GaussianBlur(*src, *dst, ksize, sigmaX, sigmaY, borderType);
+	EXCEPTION_CATCH
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
 COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 	Mat *dst;
 	int code = RXA_INT32(frm, 2);
