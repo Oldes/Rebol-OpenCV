@@ -66,6 +66,7 @@ commands: [
 	;-----------------------------------------------------------------------
 	imread: [
 		src [file! string!]
+		/image "as Rebol image instead of default cvMat"
 	]
 	imwrite: [
 		"Saves an image to a specified file."

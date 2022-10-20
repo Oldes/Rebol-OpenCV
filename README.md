@@ -119,7 +119,7 @@ Image threshold:
 ```rebol
 cv: import %opencv.rebx
 with cv [
-    img:  imread %image/mask.png ;= this is Rebol image, no handle
+    img:  imread %image/mask.png
     gray: cvtColor img COLOR_BGR2GRAY
     threshold :gray :gray 0 255 THRESH_BINARY_INV
     imshow/name img  "Source"

@@ -24,6 +24,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Is_Image(n)         (RXA_TYPE(frm,n) == RXT_IMAGE)
 #define ARG_Is_Pair(n)          (RXA_TYPE(frm,n) == RXT_PAIR)
 #define ARG_Is_Integer(n)       (RXA_TYPE(frm,n) == RXT_INTEGER)
+#define ARG_Is_None(n)          (RXA_TYPE(frm,n) == RXT_NONE)
 #define ARG_Mat(n)              (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
@@ -497,21 +498,29 @@ COMMAND cmd_startWindowThread(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	Mat image;
-	REBSER* reb_image;
+	String filename = ARG_String(1);
 
 	EXCEPTION_TRY
-	image = imread(ARG_String(1), IMREAD_UNCHANGED);
+	image = imread(filename, IMREAD_UNCHANGED);
 	if (image.empty()) return RXR_NONE;
-	cvtColor(image, image, COLOR_BGR2BGRA);
+	if (ARG_Is_None(2)) {
+		Mat *result = new Mat(image);
+		if (RXR_VALUE != initRXHandle(frm, 1, result, Handle_cvMat))
+			return RXR_FALSE;
+	}
+	else {
+		REBSER* reb_image;
+		cvtColor(image, image, COLOR_BGR2BGRA);
+		reb_image = (REBSER *)RL_MAKE_IMAGE(image.cols, image.rows);
+		memcpy(reb_image->data, image.data, 4*image.cols*image.rows);
+
+		RXA_TYPE(frm, 1) = RXT_IMAGE;
+		RXA_ARG(frm, 1).width  = image.cols;
+		RXA_ARG(frm, 1).height = image.rows;
+		RXA_ARG(frm, 1).image  = reb_image;
+	}
+	
 	EXCEPTION_CATCH
-
-	reb_image = (REBSER *)RL_MAKE_IMAGE(image.cols, image.rows);
-	memcpy(reb_image->data, image.data, 4*image.cols*image.rows);
-
-	RXA_TYPE(frm, 1) = RXT_IMAGE;
-	RXA_ARG(frm, 1).width  = image.cols;
-	RXA_ARG(frm, 1).height = image.rows;
-	RXA_ARG(frm, 1).image  = reb_image;
 
 	return RXR_VALUE;
 }
