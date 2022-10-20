@@ -646,6 +646,20 @@ COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_medianBlur(RXIFRM *frm, void *ctx) {
+	Mat *src = ARG_Mat(1);
+	Mat *dst = ARG_Mat(2);
+	int ksize = ARG_Int(3);
+	
+	if (!dst || !src) return RXR_FALSE;
+
+	EXCEPTION_TRY
+	medianBlur(*src, *dst, ksize);
+	EXCEPTION_CATCH
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
 COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 	Mat *dst;
 	int code = RXA_INT32(frm, 2);

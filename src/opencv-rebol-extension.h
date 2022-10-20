@@ -27,6 +27,7 @@ enum ext_commands {
 	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_GAUSSIANBLUR,
+	CMD_OPENCV_MEDIANBLUR,
 	CMD_OPENCV_CVTCOLOR,
 	CMD_OPENCV_THRESHOLD,
 	CMD_OPENCV_ADD,
@@ -80,6 +81,7 @@ int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_GaussianBlur(RXIFRM *frm, void *ctx);
+int cmd_medianBlur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
 int cmd_add(RXIFRM *frm, void *ctx);
@@ -129,6 +131,7 @@ MyCommandPointer Command[] = {
 	cmd_bilateralFilter,
 	cmd_blur,
 	cmd_GaussianBlur,
+	cmd_medianBlur,
 	cmd_cvtColor,
 	cmd_threshold,
 	cmd_add,
@@ -179,6 +182,7 @@ MyCommandPointer Command[] = {
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" image [image! handle!] \"Image or cvMat handle\" diameter [integer!] sigmaColor [decimal!] sigmaSpace [decimal!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"blur: command [\"Blurs an image using the normalized box filter.\" image [image! handle!] \"Image or cvMat handle\" size [pair!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"GaussianBlur: command [\"Blurs an image using a Gaussian filter.\" src [handle!] \"cvMat\" dst [handle!] \"cvMat\" size [pair!] \"blurring kernel size\" sigmaX [number!] sigmaY [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"medianBlur: command [\"Blurs an image using the median filter.\" src [handle!] {input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U} dst [handle!] \"destination array of the same size and type as src\" size [number!] {aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7...}]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" image [image! handle!] \"Image or cvMat handle\" code [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle!] thresh [number!] maxval [number!] type [integer!]]\n"\
 	"add: command [\"Calculates the per-element sum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" /into dst [handle!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
