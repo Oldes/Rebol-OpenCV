@@ -26,7 +26,7 @@ All folowing examples expect, that OpenCV extension was imported using one of th
 Matrices are one of the main datatypes used by OpenCV extension.
 
 ```rebol
-mat: cv/Matrix 400x400 ;; creates an empty black image handle
+mat: cv/Matrix 250x140 ;; creates an empty black image handle
 cv/imshow mat          ;; open a window with default name "Image" displaying the image
 cv/waitKey 0           ;; and wait for any key
 ```

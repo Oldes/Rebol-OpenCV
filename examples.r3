@@ -15,7 +15,7 @@ example "Making a blank matrix and displaying it." {
     Matrices are one of the main datatypes used by OpenCV extension.
 
     ```rebol
-    mat: cv/Matrix 400x400 ;; creates an empty black image handle
+    mat: cv/Matrix 250x140 ;; creates an empty black image handle
     cv/imshow mat          ;; open a window with default name "Image" displaying the image
     cv/waitKey 0           ;; and wait for any key
     ```
@@ -198,28 +198,26 @@ example "Saving video from the camera" {
 
 on-code-error: func[err][
     print err
-    halt
+    print as-red "README.md NOT MODIFIED!"
+    quit
 ]
 
-delete %README.md
-readme: func[val][ write/append %README.md val ]
+output: make string! 30000
+readme: func[val][ append output val  val ]
 
 num: 0
 emit-comment: func[str][
     replace/all str "^/    " LF
-    print str
-    readme str
+    print readme str
 ]
 emit-heading: func[str][
     ++ num
     append insert trim/head/tail str ajoin ["^/### " num ". "] LF
-    print str
-    readme str
+    print readme str
 ]
 emit-code: func[str][
     replace/all str "^/    " LF
-    print str
-    readme str
+    print readme str
     parse str [ any [
         thru "```rebol" copy blk to "```" 3 skip (
             try/except load blk :on-code-error
@@ -259,4 +257,7 @@ readme {
 * * * *
 This file was generated using [examples.r3](examples.r3) script.
 }
+
+write %README.md output
+
 
