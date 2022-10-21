@@ -11,9 +11,9 @@ commands: [
 	init-words: [cmd-words [block!] arg-words [block!]]
 	test: [{Simple OpenCV test}]
 
-	;-----------------------------------------------------------------------
-	;- Constructors                                                         
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Constructors                                                                                 
+	;-----------------------------------------------------------------------------------------------
 	Matrix: [
 		"Initialize new cvMat class"
 		spec [pair! handle! image! vector!]
@@ -35,9 +35,9 @@ commands: [
 		class [handle!] "Mat, VideoCapture or VideoWriter"
 	]
 
-	;-----------------------------------------------------------------------
-	;- Accessors                                                            
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Accessors                                                                                    
+	;-----------------------------------------------------------------------------------------------
 	get-property: [
 		"Returns a property value"
 		obj [handle!] "VideoCapture handle"
@@ -46,7 +46,7 @@ commands: [
 	set-property: [
 		obj [handle!] "VideoCapture handle"
 		property [integer!]
-		value [decimal!]
+		value [number!]
 	]
 	read: [
 		"Grabs, decodes and returns the next video frame"
@@ -56,30 +56,30 @@ commands: [
 	]
 	write: [
 		"Writes the next video frame"
-		dst [handle!] "VideoWriter"
+		dst   [handle!] "VideoWriter"
 		frame [image! handle!]
 	]
 
-	;-----------------------------------------------------------------------
-	;- Image file reading and writing                                       
-	;- https://docs.opencv.org/4.6.0/d4/da8/group__imgcodecs.html           
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Image file reading and writing                                                               
+	;- https://docs.opencv.org/4.6.0/d4/da8/group__imgcodecs.html                                   
+	;-----------------------------------------------------------------------------------------------
 	imread: [
 		src [file! string!]
 		/image "as Rebol image instead of default cvMat"
 	]
 	imwrite: [
 		"Saves an image to a specified file."
-		name [any-string!]
+		name  [any-string!]
 		image [image! handle!] "Image or cvMat handle"
 		/with "Format-specific parameters encoded as pairs"
 		params [block!] "integer pairs (words are resolved)"
 	]
 
-	;-----------------------------------------------------------------------
-	;- Geometric Image Transformations                                      
-	;- https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html  
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Geometric Image Transformations                                                              
+	;- https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html                          
+	;-----------------------------------------------------------------------------------------------
 	;convertMaps
 	;getAffineTransform
 	;getPerspectiveTransform
@@ -102,16 +102,17 @@ commands: [
 	;warpPerspective 
 	;warpPolar 
 
-	;-----------------------------------------------------------------------
-	;- Image Filtering                                                      
-	;- https://docs.opencv.org/4.6.0/d4/d86/group__imgproc__filter.html     
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Image Filtering                                                                              
+	;- https://docs.opencv.org/4.6.0/d4/d86/group__imgproc__filter.html                             
+	;-----------------------------------------------------------------------------------------------
 	bilateralFilter: [
 		"Applies the bilateral filter to an image."
-		image [image! handle!] "Image or cvMat handle"
-		diameter [integer!]
-		sigmaColor [decimal!]
-		sigmaSpace [decimal!]
+		src        [handle!] "Source 8-bit or floating-point, 1-channel or 3-channel image."
+		dst        [handle! none!] "Destination image of the same size and type as src."
+		diameter   [integer!] "Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace."
+		sigmaColor [number!]
+		sigmaSpace [number!]
 		/border "border mode used to extrapolate pixels outside of the image"
 		type [integer!] "one of: [0 1 2 4 5 16]"
 	]
@@ -129,9 +130,9 @@ commands: [
 	;filter2D
 	GaussianBlur: [
 		"Blurs an image using a Gaussian filter."
-		src   [handle!] "cvMat"
-		dst   [handle!] "cvMat"
-		size  [pair!]   "blurring kernel size"
+		src    [handle!] "cvMat"
+		dst    [handle! none!] "cvMat"
+		size   [pair!]   "blurring kernel size"
 		sigmaX [number!]
 		sigmaY [number!]
 		/border "border mode used to extrapolate pixels outside of the image"
@@ -143,8 +144,8 @@ commands: [
 	;getStructuringElement
 	Laplacian: [
 		"Calculates the Laplacian of an image."
-		src   [handle!] "Source image"
-		dst   [handle!] "Destination image of the same size and the same number of channels as src"
+		src    [handle!] "Source image"
+		dst    [handle! none!] "Destination image of the same size and the same number of channels as src"
 		ddepth [number!] "Desired depth of the destination image"
 		ksize  [number!] "Aperture size used to compute the second-derivative filters. The size must be positive and odd."
 		scale  [number!] "Scale factor for the computed Laplacian values."
@@ -155,7 +156,7 @@ commands: [
 	medianBlur: [
 		"Blurs an image using the median filter."
 		src   [handle!] "input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U"
-		dst   [handle!] "destination array of the same size and type as src"
+		dst   [handle! none!] "destination array of the same size and type as src"
 		size  [number!] "aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7..."
 	]
 	;morphologyEx
@@ -168,68 +169,66 @@ commands: [
 	;spatialGradient
 	;sqrBoxFilter
 
-	;-----------------------------------------------------------------------
-	;- Color Space Conversions                                              
-	;- https://docs.opencv.org/4.6.0/d8/d01/group__imgproc__color__conversions.html
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Color Space Conversions                                                                      
+	;- https://docs.opencv.org/4.6.0/d8/d01/group__imgproc__color__conversions.html                 
+	;-----------------------------------------------------------------------------------------------
 	cvtColor: [
 		"Converts an image from one color space to another."
-		image [image! handle!] "Image or cvMat handle"
+		src  [handle!] "source cvMat handle"
+		dst  [handle! none!] "destination cvMat"
 		code [integer!]
 	]
 
-	;-----------------------------------------------------------------------
-	;- Image Thresholding                                                   
-	;- https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html     
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Image Thresholding                                                                           
+	;- https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html                             
+	;-----------------------------------------------------------------------------------------------
 	threshold: [
 		"Applies a fixed-level threshold to each array element."
 		src    [handle!]
-		dst    [handle!]
+		dst    [handle! none!]
 		thresh [number!]
 		maxval [number!]
 		type   [integer!]
 	]
 	;adaptiveThreshold
 
-	;-----------------------------------------------------------------------
-	;- Operations on arrays                                                 
-	;- https://docs.opencv.org/4.6.0/d2/de8/group__core__array.html         
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Operations on arrays                                                                         
+	;- https://docs.opencv.org/4.6.0/d2/de8/group__core__array.html                                 
+	;-----------------------------------------------------------------------------------------------
 	;absdiff
 	add: [
 		"Calculates the per-element sum of two arrays."
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/mask
 		m    [handle!] "cvMat"
 	]
 	addWeighted: [
 		"Calculates the weighted sum of two arrays."
-		src1 [handle!] "cvMat"
+		src1  [handle!] "cvMat"
 		alpha [number!] "weight of the first array elements."
-		src2 [handle!] "cvMat"
-		beta [number!] "weight of the second array elements."
+		src2  [handle!] "cvMat"
+		beta  [number!] "weight of the second array elements."
 		gamma [number!]	"scalar added to each sum."
-		dst [handle!] "cvMat"
+		dst   [handle! none!] "cvMat"
 	]
 	;batchDistance	
 	bitwise-and: [
 		"Computes bitwise conjunction of the two arrays (dst = src1 & src2)"
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/mask
 		m    [handle!] "cvMat"
 	]
 	bitwise-not: [
 		"Inverts every bit of an array."
-		src [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		src  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/mask
 		m    [handle!] "cvMat"
 	]
@@ -237,8 +236,7 @@ commands: [
 		"Calculates the per-element bit-wise disjunction of two arrays or an array and a scalar."
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/mask
 		m    [handle!] "cvMat"
 	]
@@ -246,8 +244,7 @@ commands: [
 		{Calculates the per-element bit-wise "exclusive or" operation on two arrays or an array and a scalar.}
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/mask
 		m    [handle!] "cvMat"
 	]
@@ -260,9 +257,9 @@ commands: [
 	;convertFp16
 	convertScaleAbs: [
 		"Scales, calculates absolute values, and converts the result to 8-bit."
-		src [handle!] "cvMat"
-		dst [handle!] "cvMat"
-		alpha    [number!] "default = 1"
+		src   [handle!] "cvMat"
+		dst   [handle! none!] "cvMat"
+		alpha [number!] "default = 1"
 		beta  [number!]
 	]
 	;copyMakeBorder
@@ -275,8 +272,7 @@ commands: [
 		"Calculates the per-element division of two arrays."
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/scale "scalar factor"
 		s    [number!] "default = 1"
 	]
@@ -311,8 +307,7 @@ commands: [
 		"Calculates the per-element scaled product of two arrays."
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/scale "scalar factor"
 		s    [number!] "default = 1"
 	]
@@ -325,31 +320,30 @@ commands: [
 		"Calculates the per-element difference between two arrays."
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
-		/into
-		dst  [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
 		/mask
 		m    [handle!] "cvMat"
 	]
 	;...
 	
 
-	;-----------------------------------------------------------------------
-	;- Mat class                                                            
-	;- https://docs.opencv.org/4.6.0/d3/d63/classcv_1_1Mat.html             
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Mat class                                                                                    
+	;- https://docs.opencv.org/4.6.0/d3/d63/classcv_1_1Mat.html                                     
+	;-----------------------------------------------------------------------------------------------
 	convertTo: [
 		"Converts an array to another data type with optional scaling."
 		src   [handle!] "cvMat"
-		dst   [handle!] "cvMat"
+		dst   [handle! none!] "cvMat"
 		type  [integer!] "desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input"
 		alpha [number!] "scale factor"
 		beta  [number!] "delta added to the scaled values"
 	]
 
-	;-----------------------------------------------------------------------
-	;- High-level GUI                                                       
-	;- https://docs.opencv.org/4.6.0/d7/dfc/group__highgui.html             
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- High-level GUI                                                                               
+	;- https://docs.opencv.org/4.6.0/d7/dfc/group__highgui.html                                     
+	;-----------------------------------------------------------------------------------------------
 	startWindowThread: []
 	imshow: [
 		"Displays an image in the specified window."
@@ -385,9 +379,9 @@ commands: [
 	destroyWindow: ["Destroys the specified window." window [any-string!]]
 
 
-	;-----------------------------------------------------------------------
-	;- Utilities                                                            
-	;-----------------------------------------------------------------------
+	;-----------------------------------------------------------------------------------------------
+	;- Utilities                                                                                    
+	;-----------------------------------------------------------------------------------------------
 	getTickCount: ["Returns the number of ticks."]
 	getTickFrequency: ["Returns the number of ticks per second."]
 	getNumThreads: ["Returns the number of threads used by OpenCV for parallel regions."]

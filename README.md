@@ -1,3 +1,4 @@
+
 # Rebol/OpenCV
 
 Initial implementation of the OpenCV extension for [Rebol3](https://github.com/Oldes/Rebol3).
@@ -16,121 +17,147 @@ Feature requests are welcome.
 
 ## Usage
 
-Basic image input:
+All folowing examples expect, that OpenCV extension was imported using one of these methods:
+1. Using direct path to the file: `cv: import %path/to/opencv.rebx`
+2. Using extension in the default location: `cv: import 'opencv`
+
+### 1. Making a blank matrix and displaying it.
+
+Matrices are one of the main datatypes used by OpenCV extension.
+
 ```rebol
-cv: import %opencv.rebx
-cv/startWindowThread ;; is this needed?
+mat: cv/Matrix 400x400 ;; creates an empty black image handle
+cv/imshow mat          ;; open a window with default name "Image" displaying the image
+cv/waitKey 0           ;; and wait for any key
+```
 
+### 2. Closing a window
+
+Window is closed using `destroyWindow "Window name"`.
+It is possible to close all windows using `destroyAllWindows`
+
+```rebol
+cv/destroyWindow "Image"                ;; because "Image" is the default window's name.
+```
+
+### 3. Loading a matrix from file
+
+Instead of writting full paths to `cv` commands, like: `cv/imshow`, it is possible
+to bind the code to the `cv` context using `with cv [...]`
+
+```rebol
 with cv [
-    namedWindow  win: "Some Window"
-    resizeWindow win 600x300
-    moveWindow   win 300x300 ;<-- bug in OpenCV! On macOS the window is not moved when there is no content
+    filename: %image/mask.png
+    mat: imread filename
+    imshow/name mat filename            ;; displaying the image in the window with file name's title
+    waitKey 0
+]
+```
 
-    print "Press any key inside the opened window!"
-    waitKey 0                  ;; wait for any key in the opened window
+### 4. Moving/resizing an opened window
 
+Having the window from the previous example still open, it is possible to move it using `moveWindow`.
+
+```rebol
+cv/moveWindow filename 300x50
+cv/waitKey 5000                         ;; now there is only 5s wait time
+```
+
+Windows created using `namedWindow` may be resized using `resizeWindow`
+
+```rebol
+cv/namedWindow win: "Resized"           ;; creating a window with title/name "Resized"
+cv/imshow/name mat win                  ;; displaying an image in it
+cv/resizeWindow win 500x280             ;; resized
+cv/waitKey 5000
+cv/destroyAllWindows                    ;; closing both windows
+```
+
+### 5. Getting matrix properties
+
+Using still the matrix from above, resized using `resize` command so the output is not too long..
+
+```rebol
+with cv [
+    mat: resize mat 10%
+    probe get-property mat MAT_SIZE     ;; image size
+    probe get-property mat MAT_TYPE     ;; CV type id
+    probe get-property mat MAT_CHANNELS ;; number of channels (3 = RGB)
+    probe get-property mat MAT_DEPTH    ;; CV depth id (0 = CV_8U)
+    probe get-property mat MAT_BINARY   ;; raw binary data
+    probe get-property mat MAT_IMAGE    ;; Rebol image value
+]
+```
+
+### 6. Manually releasing matrices
+
+Normally matrices are automatically released by Rebol's GC, but it is also possible to free them manually
+
+```rebol
+cv/free mat   ;; manually released matrix
+```
+
+It should be noted, that such a matrix is not usable anymore! This will fail:
+
+```rebol
+probe cv/imshow mat  ;; will return false!
+```
+
+### 7. Color space conversion
+
+```rebol
+with cv [
     img: imread %image/mask.png
-    if img [
-        imshow img             ;; show the image using default name
-        imshow/name img win    ;; show the image in the existing named window (resized)
-        moveWindow win 300x100 ;; move the window into some location
+    hls:  cvtColor img none COLOR_BGR2HLS
+    gray: cvtColor img none COLOR_BGR2GRAY
+    namedWindow win1: "Original"
+    namedWindow win2: "HLS"
+    namedWindow win3: "Grayscale"
+    imshow/name img  win1
+    imshow/name hls  win2
+    imshow/name gray win3
+    moveWindow win1 0x0
+    moveWindow win2 250x0
+    moveWindow win3 500x0
+    waitKey 0
+]
+```
 
-        print "Press ESC in any window to close all of them!"
-        forever [
-            k: pollKey         ;; check if there was any key pressed
-            if k = 27 [break]  ;; exit on ESC key
-            wait 0.01          ;; let Rebol breath as well
-        ]
-    ]
+### 8. Image threshold
+
+Having the grayscale version from above, we can applie a fixed-level threshold.
+
+```rebol
+with cv [
+    namedWindow win4: "THRESH_BINARY"
+    namedWindow win5: "THRESH_TRUNC"
+    namedWindow win6: "THRESH_TOZERO"
+    moveWindow  win4   0x150
+    moveWindow  win5 250x150
+    moveWindow  win6 500x150
+    thresh1: threshold gray none  0  255 THRESH_BINARY
+    thresh2: threshold gray none 100 255 THRESH_TRUNC
+    thresh3: threshold gray none 200 255 THRESH_TOZERO
+    imshow/name thresh1 win4
+    imshow/name thresh2 win5
+    imshow/name thresh3 win6
+    waitKey 0
     destroyAllWindows
 ]
 ```
 
-Getting `cvMat` properties:
+### 9. Using computed binary threshold as an opacity channel
+
 ```rebol
-with cv [
-    img: imread %image/mask.png
-    mat: resize img 10%
-    probe get-property mat MAT_SIZE
-    probe get-property mat MAT_TYPE
-    probe get-property mat MAT_CHANNELS
-    probe get-property mat MAT_BINARY
-    probe get-property mat MAT_IMAGE
-]
+image: cv/get-property img     cv/MAT_IMAGE   ;; get Rebol image
+alpha: cv/get-property thresh1 cv/MAT_BINARY  ;; get Rebol binary with alpha values
+image/alpha: alpha                            ;; replace image alpha with the new value
+save %tmp/masked.png image                        ;; using Rebol's PNG codec to save the new image
 ```
 
+### 10. Saving video from the camera
 
-Video input example:
 ```rebol
-cv: import %opencv.rebx
-with cv [
-    ;; initialize video input from a file...
-    ;cam: VideoCapture %test.mp4
-    ;; or from a camera device...
-    cam: VideoCapture 0   ? cam   ;; should be a cvVideoCapture handle
-    unless cam [quit]
-
-    frame: read :cam      ? frame   ;; should be a cvMat handle
-    frame-sc: resize :frame 25%     ;; creates new scaled cvMat handle
-    if frame [
-        forever [
-            read/into :cam :frame                        ;; reusing existing frame
-            resize/into :frame 25% :frame-sc             ;; resize input frame by 25% (reusing existing cvMat)
-            blur/border :frame-sc 16x16 BORDER_REPLICATE ;; blur the frame using kernel of size 64x64 pixels
-            imshow :frame-sc
-            k: pollKey            ;; check if there was any key pressed
-            if k = 27 [break]     ;; exit on ESC key
-            wait 0.01             ;; let Rebol breath as well
-        ]
-        destroyAllWindows
-        ;; try to save the last resolved frame into a file...
-        print "Saving the last frame into test images..."
-        prin "test.jpg   " probe imwrite      %tmp/test.jpg   :frame
-        prin "test_9.png " probe imwrite/with %tmp/test_9.png :frame [IMWRITE_PNG_COMPRESSION 9]
-        prin "test_0.png " probe imwrite/with %tmp/test_0.png :frame [IMWRITE_PNG_COMPRESSION 0]
-        prin "test.webp  " probe imwrite/with %tmp/test.webp  :frame [IMWRITE_WEBP_QUALITY 80]
-    ]
-    print "closing.."
-    free :cam
-    free :frame
-    print "done"
-]
-```
-
-Using bilateral filter to remove noise from an image:
-```rebol
-cv: import %opencv.rebx
-img: cv/imread %image/taj.jpg
-filtered: cv/bilateralFilter img 15 75.0 75.0
-cv/imwrite %image/taj-bfilter.jpg :filtered
-```
-
-Color space conversion:
-```rebol
-cv: import %opencv.rebx
-img: cv/imread %image/taj-bfilter.jpg
-hls: cv/cvtColor img cv/COLOR_BGR2HLS
-gre: cv/cvtColor img cv/COLOR_BGR2GRAY
-cv/imwrite %image/taj-hls.jpg  :hls
-cv/imwrite %image/taj-grey.jpg :gre
-```
-
-Image threshold:
-```rebol
-cv: import %opencv.rebx
-with cv [
-    img:  imread %image/mask.png
-    gray: cvtColor img COLOR_BGR2GRAY
-    threshold :gray :gray 0 255 THRESH_BINARY_INV
-    imshow/name img  "Source"
-    imshow/name dest "Result"
-    waitkey 0
-]
-```
-
-Saving video from the camera:
-```rebol
-cv: import %opencv.rebx
 with cv [
     ;; initialize video input from a file...
     ;cam: VideoCapture %test.mp4
@@ -144,15 +171,15 @@ with cv [
 
     print ["Input frame size:" size]
 
-    ;set-property cam CAP_PROP_POS_FRAMES 2000.0 // can be used to set position in the video (file input)
+    ;set-property cam CAP_PROP_POS_FRAMES 2000.0 ;; can be used to set position in the video (file input)
 
     if frame: read :cam [
         ;; initialize VideoWriter (when 0 is used as codec parameter, than the output will be MJPG)
-        out: VideoWriter %out.avi 0 24 size
+        out: VideoWriter %tmp/out.avi 0 24 size
         unless out [print "Failed to initialize VideoWriter!" quit]
 
-        ;; grab 100 frames maximum...
-        loop 100 [ 
+        ;; grab 50 frames maximum...
+        loop 50 [ 
             read/into :cam :frame    ;; reusing existing frame
             write out :frame         ;; append the frame to the output video
             imshow :frame            ;; and also show it in the window
@@ -161,12 +188,11 @@ with cv [
         ]
         destroyAllWindows
     ]
-    free :out
-    free :cam
-    free :frame
-    print "done"
+    free :out  ;; release VideoWriter
+    free :cam  ;; release VideoCapture
 ]
 ```
+
 VideoWriter expects integer for its codec input. It is possible to use function like this for the conversion:
 ```rebol
 fourcc: func[
