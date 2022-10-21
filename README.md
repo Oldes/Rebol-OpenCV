@@ -37,7 +37,7 @@ Window is closed using `destroyWindow "Window name"`.
 It is possible to close all windows using `destroyAllWindows`
 
 ```rebol
-cv/destroyWindow "Image"                ;; because "Image" is the default window's name.
+cv/destroyWindow "Image"       ;; because "Image" is the default window's name.
 ```
 
 ### 3. Loading a matrix from file
@@ -49,7 +49,7 @@ to bind the code to the `cv` context using `with cv [...]`
 with cv [
     filename: %image/mask.png
     mat: imread filename
-    imshow/name mat filename            ;; displaying the image in the window with file name's title
+    imshow/name mat filename   ;; displaying the image in the window with file name's title
     waitKey 0
 ]
 ```
@@ -60,17 +60,17 @@ Having the window from the previous example still open, it is possible to move i
 
 ```rebol
 cv/moveWindow filename 300x50
-cv/waitKey 5000                         ;; now there is only 5s wait time
+cv/waitKey 5000                ;; now there is only 5s wait time
 ```
 
 Windows created using `namedWindow` may be resized using `resizeWindow`
 
 ```rebol
-cv/namedWindow win: "Resized"           ;; creating a window with title/name "Resized"
-cv/imshow/name mat win                  ;; displaying an image in it
-cv/resizeWindow win 500x280             ;; resized
+cv/namedWindow win: "Resized"  ;; creating a window with title/name "Resized"
+cv/imshow/name mat win         ;; displaying an image in it
+cv/resizeWindow win 500x280    ;; resized
 cv/waitKey 5000
-cv/destroyAllWindows                    ;; closing both windows
+cv/destroyAllWindows           ;; closing both windows
 ```
 
 ### 5. Getting matrix properties
@@ -94,7 +94,7 @@ with cv [
 Normally matrices are automatically released by Rebol's GC, but it is also possible to free them manually
 
 ```rebol
-cv/free mat   ;; manually released matrix
+cv/free mat          ;; manually released matrix
 ```
 
 It should be noted, that such a matrix is not usable anymore! This will fail:
@@ -152,7 +152,7 @@ with cv [
 image: cv/get-property img     cv/MAT_IMAGE   ;; get Rebol image
 alpha: cv/get-property thresh1 cv/MAT_BINARY  ;; get Rebol binary with alpha values
 image/alpha: alpha                            ;; replace image alpha with the new value
-save %tmp/masked.png image                        ;; using Rebol's PNG codec to save the new image
+save %tmp/masked.png image                    ;; using Rebol's PNG codec to save the new image
 ```
 
 ### 10. Saving video from the camera
@@ -207,3 +207,7 @@ fourcc: func[
 fourcc "avc1"    ;== 828601953
 fourcc 828601953 ;== "avc1"
 ```
+
+
+* * * *
+This file was generated using [examples.r3](examples.r3) script.

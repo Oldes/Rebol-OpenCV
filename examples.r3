@@ -1,5 +1,5 @@
 Rebol [
-    title: "OpenCV code examples"
+    title: "OpenCV code examples and README generator"
 ]
 
 cv: import 'opencv
@@ -25,7 +25,7 @@ example "Closing a window" {
     It is possible to close all windows using `destroyAllWindows`
 
     ```rebol
-    cv/destroyWindow "Image"                ;; because "Image" is the default window's name.
+    cv/destroyWindow "Image"       ;; because "Image" is the default window's name.
     ```
 }
 example "Loading a matrix from file" {
@@ -36,7 +36,7 @@ example "Loading a matrix from file" {
     with cv [
         filename: %image/mask.png
         mat: imread filename
-        imshow/name mat filename            ;; displaying the image in the window with file name's title
+        imshow/name mat filename   ;; displaying the image in the window with file name's title
         waitKey 0
     ]
     ```
@@ -46,17 +46,17 @@ example "Moving/resizing an opened window" {
 
     ```rebol
     cv/moveWindow filename 300x50
-    cv/waitKey 5000                         ;; now there is only 5s wait time
+    cv/waitKey 5000                ;; now there is only 5s wait time
     ```
 
     Windows created using `namedWindow` may be resized using `resizeWindow`
 
     ```rebol
-    cv/namedWindow win: "Resized"           ;; creating a window with title/name "Resized"
-    cv/imshow/name mat win                  ;; displaying an image in it
-    cv/resizeWindow win 500x280             ;; resized
+    cv/namedWindow win: "Resized"  ;; creating a window with title/name "Resized"
+    cv/imshow/name mat win         ;; displaying an image in it
+    cv/resizeWindow win 500x280    ;; resized
     cv/waitKey 5000
-    cv/destroyAllWindows                    ;; closing both windows
+    cv/destroyAllWindows           ;; closing both windows
     ```
 }
 example "Getting matrix properties" {
@@ -78,7 +78,7 @@ example "Manually releasing matrices" {
     Normally matrices are automatically released by Rebol's GC, but it is also possible to free them manually
 
     ```rebol
-    cv/free mat   ;; manually released matrix
+    cv/free mat          ;; manually released matrix
     ```
 
     It should be noted, that such a matrix is not usable anymore! This will fail:
@@ -109,7 +109,7 @@ example "Color space conversion" {
 }
 example "Image threshold" {
     Having the grayscale version from above, we can applie a fixed-level threshold.
-    
+
     ```rebol
     with cv [
         namedWindow win4: "THRESH_BINARY"
@@ -134,10 +134,10 @@ example "Using computed binary threshold as an opacity channel" {
     image: cv/get-property img     cv/MAT_IMAGE   ;; get Rebol image
     alpha: cv/get-property thresh1 cv/MAT_BINARY  ;; get Rebol binary with alpha values
     image/alpha: alpha                            ;; replace image alpha with the new value
-    save %tmp/masked.png image                        ;; using Rebol's PNG codec to save the new image
+    save %tmp/masked.png image                    ;; using Rebol's PNG codec to save the new image
     ```
 }
-
+;---------------------------------------------------------------------------------------
 example "Saving video from the camera" {
     ```rebol
     with cv [
@@ -190,10 +190,9 @@ example "Saving video from the camera" {
     fourcc 828601953 ;== "avc1"
     ```
 }
-    
+  
 
 ;---------------------------------------------------------------------------------------
-
 ] ; end of examples block
 
 
@@ -254,4 +253,10 @@ parse examples [ any [
                set str: string! (emit-code str)]
     | skip
 ]]
+
+readme {
+
+* * * *
+This file was generated using [examples.r3](examples.r3) script.
+}
 
