@@ -54,6 +54,7 @@ source: %src/
 files: [
 	%opencv-rebol-extension.c
 	%opencv-commands.cpp
+	%opencv-commands-table.c
 ]
 include: [
 	%src/

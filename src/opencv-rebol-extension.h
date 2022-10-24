@@ -64,6 +64,46 @@ enum ext_commands {
 enum ext_cmd_words {W_OPENCV_CMD_0,
 };
 enum ext_arg_words {W_OPENCV_ARG_0,
+	W_OPENCV_ARG_CV_8U,
+	W_OPENCV_ARG_CV_8S,
+	W_OPENCV_ARG_CV_16U,
+	W_OPENCV_ARG_CV_16S,
+	W_OPENCV_ARG_CV_32S,
+	W_OPENCV_ARG_CV_32F,
+	W_OPENCV_ARG_CV_64F,
+	W_OPENCV_ARG_CV_USRTYPE1,
+	W_OPENCV_ARG_CV_8UC1,
+	W_OPENCV_ARG_CV_8SC1,
+	W_OPENCV_ARG_CV_16UC1,
+	W_OPENCV_ARG_CV_16SC1,
+	W_OPENCV_ARG_CV_32SC1,
+	W_OPENCV_ARG_CV_32FC1,
+	W_OPENCV_ARG_CV_64FC1,
+	W_OPENCV_ARG_CV_USRC1,
+	W_OPENCV_ARG_CV_8UC2,
+	W_OPENCV_ARG_CV_8SC2,
+	W_OPENCV_ARG_CV_16UC2,
+	W_OPENCV_ARG_CV_16SC2,
+	W_OPENCV_ARG_CV_32SC2,
+	W_OPENCV_ARG_CV_32FC2,
+	W_OPENCV_ARG_CV_64FC2,
+	W_OPENCV_ARG_CV_USRC2,
+	W_OPENCV_ARG_CV_8UC3,
+	W_OPENCV_ARG_CV_8SC3,
+	W_OPENCV_ARG_CV_16UC3,
+	W_OPENCV_ARG_CV_16SC3,
+	W_OPENCV_ARG_CV_32SC3,
+	W_OPENCV_ARG_CV_32FC3,
+	W_OPENCV_ARG_CV_64FC3,
+	W_OPENCV_ARG_CV_USRC3,
+	W_OPENCV_ARG_CV_8UC4,
+	W_OPENCV_ARG_CV_8SC4,
+	W_OPENCV_ARG_CV_16UC4,
+	W_OPENCV_ARG_CV_16SC4,
+	W_OPENCV_ARG_CV_32SC4,
+	W_OPENCV_ARG_CV_32FC4,
+	W_OPENCV_ARG_CV_64FC4,
+	W_OPENCV_ARG_CV_USRC4,
 };
 
 
@@ -118,63 +158,12 @@ int cmd_useOptimized(RXIFRM *frm, void *ctx);
 int cmd_setUseOptimized(RXIFRM *frm, void *ctx);
 
 typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
-MyCommandPointer Command[] = {
-	cmd_init_words,
-	cmd_test,
-	cmd_Matrix,
-	cmd_VideoCapture,
-	cmd_VideoWriter,
-	cmd_free,
-	cmd_get_property,
-	cmd_set_property,
-	cmd_read,
-	cmd_write,
-	cmd_imread,
-	cmd_imwrite,
-	cmd_resize,
-	cmd_bilateralFilter,
-	cmd_blur,
-	cmd_GaussianBlur,
-	cmd_Laplacian,
-	cmd_medianBlur,
-	cmd_cvtColor,
-	cmd_threshold,
-	cmd_add,
-	cmd_addWeighted,
-	cmd_bitwise_and,
-	cmd_bitwise_not,
-	cmd_bitwise_or,
-	cmd_bitwise_xor,
-	cmd_convertScaleAbs,
-	cmd_divide,
-	cmd_multiply,
-	cmd_subtract,
-	cmd_convertTo,
-	cmd_startWindowThread,
-	cmd_imshow,
-	cmd_pollKey,
-	cmd_waitKey,
-	cmd_namedWindow,
-	cmd_resizeWindow,
-	cmd_moveWindow,
-	cmd_getWindowProperty,
-	cmd_setWindowProperty,
-	cmd_destroyAllWindows,
-	cmd_destroyWindow,
-	cmd_getTickCount,
-	cmd_getTickFrequency,
-	cmd_getNumThreads,
-	cmd_getVersionString,
-	cmd_getBuildInformation,
-	cmd_useOptimized,
-	cmd_setUseOptimized,
-};
 
 #define OPENCV_EXT_INIT_CODE \
 	"REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: []]\n"\
 	"init-words: command [cmd-words [block!] arg-words [block!]]\n"\
 	"test: command [\"Simple OpenCV test\"]\n"\
-	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! vector!] /as type [integer!]]\n"\
+	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! vector!] /as type [integer! word!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
 	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
 	"free: command [\"Release OpenCV handle\" class [handle!] \"Mat, VideoCapture or VideoWriter\"]\n"\
@@ -221,7 +210,7 @@ MyCommandPointer Command[] = {
 	"getBuildInformation: command [\"Returns full configuration time cmake output.\"]\n"\
 	"useOptimized: command [\"Returns the status of optimized code usage.\"]\n"\
 	"setUseOptimized: command [\"Enables or disables the optimized code.\" onoff [logic!]]\n"\
-	"init-words words: [] []\n"\
+	"init-words words: [] [CV_8U CV_8S CV_16U CV_16S CV_32S CV_32F CV_64F CV_USRTYPE1 CV_8UC1 CV_8SC1 CV_16UC1 CV_16SC1 CV_32SC1 CV_32FC1 CV_64FC1 CV_USRC1 CV_8UC2 CV_8SC2 CV_16UC2 CV_16SC2 CV_32SC2 CV_32FC2 CV_64FC2 CV_USRC2 CV_8UC3 CV_8SC3 CV_16UC3 CV_16SC3 CV_32SC3 CV_32FC3 CV_64FC3 CV_USRC3 CV_8UC4 CV_8SC4 CV_16UC4 CV_16SC4 CV_32SC4 CV_32FC4 CV_64FC4 CV_USRC4]\n"\
 	"protect/hide 'init-words\n"\
 	"; imwrite params..\n"\
 	"IMWRITE_JPEG_QUALITY: 1\n"\

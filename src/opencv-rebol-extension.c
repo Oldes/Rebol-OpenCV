@@ -9,21 +9,22 @@
 RL_LIB *RL; // Link back to reb-lib from embedded extensions
 
 //==== Globals ===============================//
-u32*   opencv_cmd_words;
-u32*   opencv_arg_words;
+u32*   ext_cmd_words;
+u32*   ext_arg_words;
 REBCNT Handle_cvVideoCapture;
 REBCNT Handle_cvVideoWriter;
 REBCNT Handle_cvMat;
 
 REBDEC doubles[DOUBLE_BUFFER_SIZE];
 RXIARG arg[ARG_BUFFER_SIZE];
+extern MyCommandPointer Command[];
 //============================================//
 
 static const char* init_block = OPENCV_EXT_INIT_CODE;
 
 int cmd_init_words(RXIFRM *frm, void *ctx) {
-	opencv_cmd_words = RL_MAP_WORDS(RXA_SERIES(frm,1));
-	opencv_arg_words = RL_MAP_WORDS(RXA_SERIES(frm,2));
+	ext_cmd_words = RL_MAP_WORDS(RXA_SERIES(frm,1));
+	ext_arg_words = RL_MAP_WORDS(RXA_SERIES(frm,2));
 	return RXR_NONE;
 }
 

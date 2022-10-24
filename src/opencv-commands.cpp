@@ -1,7 +1,7 @@
 #include "opencv2/opencv.hpp"
 
 extern "C" {
-	#include "common.h"
+	#include "opencv-rebol-extension.h"
 }
 
 static char* err_buff[255]; // temporary buffer used to pass an exception messages to Rebol side
@@ -25,9 +25,11 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Is_Pair(n)          (RXA_TYPE(frm,n) == RXT_PAIR)
 #define ARG_Is_Integer(n)       (RXA_TYPE(frm,n) == RXT_INTEGER)
 #define ARG_Is_None(n)          (RXA_TYPE(frm,n) == RXT_NONE)
+#define ARG_Is_Not_None(n)      (RXA_TYPE(frm,n) != RXT_NONE)
 #define ARG_Mat(n)              (ARG_Is_Mat(n) ? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
+#define ARG_MatType(n)          (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : RL_FIND_WORD(ext_arg_words, RXA_INT32(frm,n))-W_OPENCV_ARG_CV_8UC1)
 #define ARG_Double(n)           (RXA_TYPE(frm,n) == RXT_DECIMAL ? RXA_DEC64(frm,n) : (double)RXA_INT64(frm,n))
 #define ARG_Int(n)              (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : (int)RXA_DEC64(frm,n))
 #define ARG_Size(n)             (RXA_TYPE(frm,n) == RXT_PAIR ? Size(PAIR_X(frm,n), PAIR_Y(frm,n)) : Size(RXA_INT32(frm,n), RXA_INT32(frm,n)));
@@ -187,8 +189,8 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 		else {
 			size = ARG_Size(1);
 		}
-		if (ARG_Is_Integer(3)) {
-			type = ARG_Int(3);
+		if (ARG_Is_Not_None(2)) { // /as refine
+			type = ARG_MatType(3);
 		}
 		mat = new Mat(size, type, Scalar(0,0,0));
 	}
@@ -305,8 +307,8 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				return RXR_VALUE;
 			}
 			case MAT_TYPE: {
-				RXA_TYPE(frm,1) = RXT_INTEGER;
-				RXA_ARG(frm,1).int64 = mat->type();
+				RXA_TYPE(frm,1) = RXT_WORD;
+				RXA_ARG(frm,1).int64 = ext_arg_words[mat->type() + W_OPENCV_ARG_CV_8UC1];
 				return RXR_VALUE;
 			}
 			case MAT_DEPTH: {
