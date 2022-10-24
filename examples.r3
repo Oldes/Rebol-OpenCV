@@ -153,25 +153,18 @@ example "Blurring images" {
         moveWindow win3 500x0
 
         size: 1
-        pair: 1x1
         add-blur?: true
-
-        print "Press any key to stop the animation!"
         forever [
             either add-blur? [
                 size: size + 2
-                pair: pair + 2
+                add-blur?: size < 100
             ][
                 size: size - 2
-                pair: pair - 2
+                add-blur?: size <= 1
             ]
-            case [
-                size <= 1   [add-blur?: true ]
-                size >= 100 [add-blur?: false]
-            ]
-            blur         :src :blured1 pair
-            gaussianBlur :src :blured2 pair 0 0
-            medianBlur   :src :blured3 size
+            blur         :src :blured1 :size
+            gaussianBlur :src :blured2 :size 0 0
+            medianBlur   :src :blured3 :size
             imshow/name blured1 win1
             imshow/name blured2 win2
             imshow/name blured3 win3

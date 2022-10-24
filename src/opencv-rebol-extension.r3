@@ -120,7 +120,7 @@ commands: [
 		"Blurs an image using the normalized box filter."
 		src [handle!] "cvMat handle"
 		dst [handle! none!]
-		size [pair!] "blurring kernel size"
+		size [pair! integer!] "blurring kernel size"
 		/border "border mode used to extrapolate pixels outside of the image"
 		type [integer!] "one of: [0 1 2 4 5 16]"
 	]
@@ -133,7 +133,7 @@ commands: [
 		"Blurs an image using a Gaussian filter."
 		src    [handle!] "cvMat"
 		dst    [handle! none!] "cvMat"
-		size   [pair!]   "blurring kernel size"
+		size   [pair! integer!]   "blurring kernel size"
 		sigmaX [number!]
 		sigmaY [number!]
 		/border "border mode used to extrapolate pixels outside of the image"
