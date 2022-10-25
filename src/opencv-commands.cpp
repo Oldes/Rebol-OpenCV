@@ -179,7 +179,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	int type = CV_8UC4;
 	
 	if (ARG_Is_Block(1)) {
-		REBSER *bin;
+		REBSER *bin = NULL;
 		REBSER *blk = (REBSER *)RXA_SERIES(frm, 1);
 		REBCNT n, t;
 		RXIARG val;
@@ -197,7 +197,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				type -= W_OPENCV_ARG_CV_8UC1;
 			}
 			else if (t == RXT_TUPLE) {
-				mat = new Mat(size, type, Scalar(val.bytes[1],val.bytes[2],val.bytes[3],val.bytes[4]));
+				mat = new Mat(size, type, Scalar(val.bytes[3],val.bytes[2],val.bytes[1],val.bytes[4]));
 				goto done;
 			}
 			else if (t == RXT_BINARY) {
