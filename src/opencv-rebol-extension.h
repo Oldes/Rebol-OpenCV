@@ -163,7 +163,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: []]\n"\
 	"init-words: command [cmd-words [block!] arg-words [block!]]\n"\
 	"test: command [\"Simple OpenCV test\"]\n"\
-	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! vector!] /as type [integer! word!]]\n"\
+	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! block!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
 	"VideoWriter: command [\"Initialize new VideoWriter class\" src [integer! file! string!] codec [integer!] {4-character code of codec used to compress the frames (mp4ra.org/#/codecs)} fps [number!] \"Framerate of the created video stream\" size [pair!] \"Size of the video frames\"]\n"\
 	"free: command [\"Release OpenCV handle\" class [handle!] \"Mat, VideoCapture or VideoWriter\"]\n"\

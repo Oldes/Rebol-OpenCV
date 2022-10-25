@@ -60,8 +60,7 @@ commands: [
 	;-----------------------------------------------------------------------------------------------
 	Matrix: [
 		"Initialize new cvMat class"
-		spec [pair! handle! image! vector!]
-		/as type [integer! word!]
+		spec [pair! handle! image! block!]
 	]
 	VideoCapture: [
 		"Initialize new VideoCapture class"

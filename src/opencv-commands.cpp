@@ -26,6 +26,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Is_Integer(n)       (RXA_TYPE(frm,n) == RXT_INTEGER)
 #define ARG_Is_None(n)          (RXA_TYPE(frm,n) == RXT_NONE)
 #define ARG_Is_Not_None(n)      (RXA_TYPE(frm,n) != RXT_NONE)
+#define ARG_Is_Block(n)         (RXA_TYPE(frm,n) == RXT_BLOCK)
 #define ARG_Mat(n)              (ARG_Is_Mat(n) ? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
@@ -173,28 +174,68 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 //;-----------------------------------------------------------------------
 
 COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
-	Mat *mat;
-	Size size;
+	Mat *mat = NULL;
+	Size size = Size(0,0);
 	int type = CV_8UC4;
 	
-	if (ARG_Is_Image(1)) {
-		mat = new_Mat_From_Image_Arg(frm, 1);
-	} else {
-		if(ARG_Is_Mat(1)) {
-			mat = ARG_Mat(1);
-			if (!mat) return RXR_NONE;
-			size = mat->size();
-			type = mat->type();
+	if (ARG_Is_Block(1)) {
+		REBSER *bin;
+		REBSER *blk = (REBSER *)RXA_SERIES(frm, 1);
+		REBCNT n, t;
+		RXIARG val;
+		for(n = RXA_INDEX(frm, 1); (t = RL_GET_VALUE(blk, n, &val)); n++) {
+			if (t == RXT_END) break;
+			if (t == RXT_GET_WORD) {
+				t = RL_GET_VALUE_RESOLVED(blk, n, &val);
+			}
+			if (t == RXT_PAIR) {
+				size = Size((int)val.pair.x, (int)val.pair.y);
+			}
+			else if (t == RXT_WORD) {
+				type = RL_FIND_WORD(ext_arg_words, val.int32a);
+				if (type < W_OPENCV_ARG_CV_8UC1 || type > W_OPENCV_ARG_CV_USRC4) return RXR_FALSE;
+				type -= W_OPENCV_ARG_CV_8UC1;
+			}
+			else if (t == RXT_TUPLE) {
+				mat = new Mat(size, type, Scalar(val.bytes[1],val.bytes[2],val.bytes[3],val.bytes[4]));
+				goto done;
+			}
+			else if (t == RXT_BINARY) {
+				bin = (REBSER*)val.series;
+			}
+			// TODO: vector!
 		}
-		else {
-			size = ARG_Size(1);
+		if (bin) {
+			// It should be possible to create a matrix, which is using directly the Rebol binary data.
+			// https://docs.opencv.org/3.4/d3/d63/classcv_1_1Mat.html#a9fa74fb14362d87cb183453d2441948f
+			// mat = new Mat(size, type, bin->data);
+			// But first I must resolve, how to guard these data from GC on the Rebol side.		
+			// So for now I will rather copy the binary data into the new matrix instead.
+			mat = new Mat(size, type);
+			int matBytes = mat->elemSize() * mat->cols * mat->rows;
+			int binBytes = SERIES_TAIL(bin) - val.index;
+			if (binBytes < matBytes) matBytes = binBytes;
+			//TODO: if the source data are shorter, they could be copied repeatedly!
+			memcpy(mat->data, SERIES_SKIP(bin, val.index), matBytes);
+			goto done;
 		}
-		if (ARG_Is_Not_None(2)) { // /as refine
-			type = ARG_MatType(3);
-		}
-		mat = new Mat(size, type, Scalar(0,0,0));
 	}
-
+	else if (ARG_Is_Image(1)) {
+		mat = new_Mat_From_Image_Arg(frm, 1);
+		goto done;
+	}
+	else if (ARG_Is_Mat(1)) {
+		mat = ARG_Mat(1);
+		if (!mat) return RXR_NONE;
+		size = mat->size();
+		type = mat->type();
+	}
+	else if (ARG_Is_Pair(1)) {
+		size = ARG_Size(1);
+	}
+	mat = new Mat(size, type);
+	
+done:
 	return initRXHandle(frm, 1, mat, Handle_cvMat);
 }
 
