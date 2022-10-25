@@ -380,7 +380,7 @@ commands: [
 		"Converts an array to another data type with optional scaling."
 		src   [handle!] "cvMat"
 		dst   [handle! none!] "cvMat"
-		type  [integer!] "desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input"
+		type  [integer! word!] "desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input"
 		alpha [number!] "scale factor"
 		beta  [number!] "delta added to the scaled values"
 	]

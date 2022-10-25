@@ -878,7 +878,7 @@ COMMAND cmd_convertScaleAbs(RXIFRM *frm, void *ctx) {
 COMMAND cmd_convertTo(RXIFRM *frm, void *ctx) {
 	Mat *src     = ARG_Mat   (1);
 	Mat *dst     = ARG_Mat_As(2, src);
-	int    rtype = ARG_Int   (3);
+	int    rtype = ARG_MatType(3);
 	double alpha = ARG_Double(4);
 	double beta  = ARG_Double(5);
 
