@@ -110,6 +110,8 @@ commands: [
 	imread: [
 		src [file! string!]
 		/image "as Rebol image instead of default cvMat"
+		/with "Flag that can take values IMREAD_*"
+		flags [integer!]
 	]
 	imwrite: [
 		"Saves an image to a specified file."
@@ -475,6 +477,21 @@ new-line/all arg-words false
 append header rejoin [{^/init-words words: } mold cmd-words #" " mold arg-words]
 append header {^/protect/hide 'init-words}
 append header {
+; imread flags..
+IMREAD_UNCHANGED: -1
+IMREAD_GRAYSCALE: 0
+IMREAD_COLOR: 1
+IMREAD_ANYDEPTH: 2
+IMREAD_ANYCOLOR: 4
+IMREAD_LOAD_GDAL: 8
+IMREAD_REDUCED_GRAYSCALE_2: 16
+IMREAD_REDUCED_COLOR_2: 17
+IMREAD_REDUCED_GRAYSCALE_4: 32
+IMREAD_REDUCED_COLOR_4: 33
+IMREAD_REDUCED_GRAYSCALE_8: 64
+IMREAD_REDUCED_COLOR_8: 65
+IMREAD_IGNORE_ORIENTATION: 128
+
 ; imwrite params..
 IMWRITE_JPEG_QUALITY: 1
 IMWRITE_JPEG_PROGRESSIVE: 2

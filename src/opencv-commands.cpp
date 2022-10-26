@@ -505,9 +505,10 @@ COMMAND cmd_write(RXIFRM *frm, void *ctx) {
 COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	Mat image;
 	String filename = ARG_String(1);
+	int flags = (ARG_Is_Integer(4) ? RXA_INT32(frm,4) : IMREAD_UNCHANGED);
 
 	EXCEPTION_TRY
-	image = imread(filename, IMREAD_UNCHANGED);
+	image = imread(filename, flags);
 	if (image.empty()) return RXR_NONE;
 	if (ARG_Is_None(2)) {
 		Mat *result = new Mat(image);

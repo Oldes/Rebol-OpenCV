@@ -171,7 +171,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"set-property: command [obj [handle!] \"VideoCapture handle\" property [integer!] value [number!]]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
 	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
-	"imread: command [src [file! string!] /image \"as Rebol image instead of default cvMat\"]\n"\
+	"imread: command [src [file! string!] /image \"as Rebol image instead of default cvMat\" /with \"Flag that can take values IMREAD_*\" flags [integer!]]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] \"Image or cvMat handle\" /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" src [handle!] {Source 8-bit or floating-point, 1-channel or 3-channel image.} dst [handle! none!] {Destination image of the same size and type as src.} diameter [integer!] {Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.} sigmaColor [number!] sigmaSpace [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
@@ -212,6 +212,21 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"setUseOptimized: command [\"Enables or disables the optimized code.\" onoff [logic!]]\n"\
 	"init-words words: [] [CV_8U CV_8S CV_16U CV_16S CV_32S CV_32F CV_64F CV_USRTYPE1 CV_8UC1 CV_8SC1 CV_16UC1 CV_16SC1 CV_32SC1 CV_32FC1 CV_64FC1 CV_USRC1 CV_8UC2 CV_8SC2 CV_16UC2 CV_16SC2 CV_32SC2 CV_32FC2 CV_64FC2 CV_USRC2 CV_8UC3 CV_8SC3 CV_16UC3 CV_16SC3 CV_32SC3 CV_32FC3 CV_64FC3 CV_USRC3 CV_8UC4 CV_8SC4 CV_16UC4 CV_16SC4 CV_32SC4 CV_32FC4 CV_64FC4 CV_USRC4]\n"\
 	"protect/hide 'init-words\n"\
+	"; imread flags..\n"\
+	"IMREAD_UNCHANGED: -1\n"\
+	"IMREAD_GRAYSCALE: 0\n"\
+	"IMREAD_COLOR: 1\n"\
+	"IMREAD_ANYDEPTH: 2\n"\
+	"IMREAD_ANYCOLOR: 4\n"\
+	"IMREAD_LOAD_GDAL: 8\n"\
+	"IMREAD_REDUCED_GRAYSCALE_2: 16\n"\
+	"IMREAD_REDUCED_COLOR_2: 17\n"\
+	"IMREAD_REDUCED_GRAYSCALE_4: 32\n"\
+	"IMREAD_REDUCED_COLOR_4: 33\n"\
+	"IMREAD_REDUCED_GRAYSCALE_8: 64\n"\
+	"IMREAD_REDUCED_COLOR_8: 65\n"\
+	"IMREAD_IGNORE_ORIENTATION: 128\n"\
+	"\n"\
 	"; imwrite params..\n"\
 	"IMWRITE_JPEG_QUALITY: 1\n"\
 	"IMWRITE_JPEG_PROGRESSIVE: 2\n"\
