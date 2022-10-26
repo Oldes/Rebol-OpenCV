@@ -87,16 +87,20 @@ extern "C" {
 	}
 }
 
-static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type) {
+static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type) {
 	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(type);
 	debug_print("new hob: %p handle: %p\n", hob, handle);
 	if (hob == NULL) return RXR_FALSE;
 	hob->handle = handle;
-	RXA_HANDLE(frm, index) = hob;
-	RXA_HANDLE_TYPE(frm, index) = type;
-	RXA_HANDLE_FLAGS(frm, index) = HANDLE_CONTEXT;
-	RXA_TYPE(frm, index) = RXT_HANDLE;
+	val->handle.ptr = hob;
+	val->handle.type = type;
+	val->handle.flags = HANDLE_CONTEXT;
 	return RXR_VALUE;
+}
+
+static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type) {
+	RXA_TYPE(frm, index) = RXT_HANDLE;
+	return initRXHandleArg(&RXA_ARG(frm, index), handle, type);
 }
 
 static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
@@ -175,11 +179,11 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	Mat *mat = NULL;
+	REBSER *bin = NULL;
 	Size size = Size(0,0);
 	int type = CV_8UC4;
 	
 	if (ARG_Is_Block(1)) {
-		REBSER *bin = NULL;
 		REBSER *blk = (REBSER *)RXA_SERIES(frm, 1);
 		REBCNT n, t;
 		RXIARG val;
@@ -529,6 +533,45 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	
 	EXCEPTION_CATCH
 
+	return RXR_VALUE;
+}
+
+COMMAND cmd_imreadmulti(RXIFRM *frm, void *ctx) {
+	vector<Mat> images;
+	String filename = ARG_String(1);
+	int flags = (ARG_Is_Integer(4) ? RXA_INT32(frm,4) : IMREAD_UNCHANGED);
+
+	EXCEPTION_TRY
+	if (!imreadmulti(filename, images, flags)) return RXR_FALSE;	
+	EXCEPTION_CATCH
+
+	int n;
+	int num = images.size();
+	REBSER *blk = (REBSER*)RL_MAKE_BLOCK(num);
+	RXIARG val;
+
+	if (ARG_Is_None(2)) {
+		Mat *image;
+		for (n = 0; n < num; n++) {
+			image = new Mat(images[n]);
+			initRXHandleArg(&val, image, Handle_cvMat);
+			RL_SET_VALUE(blk, n, val, RXT_HANDLE);
+		}
+	} else {
+		Mat image;
+		REBSER* reb_image;
+		for (n = 0; n < num; n++) {
+			cvtColor(images[n], image, COLOR_BGR2BGRA);
+			reb_image = (REBSER *)RL_MAKE_IMAGE(image.cols, image.rows);
+			memcpy(reb_image->data, image.data, 4*image.cols*image.rows);
+			val.width  = image.cols;
+			val.height = image.rows;
+			val.image  = reb_image;
+			RL_SET_VALUE(blk, n, val, RXT_IMAGE);
+		}
+	}
+	RXA_TYPE(frm, 1) = RXT_BLOCK;
+	RXA_SERIES(frm, 1) = blk;
 	return RXR_VALUE;
 }
 

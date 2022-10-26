@@ -108,10 +108,16 @@ commands: [
 	;- https://docs.opencv.org/4.6.0/d4/da8/group__imgcodecs.html                                   
 	;-----------------------------------------------------------------------------------------------
 	imread: [
-		src [file! string!]
-		/image "as Rebol image instead of default cvMat"
+		src [file! string!] "Loads an image from a file."
+		/image "As Rebol image instead of default cvMat"
 		/with "Flag that can take values IMREAD_*"
-		flags [integer!]
+		flags [integer!] "Default is IMREAD_UNCHANGED"
+	]
+	imreadmulti: [
+		src [file! string!] "Loads a multi-page image from a file."
+		/image "As Rebol images instead of default cvMat"
+		/with "Flag that can take values IMREAD_*"
+		flags [integer!] "Default is IMREAD_UNCHANGED"
 	]
 	imwrite: [
 		"Saves an image to a specified file."

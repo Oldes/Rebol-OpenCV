@@ -14,6 +14,7 @@ MyCommandPointer Command[] = {
 	cmd_read,
 	cmd_write,
 	cmd_imread,
+	cmd_imreadmulti,
 	cmd_imwrite,
 	cmd_resize,
 	cmd_bilateralFilter,

@@ -22,6 +22,7 @@ enum ext_commands {
 	CMD_OPENCV_READ,
 	CMD_OPENCV_WRITE,
 	CMD_OPENCV_IMREAD,
+	CMD_OPENCV_IMREADMULTI,
 	CMD_OPENCV_IMWRITE,
 	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_BILATERALFILTER,
@@ -118,6 +119,7 @@ int cmd_set_property(RXIFRM *frm, void *ctx);
 int cmd_read(RXIFRM *frm, void *ctx);
 int cmd_write(RXIFRM *frm, void *ctx);
 int cmd_imread(RXIFRM *frm, void *ctx);
+int cmd_imreadmulti(RXIFRM *frm, void *ctx);
 int cmd_imwrite(RXIFRM *frm, void *ctx);
 int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
@@ -171,7 +173,8 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"set-property: command [obj [handle!] \"VideoCapture handle\" property [integer!] value [number!]]\n"\
 	"read: command [\"Grabs, decodes and returns the next video frame\" src [handle!] \"VideoCapture\" /into \"Optional existing Mat handle\" dst [handle!] \"Mat\"]\n"\
 	"write: command [\"Writes the next video frame\" dst [handle!] \"VideoWriter\" frame [image! handle!]]\n"\
-	"imread: command [src [file! string!] /image \"as Rebol image instead of default cvMat\" /with \"Flag that can take values IMREAD_*\" flags [integer!]]\n"\
+	"imread: command [src [file! string!] \"Loads an image from a file.\" /image \"As Rebol image instead of default cvMat\" /with \"Flag that can take values IMREAD_*\" flags [integer!] \"Default is IMREAD_UNCHANGED\"]\n"\
+	"imreadmulti: command [src [file! string!] \"Loads a multi-page image from a file.\" /image \"As Rebol images instead of default cvMat\" /with \"Flag that can take values IMREAD_*\" flags [integer!] \"Default is IMREAD_UNCHANGED\"]\n"\
 	"imwrite: command [\"Saves an image to a specified file.\" name [any-string!] image [image! handle!] \"Image or cvMat handle\" /with \"Format-specific parameters encoded as pairs\" params [block!] \"integer pairs (words are resolved)\"]\n"\
 	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" src [handle!] {Source 8-bit or floating-point, 1-channel or 3-channel image.} dst [handle! none!] {Destination image of the same size and type as src.} diameter [integer!] {Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.} sigmaColor [number!] sigmaSpace [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
