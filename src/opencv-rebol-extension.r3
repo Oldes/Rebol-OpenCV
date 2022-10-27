@@ -250,7 +250,12 @@ commands: [
 	;- Operations on arrays                                                                         
 	;- https://docs.opencv.org/4.6.0/d2/de8/group__core__array.html                                 
 	;-----------------------------------------------------------------------------------------------
-	;absdiff
+	absdiff: [
+		"Calculates the per-element absolute difference between two arrays"
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
+	]
 	add: [
 		"Calculates the per-element sum of two arrays."
 		src1 [handle!] "cvMat"

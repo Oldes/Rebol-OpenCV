@@ -24,6 +24,7 @@ MyCommandPointer Command[] = {
 	cmd_medianBlur,
 	cmd_cvtColor,
 	cmd_threshold,
+	cmd_absdiff,
 	cmd_add,
 	cmd_addWeighted,
 	cmd_bitwise_and,

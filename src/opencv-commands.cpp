@@ -921,6 +921,22 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	}
 }
 
+COMMAND cmd_absdiff(RXIFRM *frm, void *ctx) {
+	//TODO: should work also with Scalar (Rebol's tuple)
+	Mat *src1    = ARG_Mat(1);
+	Mat *src2    = ARG_Mat(2);
+	Mat *dst     = ARG_Mat_As(3, src1);
+
+	if(!src1 || !src2 || !dst) return RXR_NONE;
+
+	EXCEPTION_TRY
+	absdiff(*src1, *src2, *dst);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 6);
+	return RXR_VALUE;
+}
+
 COMMAND cmd_addWeighted(RXIFRM *frm, void *ctx) {
 	Mat *src1    = ARG_Mat(1);
 	double alpha = ARG_Double(2);

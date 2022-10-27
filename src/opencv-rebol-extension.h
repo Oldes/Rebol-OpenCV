@@ -32,6 +32,7 @@ enum ext_commands {
 	CMD_OPENCV_MEDIANBLUR,
 	CMD_OPENCV_CVTCOLOR,
 	CMD_OPENCV_THRESHOLD,
+	CMD_OPENCV_ABSDIFF,
 	CMD_OPENCV_ADD,
 	CMD_OPENCV_ADDWEIGHTED,
 	CMD_OPENCV_BITWISE_AND,
@@ -130,6 +131,7 @@ int cmd_Laplacian(RXIFRM *frm, void *ctx);
 int cmd_medianBlur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
+int cmd_absdiff(RXIFRM *frm, void *ctx);
 int cmd_add(RXIFRM *frm, void *ctx);
 int cmd_addWeighted(RXIFRM *frm, void *ctx);
 int cmd_bitwise_and(RXIFRM *frm, void *ctx);
@@ -186,6 +188,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"medianBlur: command [\"Blurs an image using the median filter.\" src [handle!] {input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U} dst [handle! none!] \"destination array of the same size and type as src\" size [number!] {aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7...}]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" src [handle!] \"source cvMat handle\" dst [handle! none!] \"destination cvMat\" code [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle! none!] thresh [number!] maxval [number!] type [integer!]]\n"\
+	"absdiff: command [{Calculates the per-element absolute difference between two arrays} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\"]\n"\
 	"add: command [\"Calculates the per-element sum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"addWeighted: command [\"Calculates the weighted sum of two arrays.\" src1 [handle!] \"cvMat\" alpha [number!] \"weight of the first array elements.\" src2 [handle!] \"cvMat\" beta [number!] \"weight of the second array elements.\" gamma [number!] \"scalar added to each sum.\" dst [handle! none!] \"cvMat\"]\n"\
 	"bitwise-and: command [{Computes bitwise conjunction of the two arrays (dst = src1 & src2)} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
