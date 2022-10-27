@@ -85,6 +85,7 @@ with cv [
     probe get-property mat MAT_CHANNELS ;; number of channels (3 = RGB)
     probe get-property mat MAT_DEPTH    ;; CV depth id (0 = CV_8U)
     probe get-property mat MAT_BINARY   ;; raw binary data
+    probe get-property mat MAT_VECTOR   ;; Rebol vector value
     probe get-property mat MAT_IMAGE    ;; Rebol image value
 ]
 ```

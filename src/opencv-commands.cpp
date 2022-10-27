@@ -398,9 +398,9 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 			case MAT_VECTOR: {
 				REBINT type; // int = 0, decimal = 1
 				REBINT sign; // 0 = signed, 1 = unsigned
-				REBINT bits, dims;
+				REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
 				REBINT size = mat->cols * mat->rows * mat->channels();
-				cout << mat->depth() << endl;
+				
 				switch(mat->depth()) {
 					case CV_8U:  type = 0; sign = 1; bits = 8;  break;
 					case CV_8S:  type = 0; sign = 0; bits = 8;  break;
@@ -410,9 +410,10 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 					case CV_32F: type = 1; sign = 0; bits = 32; break;
 					case CV_64F: type = 1; sign = 0; bits = 64; break;
 				}
+				
 				int bytes = mat->elemSize() * mat->cols * mat->rows;
 				REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
-				memcpy(vec->data, mat->data,  bytes);
+				memcpy(vec->data, mat->data,  bytes); //TODO: expects that mat is continuous!
 				SERIES_TAIL(vec) = size;
 				RXA_SERIES(frm, 1) = vec;
 				RXA_TYPE  (frm, 1) = RXT_VECTOR;
