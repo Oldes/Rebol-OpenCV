@@ -40,6 +40,7 @@ enum ext_commands {
 	CMD_OPENCV_BITWISE_XOR,
 	CMD_OPENCV_CONVERTSCALEABS,
 	CMD_OPENCV_DIVIDE,
+	CMD_OPENCV_FLIP,
 	CMD_OPENCV_MULTIPLY,
 	CMD_OPENCV_SUBTRACT,
 	CMD_OPENCV_CONVERTTO,
@@ -137,6 +138,7 @@ int cmd_bitwise_or(RXIFRM *frm, void *ctx);
 int cmd_bitwise_xor(RXIFRM *frm, void *ctx);
 int cmd_convertScaleAbs(RXIFRM *frm, void *ctx);
 int cmd_divide(RXIFRM *frm, void *ctx);
+int cmd_flip(RXIFRM *frm, void *ctx);
 int cmd_multiply(RXIFRM *frm, void *ctx);
 int cmd_subtract(RXIFRM *frm, void *ctx);
 int cmd_convertTo(RXIFRM *frm, void *ctx);
@@ -192,6 +194,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"bitwise-xor: command [{Calculates the per-element bit-wise \"exclusive or\" operation on two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"convertScaleAbs: command [{Scales, calculates absolute values, and converts the result to 8-bit.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" alpha [number!] \"default = 1\" beta [number!]]\n"\
 	"divide: command [\"Calculates the per-element division of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
+	"flip: command [{Flips a 2D array around vertical, horizontal, or both axes.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" flipCode [integer!] {a flag to specify how to flip the array; 0 means flipping around the x-axis and positive value (for example, 1) means flipping around y-axis. Negative value (for example, -1) means flipping around both axes}]\n"\
 	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
 	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"convertTo: command [{Converts an array to another data type with optional scaling.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" type [integer! word!] {desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input} alpha [number!] \"scale factor\" beta [number!] \"delta added to the scaled values\"]\n"\

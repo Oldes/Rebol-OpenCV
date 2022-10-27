@@ -32,6 +32,7 @@ MyCommandPointer Command[] = {
 	cmd_bitwise_xor,
 	cmd_convertScaleAbs,
 	cmd_divide,
+	cmd_flip,
 	cmd_multiply,
 	cmd_subtract,
 	cmd_convertTo,

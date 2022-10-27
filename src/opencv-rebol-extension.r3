@@ -333,7 +333,12 @@ commands: [
 	;exp 
 	;extractChannel 
 	;findNonZero 
-	;flip 
+	flip: [
+		"Flips a 2D array around vertical, horizontal, or both axes."
+		src   [handle!] "cvMat"
+		dst   [handle! none!] "cvMat"
+		flipCode [integer!]	"a flag to specify how to flip the array; 0 means flipping around the x-axis and positive value (for example, 1) means flipping around y-axis. Negative value (for example, -1) means flipping around both axes"
+	] 
 	;gemm
 	;getOptimalDFTSize
 	;hconcat
