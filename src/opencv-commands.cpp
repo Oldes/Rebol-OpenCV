@@ -986,6 +986,37 @@ COMMAND cmd_flip(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
+COMMAND cmd_invert(RXIFRM *frm, void *ctx) {
+	Mat *src     = ARG_Mat   (1);
+	Mat *dst     = ARG_Mat_As(2, src);
+	int flipCode = ARG_Int(3);
+
+	if (!src || !dst) return RXR_NONE;
+
+	EXCEPTION_TRY
+	invert(*src, *dst, flipCode);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;	
+}
+
+
+COMMAND cmd_transform(RXIFRM *frm, void *ctx) {
+	Mat *src     = ARG_Mat   (1);
+	Mat *dst     = ARG_Mat_As(2, src);
+	Mat *m       = ARG_Mat   (3);
+
+	if (!src || !dst || !m) return RXR_NONE;
+
+	EXCEPTION_TRY
+	transform(*src, *dst, *m);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;	
+}
+
 
 //;-----------------------------------------------------------------------
 //;- Mat class                                                            

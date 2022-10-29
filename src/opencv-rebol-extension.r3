@@ -351,7 +351,12 @@ commands: [
 	;idft 
 	;inRange
 	;insertChannel 
-	;invert
+	invert: [
+		"Finds the inverse or pseudo-inverse of a matrix."
+		src   [handle!] "Input floating-point M x N matrix."
+		dst   [handle! none!] "Output matrix of N x M size and the same type as src."
+		flags [integer!] "Inversion method; One of DecompTypes (DECOMP_*)"
+	]
 	;log 
 	;LUT
 	;magnitude 
@@ -385,6 +390,12 @@ commands: [
 		dst  [handle! none!] "cvMat"
 		/mask
 		m    [handle!] "cvMat"
+	]
+	transform: [
+		"Performs the matrix transformation of every array element."
+		src [handle!] "cvMat"
+		dst [handle! none!] "cvMat"
+		m  [handle!] "transformation 2x2 or 2x3 floating-point matrix."
 	]
 	;...
 	
@@ -897,6 +908,14 @@ CV_16S:  3
 CV_32S:  4
 CV_32F:  5
 CV_64F:  6
+
+; DecompTypes:
+DECOMP_LU: 0
+DECOMP_SVD: 1
+DECOMP_EIG: 2
+DECOMP_CHOLESKY: 3
+DECOMP_QR: 4
+DECOMP_NORMAL: 16
 }
 
 ;print header

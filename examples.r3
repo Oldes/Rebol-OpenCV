@@ -175,6 +175,25 @@ example "Blurring images" {
     ]
     ```
 }
+example "Applying Sepia filter to an image" {
+    ```rebol
+    with cv [
+        src: imread "image/taj.jpg"
+        ; using a binary for the kernel, but it should be possible
+        ; to use vector directly later once implemented!
+        bin: to binary! #[float! [
+            0.272 0.534 0.131
+            0.349 0.686 0.168
+            0.393 0.769 0.189
+        ]]
+        sepia-filter: Matrix [CV_32FC1 3x3 :bin]
+        transform src src sepia-filter
+        imshow src
+        waitKey 0
+        destroyAllWindows
+    ]
+    ```
+}
 example "Saving video from the camera" {
     ```rebol
     with cv [
