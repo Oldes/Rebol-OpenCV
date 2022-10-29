@@ -1026,7 +1026,11 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : ARG_String(3);
 
 	if (image) {
+		Size size = image->size();
+		if (size.width == 0 || size.height == 0) return RXR_FALSE;
+		EXCEPTION_TRY
 		imshow(name, *image);
+		EXCEPTION_CATCH
 	} else if(ARG_Is_Image(1)) { // input is Rebol image
 		Mat image;
 		RXIARG arg = RXA_ARG(frm, 1);
