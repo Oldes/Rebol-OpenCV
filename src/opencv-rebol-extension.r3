@@ -177,7 +177,14 @@ commands: [
 	]
 	;boxFilter
 	;buildPyramid
-	;dilate
+	dilate: [
+		"Dilates an image by using a specific structuring element."
+		src    [handle!] "cvMat"
+		dst    [handle! none!] "cvMat"
+		kernel [handle!]
+		anchor [pair! integer!]	"position of the anchor within the element"
+		iterations [integer!]   "number of times dilation is applied"
+	]
 	;erode
 	;filter2D
 	GaussianBlur: [
@@ -193,7 +200,12 @@ commands: [
 	;getDerivKernels
 	;getGaborKernel
 	;getGaussianKernel
-	;getStructuringElement
+	getStructuringElement: [
+		"Returns a structuring element of the specified size and shape for morphological operations."
+		shape  [integer!] "Element shape that could be one of MorphShapes (rect = 0, cross = 1, ellipse = 2)"
+		ksize  [pair! integer!] "Size of the structuring element"
+		anchor [pair! integer!] "Anchor position within the element"
+	]
 	Laplacian: [
 		"Calculates the Laplacian of an image."
 		src    [handle!] "Source image"
@@ -411,6 +423,18 @@ commands: [
 		type  [integer! word!] "desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input"
 		alpha [number!] "scale factor"
 		beta  [number!] "delta added to the scaled values"
+	]
+
+	;-----------------------------------------------------------------------------------------------
+	;- Feature Detection                                                                            
+	;- https://docs.opencv.org/4.6.0/dd/d1a/group__imgproc__feature.html                            
+	;-----------------------------------------------------------------------------------------------
+	Canny: [
+		"Finds edges in an image using the Canny algorithm"
+		src   [handle!] "8-bit input image"
+		dst   [handle! none!] "output edge map; single channels 8-bit image, which has the same size as image"
+		threshold1 [number!] "first threshold for the hysteresis procedure"
+		threshold2 [number!] "second threshold for the hysteresis procedure"
 	]
 
 	;-----------------------------------------------------------------------------------------------
@@ -916,6 +940,21 @@ DECOMP_EIG: 2
 DECOMP_CHOLESKY: 3
 DECOMP_QR: 4
 DECOMP_NORMAL: 16
+
+; MorphShapes:
+MORPH_RECT: 0
+MORPH_CROSS: 1
+MORPH_ELLIPSE: 2
+
+; MorphTypes:
+MORPH_ERODE: 0
+MORPH_DILATE: 1
+MORPH_OPEN: 2
+MORPH_CLOSE: 3
+MORPH_GRADIENT: 4
+MORPH_TOPHAT: 5
+MORPH_BLACKHAT: 6
+MORPH_HITMISS: 7
 }
 
 ;print header

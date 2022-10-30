@@ -34,6 +34,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Double(n)           (RXA_TYPE(frm,n) == RXT_DECIMAL ? RXA_DEC64(frm,n) : (double)RXA_INT64(frm,n))
 #define ARG_Int(n)              (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : (int)RXA_DEC64(frm,n))
 #define ARG_Size(n)             (RXA_TYPE(frm,n) == RXT_PAIR ? Size(PAIR_X(frm,n), PAIR_Y(frm,n)) : Size(RXA_INT32(frm,n), RXA_INT32(frm,n)));
+#define ARG_Point(n)            (RXA_TYPE(frm,n) == RXT_PAIR ? Point(PAIR_X(frm,n), PAIR_Y(frm,n)) : Point(RXA_INT32(frm,n), RXA_INT32(frm,n)));
 #define ARG_String(n)           (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data)) //TODO: only ansii yet!
 #define ARG_BorderType(n)       (RXA_TYPE(frm, n) == RXT_INTEGER ? RXA_INT32(frm, n) : BORDER_DEFAULT)
 
@@ -710,6 +711,23 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_dilate(RXIFRM *frm, void *ctx) {
+	Mat *src          = ARG_Mat(1);
+	Mat *dst          = ARG_Mat_As(2, src);
+	Mat *kernel       = ARG_Mat(3);
+	Point anchor      = ARG_Point(4);
+	int iterations    = ARG_Int(5);
+
+	if(!src || !dst || !kernel) return RXR_FALSE;
+
+	EXCEPTION_TRY
+	dilate(*src, *dst, *kernel, anchor, iterations);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
 COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
@@ -726,6 +744,19 @@ COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 
 	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
 	return RXR_VALUE;
+}
+
+COMMAND cmd_getStructuringElement(RXIFRM *frm, void *ctx) {
+	int shape     = ARG_Int(1);
+	Size ksize    = ARG_Size(2);
+	Point anchor  = ARG_Point(3);
+	Mat *dst      = new Mat();
+
+	EXCEPTION_TRY
+	*dst = getStructuringElement(shape, ksize, anchor);
+	EXCEPTION_CATCH
+
+	return initRXHandle(frm, 1, dst, Handle_cvMat);
 }
 
 COMMAND cmd_Laplacian(RXIFRM *frm, void *ctx) {
@@ -777,6 +808,27 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 
 	EXCEPTION_TRY
 	cvtColor(*src, *dst, code);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
+//;-----------------------------------------------------------------------------------------------
+//;- Feature Detection                                                                            
+//;- https://docs.opencv.org/4.6.0/dd/d1a/group__imgproc__feature.html                            
+//;-----------------------------------------------------------------------------------------------
+
+COMMAND cmd_Canny(RXIFRM *frm, void *ctx) {
+	Mat *src       = ARG_Mat(1);
+	Mat *dst       = ARG_Mat_As(2, src);
+	double threshold1 = ARG_Double(3);
+	double threshold2 = ARG_Double(4);
+
+	if (!src || !dst) return RXR_NONE;
+
+	EXCEPTION_TRY
+	Canny(*src, *dst, threshold1, threshold2);
 	EXCEPTION_CATCH
 
 	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);

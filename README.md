@@ -156,7 +156,28 @@ image/alpha: alpha                            ;; replace image alpha with the ne
 save %tmp/masked.png image                    ;; using Rebol's PNG codec to save the new image
 ```
 
-### 10. Blurring images
+### 10. Detecting edges in the images and dilatation
+
+```rebol
+with cv [
+    src: imread "image/mask.png"
+    namedWindow win1: "Canny"
+    namedWindow win2: "Canny dilated"
+    moveWindow win1 0x0
+    moveWindow win2 250x0
+
+    kernel: getStructuringElement MORPH_CROSS 3 -1 ;; preparing the kernel for dilatation 
+
+    dst1: Canny src none 50 200                    ;; edge detecting
+    dst2: dilate dst1 none kernel -1x-1 1          ;; dilating the edges
+    imshow/name dst1 win1
+    imshow/name dst2 win2
+    waitKey 0
+    destroyAllWindows
+]
+```
+
+### 11. Blurring images
 
 ```rebol
 with cv [
@@ -193,7 +214,7 @@ with cv [
 ]
 ```
 
-### 11. Applying Sepia filter to an image
+### 12. Applying Sepia filter to an image
 
 ```rebol
 with cv [
@@ -213,7 +234,7 @@ with cv [
 ]
 ```
 
-### 12. Saving video from the camera
+### 13. Saving video from the camera
 
 ```rebol
 with cv [
@@ -266,7 +287,7 @@ fourcc "avc1"    ;== 828601953
 fourcc 828601953 ;== "avc1"
 ```
 
-### 13. Computing absolute difference between 2 video frames
+### 14. Computing absolute difference between 2 video frames
 
 `absdiff` is useful when tracking a moving objects (or to produce nice psychedelic video effects:).
 ```rebol

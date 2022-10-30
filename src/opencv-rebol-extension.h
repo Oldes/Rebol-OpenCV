@@ -27,7 +27,9 @@ enum ext_commands {
 	CMD_OPENCV_RESIZE,
 	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
+	CMD_OPENCV_DILATE,
 	CMD_OPENCV_GAUSSIANBLUR,
+	CMD_OPENCV_GETSTRUCTURINGELEMENT,
 	CMD_OPENCV_LAPLACIAN,
 	CMD_OPENCV_MEDIANBLUR,
 	CMD_OPENCV_CVTCOLOR,
@@ -47,6 +49,7 @@ enum ext_commands {
 	CMD_OPENCV_SUBTRACT,
 	CMD_OPENCV_TRANSFORM,
 	CMD_OPENCV_CONVERTTO,
+	CMD_OPENCV_CANNY,
 	CMD_OPENCV_STARTWINDOWTHREAD,
 	CMD_OPENCV_IMSHOW,
 	CMD_OPENCV_POLLKEY,
@@ -128,7 +131,9 @@ int cmd_imwrite(RXIFRM *frm, void *ctx);
 int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
+int cmd_dilate(RXIFRM *frm, void *ctx);
 int cmd_GaussianBlur(RXIFRM *frm, void *ctx);
+int cmd_getStructuringElement(RXIFRM *frm, void *ctx);
 int cmd_Laplacian(RXIFRM *frm, void *ctx);
 int cmd_medianBlur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
@@ -148,6 +153,7 @@ int cmd_multiply(RXIFRM *frm, void *ctx);
 int cmd_subtract(RXIFRM *frm, void *ctx);
 int cmd_transform(RXIFRM *frm, void *ctx);
 int cmd_convertTo(RXIFRM *frm, void *ctx);
+int cmd_Canny(RXIFRM *frm, void *ctx);
 int cmd_startWindowThread(RXIFRM *frm, void *ctx);
 int cmd_imshow(RXIFRM *frm, void *ctx);
 int cmd_pollKey(RXIFRM *frm, void *ctx);
@@ -187,7 +193,9 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"resize: command [\"Resizes an image.\" image [image! handle!] \"Image or cvMat handle\" size [pair! percent!] /into target [handle!] \"cvMat\" /with interpolation [integer!]]\n"\
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" src [handle!] {Source 8-bit or floating-point, 1-channel or 3-channel image.} dst [handle! none!] {Destination image of the same size and type as src.} diameter [integer!] {Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.} sigmaColor [number!] sigmaSpace [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"blur: command [\"Blurs an image using the normalized box filter.\" src [handle!] \"cvMat handle\" dst [handle! none!] size [pair! integer!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"dilate: command [{Dilates an image by using a specific structuring element.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" kernel [handle!] anchor [pair! integer!] \"position of the anchor within the element\" iterations [integer!] \"number of times dilation is applied\"]\n"\
 	"GaussianBlur: command [\"Blurs an image using a Gaussian filter.\" src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" size [pair! integer!] \"blurring kernel size\" sigmaX [number!] sigmaY [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"getStructuringElement: command [{Returns a structuring element of the specified size and shape for morphological operations.} shape [integer!] {Element shape that could be one of MorphShapes (rect = 0, cross = 1, ellipse = 2)} ksize [pair! integer!] \"Size of the structuring element\" anchor [pair! integer!] \"Anchor position within the element\"]\n"\
 	"Laplacian: command [\"Calculates the Laplacian of an image.\" src [handle!] \"Source image\" dst [handle! none!] {Destination image of the same size and the same number of channels as src} ddepth [number!] \"Desired depth of the destination image\" ksize [number!] {Aperture size used to compute the second-derivative filters. The size must be positive and odd.} scale [number!] \"Scale factor for the computed Laplacian values.\" delta [number!] {Optional delta value that is added to the results prior to storing them in dst.}]\n"\
 	"medianBlur: command [\"Blurs an image using the median filter.\" src [handle!] {input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U} dst [handle! none!] \"destination array of the same size and type as src\" size [number!] {aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7...}]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" src [handle!] \"source cvMat handle\" dst [handle! none!] \"destination cvMat\" code [integer!]]\n"\
@@ -207,6 +215,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"transform: command [{Performs the matrix transformation of every array element.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" m [handle!] \"transformation 2x2 or 2x3 floating-point matrix.\"]\n"\
 	"convertTo: command [{Converts an array to another data type with optional scaling.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" type [integer! word!] {desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input} alpha [number!] \"scale factor\" beta [number!] \"delta added to the scaled values\"]\n"\
+	"Canny: command [\"Finds edges in an image using the Canny algorithm\" src [handle!] \"8-bit input image\" dst [handle! none!] {output edge map; single channels 8-bit image, which has the same size as image} threshold1 [number!] \"first threshold for the hysteresis procedure\" threshold2 [number!] \"second threshold for the hysteresis procedure\"]\n"\
 	"startWindowThread: command []\n"\
 	"imshow: command [\"Displays an image in the specified window.\" src [image! handle!] \"Image or cvMat handle\" /name \"Optional window name\" window [any-string!]]\n"\
 	"pollKey: command [\"Polls for a pressed key.\"]\n"\
@@ -639,4 +648,19 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"DECOMP_CHOLESKY: 3\n"\
 	"DECOMP_QR: 4\n"\
 	"DECOMP_NORMAL: 16\n"\
+	"\n"\
+	"; MorphShapes:\n"\
+	"MORPH_RECT: 0\n"\
+	"MORPH_CROSS: 1\n"\
+	"MORPH_ELLIPSE: 2\n"\
+	"\n"\
+	"; MorphTypes:\n"\
+	"MORPH_ERODE: 0\n"\
+	"MORPH_DILATE: 1\n"\
+	"MORPH_OPEN: 2\n"\
+	"MORPH_CLOSE: 3\n"\
+	"MORPH_GRADIENT: 4\n"\
+	"MORPH_TOPHAT: 5\n"\
+	"MORPH_BLACKHAT: 6\n"\
+	"MORPH_HITMISS: 7\n"\
 	"\n"\
