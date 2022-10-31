@@ -1053,6 +1053,26 @@ COMMAND cmd_invert(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
+COMMAND cmd_normalize(RXIFRM *frm, void *ctx) {
+	Mat *src          = ARG_Mat(1);
+	Mat *dst          = ARG_Mat_As(2, src);
+	double alpha      = ARG_Double(3);
+	double beta       = ARG_Double(4);
+	int norm_type     = ARG_Int(5);
+	Mat *mask         = ARG_Mat(7);
+
+	if(!src || !dst) return RXR_FALSE;
+
+	EXCEPTION_TRY
+	if (mask)
+		normalize(*src, *dst, alpha, beta, norm_type, dst->type(), *mask);
+	else
+		normalize(*src, *dst, alpha, beta, norm_type, dst->type());
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
 
 COMMAND cmd_transform(RXIFRM *frm, void *ctx) {
 	Mat *src     = ARG_Mat   (1);

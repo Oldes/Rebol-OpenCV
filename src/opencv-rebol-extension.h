@@ -46,6 +46,7 @@ enum ext_commands {
 	CMD_OPENCV_FLIP,
 	CMD_OPENCV_INVERT,
 	CMD_OPENCV_MULTIPLY,
+	CMD_OPENCV_NORMALIZE,
 	CMD_OPENCV_SUBTRACT,
 	CMD_OPENCV_TRANSFORM,
 	CMD_OPENCV_CONVERTTO,
@@ -150,6 +151,7 @@ int cmd_divide(RXIFRM *frm, void *ctx);
 int cmd_flip(RXIFRM *frm, void *ctx);
 int cmd_invert(RXIFRM *frm, void *ctx);
 int cmd_multiply(RXIFRM *frm, void *ctx);
+int cmd_normalize(RXIFRM *frm, void *ctx);
 int cmd_subtract(RXIFRM *frm, void *ctx);
 int cmd_transform(RXIFRM *frm, void *ctx);
 int cmd_convertTo(RXIFRM *frm, void *ctx);
@@ -212,6 +214,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"flip: command [{Flips a 2D array around vertical, horizontal, or both axes.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" flipCode [integer!] {a flag to specify how to flip the array; 0 means flipping around the x-axis and positive value (for example, 1) means flipping around y-axis. Negative value (for example, -1) means flipping around both axes}]\n"\
 	"invert: command [\"Finds the inverse or pseudo-inverse of a matrix.\" src [handle!] \"Input floating-point M x N matrix.\" dst [handle! none!] {Output matrix of N x M size and the same type as src.} flags [integer!] \"Inversion method; One of DecompTypes (DECOMP_*)\"]\n"\
 	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
+	"normalize: command [{Calculates the per-element scaled product of two arrays.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" alpha [number!] {norm value to normalize to or the lower range boundary in case of the range normalization} beta [number!] {upper range boundary in case of the range normalization; it is not used for the norm normalization} norm_type [integer!] \"normalization type\" /mask m [handle!] \"optional operation mask\"]\n"\
 	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
 	"transform: command [{Performs the matrix transformation of every array element.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" m [handle!] \"transformation 2x2 or 2x3 floating-point matrix.\"]\n"\
 	"convertTo: command [{Converts an array to another data type with optional scaling.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" type [integer! word!] {desired output matrix type or, rather, the depth since the number of channels are the same as the input has; if rtype is negative, the output matrix will have the same type as the input} alpha [number!] \"scale factor\" beta [number!] \"delta added to the scaled values\"]\n"\
@@ -663,4 +666,15 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"MORPH_TOPHAT: 5\n"\
 	"MORPH_BLACKHAT: 6\n"\
 	"MORPH_HITMISS: 7\n"\
+	"\n"\
+	"; NormTypes:\n"\
+	"NORM_INF: 1\n"\
+	"NORM_L1: 2\n"\
+	"NORM_L2: 4\n"\
+	"NORM_L2SQR: 5\n"\
+	"NORM_HAMMING: 6\n"\
+	"NORM_HAMMING2: 7\n"\
+	"NORM_TYPE_MASK: 7\n"\
+	"NORM_RELATIVE: 8\n"\
+	"NORM_MINMAX: 32\n"\
 	"\n"\

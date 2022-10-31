@@ -392,7 +392,16 @@ commands: [
 	]
 	;mulTransposed 
 	;norm 
-	;normalize 
+	normalize: [
+		"Calculates the per-element scaled product of two arrays."
+		src   [handle!]       "cvMat"
+		dst   [handle! none!] "cvMat"
+		alpha [number!] "norm value to normalize to or the lower range boundary in case of the range normalization"
+		beta  [number!] "upper range boundary in case of the range normalization; it is not used for the norm normalization"
+		norm_type [integer!] "normalization type"
+		/mask
+		m    [handle!] "optional operation mask"
+	] 
 	;patchNaNs
 	;...
 	subtract: [
@@ -955,6 +964,17 @@ MORPH_GRADIENT: 4
 MORPH_TOPHAT: 5
 MORPH_BLACKHAT: 6
 MORPH_HITMISS: 7
+
+; NormTypes:
+NORM_INF: 1
+NORM_L1: 2
+NORM_L2: 4
+NORM_L2SQR: 5
+NORM_HAMMING: 6
+NORM_HAMMING2: 7
+NORM_TYPE_MASK: 7
+NORM_RELATIVE: 8
+NORM_MINMAX: 32
 }
 
 ;print header

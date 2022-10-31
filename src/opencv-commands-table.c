@@ -38,6 +38,7 @@ MyCommandPointer Command[] = {
 	cmd_flip,
 	cmd_invert,
 	cmd_multiply,
+	cmd_normalize,
 	cmd_subtract,
 	cmd_transform,
 	cmd_convertTo,
