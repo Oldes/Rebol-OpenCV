@@ -894,7 +894,7 @@ static int mat_math_op(RXIFRM *frm, void *ctx, int op) {
 			mask = (Mat*)&noArray();
 	} else {
 		// multiply and divide don't have mask, but scale instead
-		scale = ARG_Double(5);
+		if (!ARG_Is_None(4)) scale = ARG_Double(5);
 	}
 
 	if (!src1 || !src2 || !dst ) return RXR_NONE;
