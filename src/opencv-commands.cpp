@@ -1184,6 +1184,11 @@ COMMAND cmd_setWindowProperty(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
+COMMAND cmd_setWindowTitle(RXIFRM *frm, void *ctx) {
+	setWindowTitle(ARG_String(1), ARG_String(2));
+	return RXR_UNSET;
+}
+
 COMMAND cmd_destroyAllWindows(RXIFRM *frm, void *ctx) {
 	destroyAllWindows();
 	pollKey();

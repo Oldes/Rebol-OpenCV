@@ -156,7 +156,7 @@ image/alpha: alpha                            ;; replace image alpha with the ne
 save %tmp/masked.png image                    ;; using Rebol's PNG codec to save the new image
 ```
 
-### 10. Detecting edges in the images and dilatation
+### 10. Detecting edges in the image and their dilatation
 
 ```rebol
 with cv [
@@ -214,7 +214,22 @@ with cv [
 ]
 ```
 
-### 12. Applying Sepia filter to an image
+### 12. Applying a color map
+
+```rebol
+with cv [
+    src: imread "image/lena.jpeg"
+    result: Matrix :src
+    for i 0 21 1 [
+        applyColorMap :src :result :i 
+        imshow :result
+        setWindowTitle "Image" join "Colormap: " i
+        if 0 < waitKey 1000 [break]
+    ]
+]
+```
+
+### 13. Applying Sepia filter to an image
 
 ```rebol
 with cv [
@@ -234,7 +249,7 @@ with cv [
 ]
 ```
 
-### 13. Saving video from the camera
+### 14. Saving video from the camera
 
 ```rebol
 with cv [
@@ -287,7 +302,7 @@ fourcc "avc1"    ;== 828601953
 fourcc 828601953 ;== "avc1"
 ```
 
-### 14. Computing absolute difference between 2 video frames
+### 15. Computing absolute difference between 2 video frames
 
 `absdiff` is useful when tracking a moving objects (or to produce nice psychedelic video effects:).
 ```rebol

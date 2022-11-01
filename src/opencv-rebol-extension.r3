@@ -493,6 +493,11 @@ commands: [
 		property [integer!]
 		value [number!]
 	]
+	setWindowTitle: [
+		"Updates window title."
+		name   [any-string!] "Name of the window"
+		title  [any-string!] "New title"
+	]
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
 	destroyWindow: ["Destroys the specified window." window [any-string!]]
 

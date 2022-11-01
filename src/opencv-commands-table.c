@@ -53,6 +53,7 @@ MyCommandPointer Command[] = {
 	cmd_moveWindow,
 	cmd_getWindowProperty,
 	cmd_setWindowProperty,
+	cmd_setWindowTitle,
 	cmd_destroyAllWindows,
 	cmd_destroyWindow,
 	cmd_getTickCount,

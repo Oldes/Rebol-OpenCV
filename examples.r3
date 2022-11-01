@@ -140,7 +140,7 @@ example "Using computed binary threshold as an opacity channel" {
 }
 ;---------------------------------------------------------------------------------------
 
-example "Detecting edges in the images and dilatation" {
+example "Detecting edges in the image and their dilatation" {
     ```rebol
     with cv [
         src: imread "image/mask.png"
@@ -195,6 +195,20 @@ example "Blurring images" {
             if 0 <= waitkey 50 [break]
         ]
         destroyAllWindows
+    ]
+    ```
+}
+example "Applying a color map" {
+    ```rebol
+    with cv [
+        src: imread "image/lena.jpeg"
+        result: Matrix :src
+        for i 0 21 1 [
+            applyColorMap :src :result :i 
+            imshow :result
+            setWindowTitle "Image" join "Colormap: " i
+            if 0 < waitKey 1000 [break]
+        ]
     ]
     ```
 }
