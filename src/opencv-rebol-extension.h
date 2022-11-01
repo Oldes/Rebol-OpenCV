@@ -33,6 +33,7 @@ enum ext_commands {
 	CMD_OPENCV_LAPLACIAN,
 	CMD_OPENCV_MEDIANBLUR,
 	CMD_OPENCV_CVTCOLOR,
+	CMD_OPENCV_APPLYCOLORMAP,
 	CMD_OPENCV_THRESHOLD,
 	CMD_OPENCV_ABSDIFF,
 	CMD_OPENCV_ADD,
@@ -138,6 +139,7 @@ int cmd_getStructuringElement(RXIFRM *frm, void *ctx);
 int cmd_Laplacian(RXIFRM *frm, void *ctx);
 int cmd_medianBlur(RXIFRM *frm, void *ctx);
 int cmd_cvtColor(RXIFRM *frm, void *ctx);
+int cmd_applyColorMap(RXIFRM *frm, void *ctx);
 int cmd_threshold(RXIFRM *frm, void *ctx);
 int cmd_absdiff(RXIFRM *frm, void *ctx);
 int cmd_add(RXIFRM *frm, void *ctx);
@@ -201,6 +203,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"Laplacian: command [\"Calculates the Laplacian of an image.\" src [handle!] \"Source image\" dst [handle! none!] {Destination image of the same size and the same number of channels as src} ddepth [number!] \"Desired depth of the destination image\" ksize [number!] {Aperture size used to compute the second-derivative filters. The size must be positive and odd.} scale [number!] \"Scale factor for the computed Laplacian values.\" delta [number!] {Optional delta value that is added to the results prior to storing them in dst.}]\n"\
 	"medianBlur: command [\"Blurs an image using the median filter.\" src [handle!] {input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U} dst [handle! none!] \"destination array of the same size and type as src\" size [number!] {aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7...}]\n"\
 	"cvtColor: command [\"Converts an image from one color space to another.\" src [handle!] \"source cvMat handle\" dst [handle! none!] \"destination cvMat\" code [integer!]]\n"\
+	"applyColorMap: command [{Applies a GNU Octave/MATLAB equivalent colormap on a given image.} src [handle!] \"source cvMat handle\" dst [handle! none!] \"destination cvMat\" colormap [integer!]]\n"\
 	"threshold: command [{Applies a fixed-level threshold to each array element.} src [handle!] dst [handle! none!] thresh [number!] maxval [number!] type [integer!]]\n"\
 	"absdiff: command [{Calculates the per-element absolute difference between two arrays} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\"]\n"\
 	"add: command [\"Calculates the per-element sum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
@@ -677,4 +680,28 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"NORM_TYPE_MASK: 7\n"\
 	"NORM_RELATIVE: 8\n"\
 	"NORM_MINMAX: 32\n"\
+	"\n"\
+	"; ColormapTypes:\n"\
+	"COLORMAP_AUTUMN: 0\n"\
+	"COLORMAP_BONE: 1\n"\
+	"COLORMAP_JET: 2\n"\
+	"COLORMAP_WINTER: 3\n"\
+	"COLORMAP_RAINBOW: 4\n"\
+	"COLORMAP_OCEAN: 5\n"\
+	"COLORMAP_SUMMER: 6\n"\
+	"COLORMAP_SPRING: 7\n"\
+	"COLORMAP_COOL: 8\n"\
+	"COLORMAP_HSV: 9\n"\
+	"COLORMAP_PINK: 10\n"\
+	"COLORMAP_HOT: 11\n"\
+	"COLORMAP_PARULA: 12\n"\
+	"COLORMAP_MAGMA: 13\n"\
+	"COLORMAP_INFERNO: 14\n"\
+	"COLORMAP_PLASMA: 15\n"\
+	"COLORMAP_VIRIDIS: 16\n"\
+	"COLORMAP_CIVIDIS: 17\n"\
+	"COLORMAP_TWILIGHT: 18\n"\
+	"COLORMAP_TWILIGHT_SHIFTED: 19\n"\
+	"COLORMAP_TURBO: 20\n"\
+	"COLORMAP_DEEPGREEN: 21\n"\
 	"\n"\

@@ -25,6 +25,7 @@ MyCommandPointer Command[] = {
 	cmd_Laplacian,
 	cmd_medianBlur,
 	cmd_cvtColor,
+	cmd_applyColorMap,
 	cmd_threshold,
 	cmd_absdiff,
 	cmd_add,

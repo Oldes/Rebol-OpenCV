@@ -815,6 +815,26 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 }
 
 //;-----------------------------------------------------------------------------------------------
+//;- Color Maps                                                                                   
+//;- https://docs.opencv.org/4.6.0/d3/d50/group__imgproc__colormap.html                           
+//;-----------------------------------------------------------------------------------------------
+
+COMMAND cmd_applyColorMap(RXIFRM *frm, void *ctx) {
+	Mat *src       = ARG_Mat(1);
+	Mat *dst       = ARG_Mat_As(2, src);
+	int colormap   = ARG_Int(3);
+
+	if (!src || !dst) return RXR_NONE;
+
+	EXCEPTION_TRY
+	applyColorMap(*src, *dst, colormap);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
+//;-----------------------------------------------------------------------------------------------
 //;- Feature Detection                                                                            
 //;- https://docs.opencv.org/4.6.0/dd/d1a/group__imgproc__feature.html                            
 //;-----------------------------------------------------------------------------------------------
