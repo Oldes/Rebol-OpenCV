@@ -940,7 +940,7 @@ COMMAND cmd_divide(RXIFRM *frm, void *ctx) {
 COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	Mat *src  = ARG_Mat(1);
 	Mat *dst  = ARG_Mat_As(2, src);
-	Mat *mask = ARG_Mat(1);
+	Mat *mask = ARG_Mat(3);
 	bool newHandle = FALSE;
 
 	src = ARG_Mat(1);
@@ -957,10 +957,10 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	}
 
 	if (!src || !dst ) return RXR_NONE;
-	if (!mask) mask = (Mat*)&noArray();
 
 	EXCEPTION_TRY
-	bitwise_not(*src, *dst, *mask);
+	if (mask) bitwise_not(*src, *dst, *mask);
+	else      bitwise_not(*src, *dst);
 	EXCEPTION_CATCH
 
 	if (newHandle) {
