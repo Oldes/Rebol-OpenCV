@@ -941,20 +941,6 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	Mat *src  = ARG_Mat(1);
 	Mat *dst  = ARG_Mat_As(2, src);
 	Mat *mask = ARG_Mat(3);
-	bool newHandle = FALSE;
-
-	src = ARG_Mat(1);
-
-	if (ARG_Is_Mat(3)) { // /into handle
-		dst = ARG_Mat(3);
-	} else {
-		newHandle = TRUE;
-		dst = new Mat();
-	}
-
-	if (ARG_Is_Mat(5)) { // mask
-		mask = ARG_Mat(5);
-	}
 
 	if (!src || !dst ) return RXR_NONE;
 
@@ -963,14 +949,8 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	else      bitwise_not(*src, *dst);
 	EXCEPTION_CATCH
 
-	if (newHandle) {
-		return initRXHandle(frm, 1, dst, Handle_cvMat);
-	}
-	else {
-		// requested output to given existing array
-		RXA_ARG(frm, 1) = RXA_ARG(frm, 3);
-		return RXR_VALUE;
-	}
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
 }
 
 COMMAND cmd_absdiff(RXIFRM *frm, void *ctx) {
