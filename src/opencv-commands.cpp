@@ -919,10 +919,10 @@ COMMAND cmd_bitwise_and(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, BITWISE_AND);
 }
 COMMAND cmd_bitwise_or(RXIFRM *frm, void *ctx) {
-	return mat_math_op(frm, ctx, BITWISE_AND);
+	return mat_math_op(frm, ctx, BITWISE_OR);
 }
 COMMAND cmd_bitwise_xor(RXIFRM *frm, void *ctx) {
-	return mat_math_op(frm, ctx, BITWISE_AND);
+	return mat_math_op(frm, ctx, BITWISE_XOR);
 }
 COMMAND cmd_add(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, MATH_ADD);
