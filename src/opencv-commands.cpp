@@ -1234,23 +1234,28 @@ COMMAND cmd_createTrackbar(RXIFRM *frm, void *ctx) {
 	debug_print("new hob: %p handle: %p (cvTrackbar)\n", hob, hob->data);
 	if (hob == NULL) return RXR_FALSE;
 	hob->flags |= HANDLE_CONTEXT; //@@ temp fix!
-
-
+	
 	CTX_TRACKBAR* bar = (CTX_TRACKBAR*)hob->data;
 	bar->name   = new String((const char*)((REBSER*)RXA_ARG(frm, 1).series)->data);
 	bar->window = new String((const char*)((REBSER*)RXA_ARG(frm, 2).series)->data);
-	bar->cbi    = (RXICBI *)MAKE_MEM(sizeof(RXICBI));
-	bar->args   = (RXIARG *)MAKE_MEM(sizeof(RXIARG) * 4);
-
-	CLEAR(bar->cbi,  sizeof(RXICBI));
-	CLEAR(bar->args, sizeof(RXIARG) * 4);
-
-	bar->cbi->obj  = (REBSER*)RXA_OBJECT(frm, 5);
-	bar->cbi->word = RXA_WORD(frm, 6);
-	bar->cbi->args = bar->args;
-
 	EXCEPTION_TRY
-	createTrackbar(*bar->name, *bar->window, &bar->value, ARG_Int(3), rebTrackbarCallback, hob);
+	if (ARG_Is_None(4)) {
+		// version without callback
+		createTrackbar(*bar->name, *bar->window, &bar->value, ARG_Int(3));
+	} else {
+		// used callback
+		bar->cbi    = (RXICBI *)MAKE_MEM(sizeof(RXICBI));
+		bar->args   = (RXIARG *)MAKE_MEM(sizeof(RXIARG) * 4);
+
+		CLEAR(bar->cbi,  sizeof(RXICBI));
+		CLEAR(bar->args, sizeof(RXIARG) * 4);
+
+		bar->cbi->obj  = (REBSER*)RXA_OBJECT(frm, 5);
+		bar->cbi->word = RXA_WORD(frm, 6);
+		bar->cbi->args = bar->args;
+		
+		createTrackbar(*bar->name, *bar->window, &bar->value, ARG_Int(3), rebTrackbarCallback, hob);
+	}
 	EXCEPTION_CATCH
 
 	RXA_HANDLE(frm, 1) = hob;
