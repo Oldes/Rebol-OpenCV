@@ -64,6 +64,11 @@ enum ext_commands {
 	CMD_OPENCV_SETWINDOWTITLE,
 	CMD_OPENCV_DESTROYALLWINDOWS,
 	CMD_OPENCV_DESTROYWINDOW,
+	CMD_OPENCV_CREATETRACKBAR,
+	CMD_OPENCV_SETTRACKBARMAX,
+	CMD_OPENCV_SETTRACKBARMIN,
+	CMD_OPENCV_SETTRACKBARPOS,
+	CMD_OPENCV_GETTRACKBARPOS,
 	CMD_OPENCV_GETTICKCOUNT,
 	CMD_OPENCV_GETTICKFREQUENCY,
 	CMD_OPENCV_GETNUMTHREADS,
@@ -171,6 +176,11 @@ int cmd_setWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_setWindowTitle(RXIFRM *frm, void *ctx);
 int cmd_destroyAllWindows(RXIFRM *frm, void *ctx);
 int cmd_destroyWindow(RXIFRM *frm, void *ctx);
+int cmd_createTrackbar(RXIFRM *frm, void *ctx);
+int cmd_setTrackbarMax(RXIFRM *frm, void *ctx);
+int cmd_setTrackbarMin(RXIFRM *frm, void *ctx);
+int cmd_setTrackbarPos(RXIFRM *frm, void *ctx);
+int cmd_getTrackbarPos(RXIFRM *frm, void *ctx);
 int cmd_getTickCount(RXIFRM *frm, void *ctx);
 int cmd_getTickFrequency(RXIFRM *frm, void *ctx);
 int cmd_getNumThreads(RXIFRM *frm, void *ctx);
@@ -236,6 +246,11 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"setWindowTitle: command [\"Updates window title.\" name [any-string!] \"Name of the window\" title [any-string!] \"New title\"]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"destroyWindow: command [\"Destroys the specified window.\" window [any-string!]]\n"\
+	"createTrackbar: command [trackbarname [any-string!] window [any-string!] count [integer!] {Maximal position of the slider. The minimal position is always 0.}]\n"\
+	"setTrackbarMax: command [\"Sets the trackbar maximum position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New maximum position.\"]\n"\
+	"setTrackbarMin: command [\"Sets the trackbar minimum position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New minimum position.\"]\n"\
+	"setTrackbarPos: command [\"Sets the trackbar position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New position.\"]\n"\
+	"getTrackbarPos: command [\"Gets the trackbar position.\" trackbar [handle!] \"cvTrackbar\"]\n"\
 	"getTickCount: command [\"Returns the number of ticks.\"]\n"\
 	"getTickFrequency: command [\"Returns the number of ticks per second.\"]\n"\
 	"getNumThreads: command [{Returns the number of threads used by OpenCV for parallel regions.}]\n"\

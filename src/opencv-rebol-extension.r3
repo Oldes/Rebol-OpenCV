@@ -501,6 +501,31 @@ commands: [
 	destroyAllWindows: ["Destroys all of the HighGUI windows."]
 	destroyWindow: ["Destroys the specified window." window [any-string!]]
 
+	createTrackbar: [
+		trackbarname [any-string!]
+		window [any-string!]
+		count  [integer!] "Maximal position of the slider. The minimal position is always 0."
+	]
+	setTrackbarMax: [
+		"Sets the trackbar maximum position."
+		trackbar [handle!] "cvTrackbar"
+		value  [integer!] "New maximum position."
+	]
+	setTrackbarMin: [
+		"Sets the trackbar minimum position."
+		trackbar [handle!] "cvTrackbar"
+		value  [integer!] "New minimum position."
+	]
+	setTrackbarPos: [
+		"Sets the trackbar position."
+		trackbar [handle!] "cvTrackbar"
+		value  [integer!] "New position."
+	]
+	getTrackbarPos: [
+		"Gets the trackbar position."
+		trackbar [handle!] "cvTrackbar"
+	]
+
 
 	;-----------------------------------------------------------------------------------------------
 	;- Utilities                                                                                    

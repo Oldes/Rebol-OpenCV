@@ -22,6 +22,19 @@
 #define DOUBLE_BUFFER_SIZE 16
 #define ARG_BUFFER_SIZE    8
 
+#ifdef __cplusplus
+	typedef struct ctx_trackbar {
+		int     value;
+		cv::String  *name;
+		cv::String  *window;
+	} CTX_TRACKBAR;
+#else
+	typedef struct ctx_trackbar {
+		int     value;
+		void*   name;
+		void*   window;
+	} CTX_TRACKBAR;
+#endif
 
 
 REBOOL fetch_word (REBSER *cmds, REBCNT index, u32* words, REBCNT *cmd);

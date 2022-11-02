@@ -21,6 +21,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Is_Mat(n)           FRM_IS_HANDLE(n, Handle_cvMat)
 #define ARG_Is_VideoCapture(n)  FRM_IS_HANDLE(n, Handle_cvVideoCapture)
 #define ARG_Is_VideoWriter(n)   FRM_IS_HANDLE(n, Handle_cvVideoWriter)
+#define ARG_Is_Trackbar(n)      FRM_IS_HANDLE(n, Handle_cvTrackbar)
 #define ARG_Is_Image(n)         (RXA_TYPE(frm,n) == RXT_IMAGE)
 #define ARG_Is_Pair(n)          (RXA_TYPE(frm,n) == RXT_PAIR)
 #define ARG_Is_Integer(n)       (RXA_TYPE(frm,n) == RXT_INTEGER)
@@ -30,6 +31,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Mat(n)              (ARG_Is_Mat(n) ? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
+#define ARG_Trackbar(n)         (ARG_Is_Trackbar(n) ? (CTX_TRACKBAR*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
 #define ARG_MatType(n)          (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : RL_FIND_WORD(ext_arg_words, RXA_INT32(frm,n))-W_OPENCV_ARG_CV_8UC1)
 #define ARG_Double(n)           (RXA_TYPE(frm,n) == RXT_DECIMAL ? RXA_DEC64(frm,n) : (double)RXA_INT64(frm,n))
 #define ARG_Int(n)              (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : (int)RXA_DEC64(frm,n))
@@ -61,6 +63,7 @@ extern "C" {
 	extern REBCNT Handle_cvVideoCapture;
 	extern REBCNT Handle_cvVideoWriter;
 	extern REBCNT Handle_cvMat;
+	extern REBCNT Handle_cvTrackbar;
 
 	void* releaseVideoCapture(void* cls) {
 		debug_print("GC VideoCapture class %p\n", cls);
@@ -83,6 +86,15 @@ extern "C" {
 		if (cls != NULL) {
 			Mat *mat = (Mat*)cls;
 			mat->release();
+		}
+		return NULL;
+	}
+	void* releaseTrackbar(void* cls) {
+		debug_print("GC cvTrackbar %p\n", cls);
+		if (cls != NULL) {
+			CTX_TRACKBAR *bar = (CTX_TRACKBAR*)cls;
+			delete bar->name;
+			delete bar->window;
 		}
 		return NULL;
 	}
@@ -1160,6 +1172,7 @@ COMMAND cmd_waitKey(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_namedWindow(RXIFRM *frm, void *ctx) {
 	namedWindow(ARG_String(1), WINDOW_NORMAL );
+	pollKey(); // OpenCV bug on macOS... window would not resize without it!
 	return RXR_UNSET;
 }
 
@@ -1200,6 +1213,57 @@ COMMAND cmd_destroyWindow(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
+
+static void callbackTrackbar(int pos, void* userdata) {
+	REBHOB* hob = (REBHOB*)userdata;
+	CTX_TRACKBAR* bar = (CTX_TRACKBAR*)hob->data;
+	//cout << *bar->name << ": " << pos << endl;
+}
+
+COMMAND cmd_createTrackbar(RXIFRM *frm, void *ctx) {
+	String name   = ARG_String(1);
+	String window = ARG_String(2);
+	int count     = ARG_Int(3);
+	
+	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(Handle_cvTrackbar);
+	CTX_TRACKBAR* bar = (CTX_TRACKBAR*)hob->data;
+	bar->name   = new String(name);
+	bar->window = new String(window);
+
+	createTrackbar(name, window, &bar->value, count, callbackTrackbar, hob);
+
+	RXA_HANDLE(frm, 1) = hob;
+	RXA_HANDLE_TYPE(frm, 1) = hob->sym;
+	RXA_HANDLE_FLAGS(frm, 1) = hob->flags;
+	RXA_TYPE(frm, 1) = RXT_HANDLE;
+	return RXR_VALUE;
+}
+
+COMMAND cmd_setTrackbarMax(RXIFRM *frm, void *ctx) {
+	CTX_TRACKBAR* bar = ARG_Trackbar(1);
+	if (!bar) return RXR_FALSE;
+	setTrackbarMax(*bar->name, *bar->window, ARG_Int(2));
+	return RXR_VALUE;
+}
+COMMAND cmd_setTrackbarMin(RXIFRM *frm, void *ctx) {
+	CTX_TRACKBAR* bar = ARG_Trackbar(1);
+	if (!bar) return RXR_FALSE;
+	setTrackbarMin(*bar->name, *bar->window, ARG_Int(2));
+	return RXR_VALUE;
+}
+COMMAND cmd_setTrackbarPos(RXIFRM *frm, void *ctx) {
+	CTX_TRACKBAR* bar = ARG_Trackbar(1);
+	if (!bar) return RXR_FALSE;
+	setTrackbarPos(*bar->name, *bar->window, ARG_Int(2));
+	return RXR_VALUE;
+}
+COMMAND cmd_getTrackbarPos(RXIFRM *frm, void *ctx) {
+	CTX_TRACKBAR* bar = ARG_Trackbar(1);
+	if (!bar) return RXR_FALSE;
+	RXA_TYPE(frm, 1) = RXT_INTEGER;
+	RXA_ARG(frm, 1).int64 = getTrackbarPos(*bar->name, *bar->window);
+	return RXR_VALUE;
+}
 
 //;-----------------------------------------------------------------------
 //;- Utilities                                                            
