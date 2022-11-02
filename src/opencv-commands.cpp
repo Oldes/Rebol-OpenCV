@@ -95,6 +95,8 @@ extern "C" {
 			CTX_TRACKBAR *bar = (CTX_TRACKBAR*)cls;
 			delete bar->name;
 			delete bar->window;
+			if(bar->cbi)  FREE_MEM(bar->cbi);
+			if(bar->args) FREE_MEM(bar->args);
 		}
 		return NULL;
 	}
