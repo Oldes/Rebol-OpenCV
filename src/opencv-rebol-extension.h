@@ -246,7 +246,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"setWindowTitle: command [\"Updates window title.\" name [any-string!] \"Name of the window\" title [any-string!] \"New title\"]\n"\
 	"destroyAllWindows: command [\"Destroys all of the HighGUI windows.\"]\n"\
 	"destroyWindow: command [\"Destroys the specified window.\" window [any-string!]]\n"\
-	"createTrackbar: command [trackbarname [any-string!] window [any-string!] count [integer!] {Maximal position of the slider. The minimal position is always 0.}]\n"\
+	"createTrackbar: command [trackbarname [any-string!] window [any-string!] count [integer!] {Maximal position of the slider. The minimal position is always 0.} /with ctx [object!] \"Callback's context\" func [word!] \"Callback function name\"]\n"\
 	"setTrackbarMax: command [\"Sets the trackbar maximum position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New maximum position.\"]\n"\
 	"setTrackbarMin: command [\"Sets the trackbar minimum position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New minimum position.\"]\n"\
 	"setTrackbarPos: command [\"Sets the trackbar position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New position.\"]\n"\

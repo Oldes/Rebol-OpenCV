@@ -505,6 +505,9 @@ commands: [
 		trackbarname [any-string!]
 		window [any-string!]
 		count  [integer!] "Maximal position of the slider. The minimal position is always 0."
+		/with
+		ctx  [object!] "Callback's context"
+		func [word!]   "Callback function name"
 	]
 	setTrackbarMax: [
 		"Sets the trackbar maximum position."

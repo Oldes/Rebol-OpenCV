@@ -27,12 +27,16 @@
 		int     value;
 		cv::String  *name;
 		cv::String  *window;
+		RXICBI *cbi;
+		RXIARG *args;
 	} CTX_TRACKBAR;
 #else
 	typedef struct ctx_trackbar {
 		int     value;
 		void*   name;
 		void*   window;
+		RXICBI *cbi;
+		RXIARG *args;
 	} CTX_TRACKBAR;
 #endif
 
