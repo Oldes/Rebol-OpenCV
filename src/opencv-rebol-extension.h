@@ -71,6 +71,7 @@ enum ext_commands {
 	CMD_OPENCV_SETTRACKBARMIN,
 	CMD_OPENCV_SETTRACKBARPOS,
 	CMD_OPENCV_GETTRACKBARPOS,
+	CMD_OPENCV_SELECTROI,
 	CMD_OPENCV_GETTICKCOUNT,
 	CMD_OPENCV_GETTICKFREQUENCY,
 	CMD_OPENCV_GETNUMTHREADS,
@@ -185,6 +186,7 @@ int cmd_setTrackbarMax(RXIFRM *frm, void *ctx);
 int cmd_setTrackbarMin(RXIFRM *frm, void *ctx);
 int cmd_setTrackbarPos(RXIFRM *frm, void *ctx);
 int cmd_getTrackbarPos(RXIFRM *frm, void *ctx);
+int cmd_selectROI(RXIFRM *frm, void *ctx);
 int cmd_getTickCount(RXIFRM *frm, void *ctx);
 int cmd_getTickFrequency(RXIFRM *frm, void *ctx);
 int cmd_getNumThreads(RXIFRM *frm, void *ctx);
@@ -257,6 +259,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"setTrackbarMin: command [\"Sets the trackbar minimum position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New minimum position.\"]\n"\
 	"setTrackbarPos: command [\"Sets the trackbar position.\" trackbar [handle!] \"cvTrackbar\" value [integer!] \"New position.\"]\n"\
 	"getTrackbarPos: command [\"Gets the trackbar position.\" trackbar [handle!] \"cvTrackbar\"]\n"\
+	"selectROI: command [\"Allows users to select a ROI on the given image.\" src [image! handle!] \"Image or cvMat handle\"]\n"\
 	"getTickCount: command [\"Returns the number of ticks.\"]\n"\
 	"getTickFrequency: command [\"Returns the number of ticks per second.\"]\n"\
 	"getNumThreads: command [{Returns the number of threads used by OpenCV for parallel regions.}]\n"\

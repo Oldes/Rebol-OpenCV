@@ -537,6 +537,11 @@ commands: [
 		trackbar [handle!] "cvTrackbar"
 	]
 
+	selectROI: [
+		"Allows users to select a ROI on the given image."
+		src [image! handle!] "Image or cvMat handle"
+	]
+
 
 	;-----------------------------------------------------------------------------------------------
 	;- Utilities                                                                                    

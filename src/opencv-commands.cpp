@@ -1310,6 +1310,44 @@ COMMAND cmd_getTrackbarPos(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+
+COMMAND cmd_selectROI(RXIFRM *frm, void *ctx) {
+	Mat *image  = ARG_Mat(1);
+	Rect rect;
+
+	if (image) {
+		Size size = image->size();
+		if (size.width == 0 || size.height == 0) return RXR_FALSE;
+		EXCEPTION_TRY
+		rect = selectROI(*image);
+		EXCEPTION_CATCH
+	} else if(ARG_Is_Image(1)) { // input is Rebol image
+		Mat image;
+		RXIARG arg = RXA_ARG(frm, 1);
+		image = Mat( arg.height, arg.width, CV_8UC4);
+		image.data = ((REBSER*)arg.series)->data;
+		rect = selectROI(image);
+	} else {
+		return RXR_FALSE;
+	}
+
+	REBSER *blk = (REBSER*)RL_MAKE_BLOCK(2);
+	RXIARG val;
+
+	val.pair.x = (float)rect.x;
+	val.pair.y = (float)rect.y;
+	RL_SET_VALUE(blk, 0, val, RXT_PAIR);
+	val.pair.x = (float)rect.width;
+	val.pair.y = (float)rect.height;
+	RL_SET_VALUE(blk, 1, val, RXT_PAIR);
+
+
+	RXA_TYPE(frm, 1) = RXT_BLOCK;
+	RXA_SERIES(frm, 1) = blk;
+	RXA_INDEX(frm, 1) = 0;
+	return RXR_VALUE;
+}
+
 //;-----------------------------------------------------------------------
 //;- Utilities                                                            
 //;-----------------------------------------------------------------------
