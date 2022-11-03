@@ -59,6 +59,8 @@ enum ext_commands {
 	CMD_OPENCV_NAMEDWINDOW,
 	CMD_OPENCV_RESIZEWINDOW,
 	CMD_OPENCV_MOVEWINDOW,
+	CMD_OPENCV_GETWINDOWIMAGESIZE,
+	CMD_OPENCV_GETWINDOWIMAGEPOS,
 	CMD_OPENCV_GETWINDOWPROPERTY,
 	CMD_OPENCV_SETWINDOWPROPERTY,
 	CMD_OPENCV_SETWINDOWTITLE,
@@ -171,6 +173,8 @@ int cmd_waitKey(RXIFRM *frm, void *ctx);
 int cmd_namedWindow(RXIFRM *frm, void *ctx);
 int cmd_resizeWindow(RXIFRM *frm, void *ctx);
 int cmd_moveWindow(RXIFRM *frm, void *ctx);
+int cmd_getWindowImageSize(RXIFRM *frm, void *ctx);
+int cmd_getWindowImagePos(RXIFRM *frm, void *ctx);
 int cmd_getWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_setWindowProperty(RXIFRM *frm, void *ctx);
 int cmd_setWindowTitle(RXIFRM *frm, void *ctx);
@@ -241,6 +245,8 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"namedWindow: command [\"Creates a window.\" name [any-string!]]\n"\
 	"resizeWindow: command [\"Resizes the window to the specified size.\" window [any-string!] size [pair!]]\n"\
 	"moveWindow: command [\"Moves the window to the specified position.\" window [any-string!] pos [pair!]]\n"\
+	"getWindowImageSize: command [{Provides size of image in the window (not counting tarckbars and other controls).} window [any-string!]]\n"\
+	"getWindowImagePos: command [{Provides position (left-bottom) of image in the window.} window [any-string!]]\n"\
 	"getWindowProperty: command [\"Provides parameters of a window.\" name [any-string!] property [integer!]]\n"\
 	"setWindowProperty: command [\"Changes parameters of a window dynamically.\" name [any-string!] property [integer!] value [number!]]\n"\
 	"setWindowTitle: command [\"Updates window title.\" name [any-string!] \"Name of the window\" title [any-string!] \"New title\"]\n"\

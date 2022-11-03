@@ -51,6 +51,8 @@ MyCommandPointer Command[] = {
 	cmd_namedWindow,
 	cmd_resizeWindow,
 	cmd_moveWindow,
+	cmd_getWindowImageSize,
+	cmd_getWindowImagePos,
 	cmd_getWindowProperty,
 	cmd_setWindowProperty,
 	cmd_setWindowTitle,

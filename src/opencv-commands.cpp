@@ -1188,6 +1188,22 @@ COMMAND cmd_moveWindow(RXIFRM *frm, void *ctx) {
 	return RXR_UNSET;
 }
 
+COMMAND cmd_getWindowImageSize(RXIFRM *frm, void *ctx) {
+	Rect rect = getWindowImageRect(ARG_String(1));
+	RXA_TYPE(frm, 1) = RXT_PAIR;
+	RXA_PAIR(frm,1).x = rect.width;
+	RXA_PAIR(frm,1).y = rect.height;
+	return RXR_VALUE;
+}
+
+COMMAND cmd_getWindowImagePos(RXIFRM *frm, void *ctx) {
+	Rect rect = getWindowImageRect(ARG_String(1));
+	RXA_TYPE(frm, 1) = RXT_PAIR;
+	RXA_PAIR(frm,1).x = rect.x;
+	RXA_PAIR(frm,1).y = rect.y;
+	return RXR_VALUE;
+}
+
 COMMAND cmd_getWindowProperty(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_DECIMAL;
 	RXA_DEC64(frm, 1) = getWindowProperty(ARG_String(1), ARG_Int(2));

@@ -482,6 +482,14 @@ commands: [
 		window [any-string!]
 		pos    [pair!]
 	]
+	getWindowImageSize: [
+		"Provides size of image in the window (not counting tarckbars and other controls)."
+		window [any-string!]
+	]
+	getWindowImagePos: [
+		"Provides position (left-bottom) of image in the window."
+		window [any-string!]
+	]
 	getWindowProperty: [
 		"Provides parameters of a window."
 		name [any-string!]
