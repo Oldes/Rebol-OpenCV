@@ -204,7 +204,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 		RXIARG val;
 		for(n = RXA_INDEX(frm, 1); (t = RL_GET_VALUE(blk, n, &val)); n++) {
 			if (t == RXT_END) break;
-			if (t == RXT_GET_WORD) {
+			if (t == RXT_GET_WORD || t == RXT_GET_PATH) {
 				t = RL_GET_VALUE_RESOLVED(blk, n, &val);
 			}
 			if (t == RXT_PAIR) {
@@ -228,7 +228,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 			// It should be possible to create a matrix, which is using directly the Rebol binary data.
 			// https://docs.opencv.org/3.4/d3/d63/classcv_1_1Mat.html#a9fa74fb14362d87cb183453d2441948f
 			// mat = new Mat(size, type, bin->data);
-			// But first I must resolve, how to guard these data from GC on the Rebol side.		
+			// But first I must resolve, how to guard these data from GC on the Rebol side.
 			// So for now I will rather copy the binary data into the new matrix instead.
 			mat = new Mat(size, type);
 			int matBytes = mat->elemSize() * mat->cols * mat->rows;
