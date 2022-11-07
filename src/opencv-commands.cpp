@@ -222,6 +222,42 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 			else if (t == RXT_BINARY) {
 				bin = (REBSER*)val.series;
 			}
+			else if (t == RXT_HANDLE) {
+				Mat *src;
+				REBSER *rect;
+				RXIARG pos, sz;
+
+				if (val.handle.type != Handle_cvMat) {
+					trace("Expected cvMat handle.");
+					goto inv_spec;
+				}
+				src = (Mat*)val.handle.hob->data;
+				if (!src) {
+					trace("Invalid matrix argument.");
+					goto inv_spec;
+				}
+				t = RL_GET_VALUE(blk, n++, &val);
+				if (t == RXT_GET_WORD || t == RXT_GET_PATH) {
+					t = RL_GET_VALUE_RESOLVED(blk, n, &val);
+				}
+				if (t != RXT_BLOCK) {
+					trace("Expected block!");
+					goto inv_spec;
+					
+				}
+				rect = (REBSER*)val.series;
+				if (RXT_PAIR != RL_GET_VALUE(rect, val.index, &pos) || RXT_PAIR != RL_GET_VALUE(rect, val.index+1, &sz)) {
+					trace("Expected block with 2 pairs!");
+					goto inv_spec;
+				}
+				mat = new Mat(*src, Rect(pos.pair.x,pos.pair.y,sz.pair.x,sz.pair.y));
+				goto done;
+			}
+			else {
+inv_spec:
+				debug_print("Invalid matrix spec at index... %u\n", n);
+				return RXR_FALSE;
+			}
 			// TODO: vector!
 		}
 		if (bin) {
