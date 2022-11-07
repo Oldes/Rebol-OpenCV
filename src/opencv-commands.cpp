@@ -418,10 +418,22 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				return RXR_VALUE;
 			}
 			case MAT_BINARY: {
-				int bytes = mat->elemSize() * mat->cols * mat->rows;
+				size_t elemSize = mat->elemSize();
+				size_t bytes = elemSize * mat->cols * mat->rows;
 				REBSER *bin = (REBSER *)RL_MAKE_STRING(bytes, FALSE);
-				//TODO: expects, that data are continuous!
-				memcpy(bin->data, mat->data,  bytes);
+				if (mat->isContinuous()) {
+					memcpy(bin->data, mat->data,  bytes);
+				} else {
+					unsigned char *bp = mat->data;
+					unsigned char *dp = bin->data;
+					size_t wb = elemSize * mat->cols;
+					size_t st = mat->step;
+					for( int j = 0; j < mat->rows; j++ ) {
+						memcpy(dp, bp, wb);
+						bp += st;
+						dp += wb;
+					}
+				}
 				SERIES_TAIL(bin) = bytes;
 				RXA_SERIES(frm, 1) = bin;
 				RXA_TYPE  (frm, 1) = RXT_BINARY;
