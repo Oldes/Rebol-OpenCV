@@ -192,16 +192,33 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 //;- Constructors                                                         
 //;-----------------------------------------------------------------------
 
+static int vecType2cvType[12] = {
+	CV_8S,  //	VTSI08
+	CV_16S, //	VTSI16
+	CV_32S, //	VTSI32
+	-1,     //	VTSI64
+	CV_8U,  //	VTUI08
+	CV_16U, //	VTUI16
+	-1,     //	VTUI32
+	-1,     //	VTUI64
+	-1,     //	VTSF08
+	-1,     //	VTSF16
+	CV_32F, //	VTSF32
+	CV_64F  //	VTSF64
+};
+
 COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	Mat *mat = NULL;
 	REBSER *bin = NULL;
 	Size size = Size(0,0);
 	int type = CV_8UC4;
+	int binBytes;
 	
 	if (ARG_Is_Block(1)) {
 		REBSER *blk = (REBSER *)RXA_SERIES(frm, 1);
 		REBCNT n, t;
 		RXIARG val;
+
 		for(n = RXA_INDEX(frm, 1); (t = RL_GET_VALUE(blk, n, &val)); n++) {
 			if (t == RXT_END) break;
 			if (t == RXT_GET_WORD || t == RXT_GET_PATH) {
@@ -221,6 +238,26 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 			}
 			else if (t == RXT_BINARY) {
 				bin = (REBSER*)val.series;
+				binBytes = SERIES_TAIL(bin) - val.index;
+			}
+			else if (t == RXT_VECTOR) {
+				// Current Rebol's vector has only one dimension,
+				// so there must be used size of the resulting matrix!
+				// The CV type is computed from the vector type and sizes.
+				bin = (REBSER*)val.series;
+				int vecType = VECT_TYPE(bin);
+				if (vecType < 0 || vecType > 11) {
+					trace("Invalid vector type.");
+					return RXR_FALSE;
+				}
+				if (size.width <= 0 || size.height <= 0) {
+					trace("Invalid or missing size specification!");
+					return RXR_FALSE;
+				}
+				int depth = (bin->tail - val.index) / (size.width * size.height);
+				binBytes = (SERIES_TAIL(bin) - val.index) * VECT_BYTE_SIZE(vecType);
+				type = CV_MAKETYPE(vecType2cvType[vecType], depth);
+				//debug_print("cvType: %i depth: %i type: %i %i byteSize: %i\n", vecType2cvType[vecType], depth, type, CV_16UC3, VECT_BYTE_SIZE(vecType));
 			}
 			else if (t == RXT_HANDLE) {
 				Mat *src;
@@ -258,7 +295,6 @@ inv_spec:
 				debug_print("Invalid matrix spec at index... %u\n", n);
 				return RXR_FALSE;
 			}
-			// TODO: vector!
 		}
 		if (bin) {
 			// It should be possible to create a matrix, which is using directly the Rebol binary data.
@@ -268,8 +304,8 @@ inv_spec:
 			// So for now I will rather copy the binary data into the new matrix instead.
 			mat = new Mat(size, type);
 			int matBytes = mat->elemSize() * mat->cols * mat->rows;
-			int binBytes = SERIES_TAIL(bin) - val.index;
 			if (binBytes < matBytes) matBytes = binBytes;
+
 			//TODO: if the source data are shorter, they could be copied repeatedly!
 			memcpy(mat->data, SERIES_SKIP(bin, val.index), matBytes);
 			goto done;
@@ -466,7 +502,6 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				REBINT sign; // 0 = signed, 1 = unsigned
 				REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
 				REBINT size = mat->cols * mat->rows * mat->channels();
-				
 				switch(mat->depth()) {
 					case CV_8U:  type = 0; sign = 1; bits = 8;  break;
 					case CV_8S:  type = 0; sign = 0; bits = 8;  break;
@@ -479,6 +514,7 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				
 				REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
 				mat2ser(mat, vec, &RXA_ARG(frm,1));
+				SERIES_TAIL(vec) = size;
 				RXA_TYPE  (frm, 1) = RXT_VECTOR;
 				return RXR_VALUE;
 			}
