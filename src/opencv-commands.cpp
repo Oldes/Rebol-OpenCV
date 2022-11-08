@@ -210,14 +210,15 @@ static int vecType2cvType[12] = {
 COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	Mat *mat = NULL;
 	REBSER *bin = NULL;
+	REBSER *blk;
+	REBCNT n, t;
+	RXIARG val;
 	Size size = Size(0,0);
 	int type = CV_8UC4;
 	int binBytes;
 	
 	if (ARG_Is_Block(1)) {
-		REBSER *blk = (REBSER *)RXA_SERIES(frm, 1);
-		REBCNT n, t;
-		RXIARG val;
+		blk = (REBSER *)RXA_SERIES(frm, 1);
 
 		for(n = RXA_INDEX(frm, 1); (t = RL_GET_VALUE(blk, n, &val)); n++) {
 			if (t == RXT_END) break;
@@ -233,6 +234,8 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				type -= W_OPENCV_ARG_CV_8UC1;
 			}
 			else if (t == RXT_TUPLE) {
+				if (RXT_END != RL_GET_VALUE(blk, ++n, &val)) goto err_spec;
+				if (size.width <= 0 || size.height <= 0) goto err_size;
 				mat = new Mat(size, type, Scalar(val.bytes[3],val.bytes[2],val.bytes[1],val.bytes[4]));
 				goto done;
 			}
@@ -245,10 +248,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				// so there must be used size of the resulting matrix!
 				// The CV type is computed from the vector type and sizes.
 				bin = (REBSER*)val.series;
-				if (size.width <= 0 || size.height <= 0) {
-					trace("Invalid or missing size specification!");
-					return RXR_FALSE;
-				}
+				if (size.width <= 0 || size.height <= 0) goto err_size;
 				int vecType = VECT_TYPE(bin);
 				if (vecType < 0 || vecType > 11 || (type = vecType2cvType[vecType]) < 0 ) {
 					trace("Invalid vector type.");
@@ -266,12 +266,12 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 
 				if (val.handle.type != Handle_cvMat) {
 					trace("Expected cvMat handle.");
-					goto inv_spec;
+					goto err_spec;
 				}
 				src = (Mat*)val.handle.hob->data;
 				if (!src) {
 					trace("Invalid matrix argument.");
-					goto inv_spec;
+					goto err_spec;
 				}
 				t = RL_GET_VALUE(blk, n++, &val);
 				if (t == RXT_GET_WORD || t == RXT_GET_PATH) {
@@ -279,24 +279,20 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				}
 				if (t != RXT_BLOCK) {
 					trace("Expected block!");
-					goto inv_spec;
-					
+					goto err_spec;
 				}
 				rect = (REBSER*)val.series;
 				if (RXT_PAIR != RL_GET_VALUE(rect, val.index, &pos) || RXT_PAIR != RL_GET_VALUE(rect, val.index+1, &sz)) {
 					trace("Expected block with 2 pairs!");
-					goto inv_spec;
+					goto err_spec;
 				}
 				mat = new Mat(*src, Rect(pos.pair.x,pos.pair.y,sz.pair.x,sz.pair.y));
 				goto done;
 			}
-			else {
-inv_spec:
-				debug_print("Invalid matrix spec at index... %u\n", n);
-				return RXR_FALSE;
-			}
+			else goto err_spec;
 		}
 		if (bin) {
+			if (size.width <= 0 || size.height <= 0) goto err_size;
 			// It should be possible to create a matrix, which is using directly the Rebol binary data.
 			// https://docs.opencv.org/3.4/d3/d63/classcv_1_1Mat.html#a9fa74fb14362d87cb183453d2441948f
 			// mat = new Mat(size, type, bin->data);
@@ -304,10 +300,15 @@ inv_spec:
 			// So for now I will rather copy the binary data into the new matrix instead.
 			mat = new Mat(size, type);
 			int matBytes = mat->elemSize() * mat->cols * mat->rows;
-			if (binBytes < matBytes) matBytes = binBytes;
-
-			//TODO: if the source data are shorter, they could be copied repeatedly!
-			memcpy(mat->data, SERIES_SKIP(bin, val.index), matBytes);
+			if (binBytes < matBytes) {
+				unsigned char *bp = mat->data;
+				for (;binBytes <= matBytes; bp += binBytes, matBytes--) {
+					memcpy(bp, SERIES_SKIP(bin, val.index), binBytes);
+				}
+				goto done;
+			}
+			if (matBytes > 0)
+				memcpy(mat->data, SERIES_SKIP(bin, val.index), matBytes);
 			goto done;
 		}
 	}
@@ -323,11 +324,20 @@ inv_spec:
 	}
 	else if (ARG_Is_Pair(1)) {
 		size = ARG_Size(1);
+		if (size.width < 0 || size.height < 0) goto err_size;
+		mat = new Mat(size, type, Scalar(0,0,0));
+		goto done;
 	}
 	mat = new Mat(size, type);
 	
 done:
 	return initRXHandle(frm, 1, mat, Handle_cvMat);
+err_size:
+	trace("Invalid or missing size specification!");
+	return RXR_FALSE;
+err_spec:
+	debug_print("Invalid matrix spec at index... %u\n", n);
+	return RXR_FALSE;
 }
 
 COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
