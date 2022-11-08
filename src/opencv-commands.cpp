@@ -245,19 +245,19 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				// so there must be used size of the resulting matrix!
 				// The CV type is computed from the vector type and sizes.
 				bin = (REBSER*)val.series;
-				int vecType = VECT_TYPE(bin);
-				if (vecType < 0 || vecType > 11) {
-					trace("Invalid vector type.");
-					return RXR_FALSE;
-				}
 				if (size.width <= 0 || size.height <= 0) {
 					trace("Invalid or missing size specification!");
 					return RXR_FALSE;
 				}
+				int vecType = VECT_TYPE(bin);
+				if (vecType < 0 || vecType > 11 || (type = vecType2cvType[vecType]) < 0 ) {
+					trace("Invalid vector type.");
+					return RXR_FALSE;
+				}
+
 				int depth = (bin->tail - val.index) / (size.width * size.height);
 				binBytes = (SERIES_TAIL(bin) - val.index) * VECT_BYTE_SIZE(vecType);
-				type = CV_MAKETYPE(vecType2cvType[vecType], depth);
-				//debug_print("cvType: %i depth: %i type: %i %i byteSize: %i\n", vecType2cvType[vecType], depth, type, CV_16UC3, VECT_BYTE_SIZE(vecType));
+				type = CV_MAKETYPE(type, depth);
 			}
 			else if (t == RXT_HANDLE) {
 				Mat *src;
