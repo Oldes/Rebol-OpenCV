@@ -380,6 +380,28 @@ COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 //;- Accessors                                                            
 //;-----------------------------------------------------------------------
 
+static void mat2ser(Mat *mat, REBSER *bin, RXIARG *arg) {
+	size_t elemSize = mat->elemSize();
+	size_t bytes = elemSize * mat->cols * mat->rows;
+
+	if (mat->isContinuous()) {
+		memcpy(bin->data, mat->data,  bytes);
+	} else {
+		unsigned char *bp = mat->data;
+		unsigned char *dp = bin->data;
+		size_t wb = elemSize * mat->cols;
+		size_t st = mat->step;
+		for( int j = 0; j < mat->rows; j++ ) {
+			memcpy(dp, bp, wb);
+			bp += st;
+			dp += wb;
+		}
+	}
+	SERIES_TAIL(bin) = bytes;
+	arg->series = bin;
+	arg->index = 0;
+}
+
 COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 	int propid = RXA_INT32(frm, 2);
 	double result = 0;
@@ -418,26 +440,9 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				return RXR_VALUE;
 			}
 			case MAT_BINARY: {
-				size_t elemSize = mat->elemSize();
-				size_t bytes = elemSize * mat->cols * mat->rows;
-				REBSER *bin = (REBSER *)RL_MAKE_STRING(bytes, FALSE);
-				if (mat->isContinuous()) {
-					memcpy(bin->data, mat->data,  bytes);
-				} else {
-					unsigned char *bp = mat->data;
-					unsigned char *dp = bin->data;
-					size_t wb = elemSize * mat->cols;
-					size_t st = mat->step;
-					for( int j = 0; j < mat->rows; j++ ) {
-						memcpy(dp, bp, wb);
-						bp += st;
-						dp += wb;
-					}
-				}
-				SERIES_TAIL(bin) = bytes;
-				RXA_SERIES(frm, 1) = bin;
+				REBSER *bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
+				mat2ser(mat, bin, &RXA_ARG(frm,1));
 				RXA_TYPE  (frm, 1) = RXT_BINARY;
-				RXA_INDEX (frm, 1) = 0;
 				return RXR_VALUE;
 			}
 			case MAT_IMAGE: {
@@ -449,13 +454,11 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 					cvtColor(*mat, tmp, COLOR_BGR2BGRA);
 				else return RXR_NONE;
 
-				REBSER *reb_image = (REBSER *)RL_MAKE_IMAGE(tmp.cols, tmp.rows);
-				memcpy(reb_image->data, tmp.data, tmp.elemSize()*tmp.cols*tmp.rows);
-
+				REBSER *bin = (REBSER *)RL_MAKE_IMAGE(tmp.cols, tmp.rows);
+				mat2ser(&tmp, bin, &RXA_ARG(frm,1));
 				RXA_TYPE(frm, 1) = RXT_IMAGE;
 				RXA_ARG(frm, 1).width  = tmp.cols;
 				RXA_ARG(frm, 1).height = tmp.rows;
-				RXA_ARG(frm, 1).image  = reb_image;
 				return RXR_VALUE;
 			}
 			case MAT_VECTOR: {
@@ -474,13 +477,9 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 					case CV_64F: type = 1; sign = 0; bits = 64; break;
 				}
 				
-				int bytes = mat->elemSize() * mat->cols * mat->rows;
 				REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
-				memcpy(vec->data, mat->data,  bytes); //TODO: expects that mat is continuous!
-				SERIES_TAIL(vec) = size;
-				RXA_SERIES(frm, 1) = vec;
+				mat2ser(mat, vec, &RXA_ARG(frm,1));
 				RXA_TYPE  (frm, 1) = RXT_VECTOR;
-				RXA_INDEX (frm, 1) = 0;
 				return RXR_VALUE;
 			}
 		}
