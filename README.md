@@ -226,6 +226,7 @@ with cv [
         setWindowTitle "Image" join "Colormap: " i
         if 0 < waitKey 1000 [break]
     ]
+    destroyAllWindows
 ]
 ```
 
@@ -236,12 +237,12 @@ with cv [
     src: imread "image/taj.jpg"
     ; using a binary for the kernel, but it should be possible
     ; to use vector directly later once implemented!
-    bin: to binary! #[float! [
+    kernel: #[float! [
         0.272 0.534 0.131
         0.349 0.686 0.168
         0.393 0.769 0.189
     ]]
-    sepia-filter: Matrix [CV_32FC1 3x3 :bin]
+    sepia-filter: Matrix [3x3 :kernel]
     transform src src sepia-filter
     imshow src
     waitKey 0
