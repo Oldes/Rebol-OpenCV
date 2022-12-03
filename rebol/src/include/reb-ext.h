@@ -26,9 +26,78 @@
 **
 ***********************************************************************/
 
+#include "reb-c.h"
 #include "reb-defs.h"
 #include "ext-types.h"
-#include "sys-value.h"
+
+
+#ifndef REB_EXTENSION
+//#include "sys-value.h"
+#else
+
+#ifndef REBARGS
+#define REBARGS void
+#endif
+
+// X/Y coordinate pair as floats:
+typedef struct rebol_xy_float {
+	float x;
+	float y;
+} REBXYF;
+#define MAX_TUPLE 12
+
+typedef struct Reb_Series REBSER;
+
+struct Reb_Series {
+	REBYTE	*data;		// series data head
+	REBCNT	tail;		// one past end of useful data
+	REBCNT	rest;		// total number of units from bias to end
+	REBINT	info;		// holds width and flags
+#if defined(__LP64__) || defined(__LLP64__)
+	REBCNT	padding;	// ensure next pointer is naturally aligned
+#endif
+	union {
+		REBCNT size;	// used for vectors and bitsets
+		REBSER *series;	// MAP datatype uses this
+		struct {
+			REBCNT wide:16;
+			REBCNT high:16;
+		} area;
+		REBUPT all; // for copying, must have the same size as the union
+	};
+#ifdef SERIES_LABELS
+	REBYTE  *label;		// identify the series
+#endif
+};
+
+#define SERIES_TAIL(s)	 ((s)->tail)
+#define SERIES_REST(s)	 ((s)->rest)
+#define	SERIES_LEN(s)    ((s)->tail + 1) // Includes terminator
+#define	SERIES_FLAGS(s)	 ((s)->info)
+#define	SERIES_WIDE(s)	 (((s)->info) & 0xff)
+#define SERIES_DATA(s)   ((s)->data)
+#define	SERIES_SKIP(s,i) (SERIES_DATA(s) + (SERIES_WIDE(s) * (i)))
+
+#ifndef VECT_TYPE
+static REBCNT bit_sizes[4] = { 8, 16, 32, 64 };
+static REBCNT byte_sizes[4] = { 1, 2, 4, 8 };
+#define VECT_TYPE(s) ((s)->size & 0xff)
+#define VECT_BIT_SIZE(bits) (bit_sizes[bits & 3])
+#define VECT_BYTE_SIZE(bits) (byte_sizes[bits & 3])
+#define VAL_VEC_WIDTH(v) VECT_BYTE_SIZE(VECT_TYPE(VAL_SERIES(v)))
+#endif
+
+typedef struct Reb_Handle_Context {
+	union {
+		REBYTE *data;   // Pointer to raw data
+		void *handle;
+	};
+	REBCNT  sym;      // Index of the word's symbol. Used as a handle's type!
+	REBFLG  flags:16; // Handle_Flags (HANDLE_CONTEXT_MARKED and HANDLE_CONTEXT_USED)
+	REBCNT  index:16; // Index into Reb_Handle_Spec value
+	REBSER *series;   // Optional pointer to Rebol series, which may be marked by GC
+} REBHOB;
+#endif
 
 /* Prefix naming conventions:
 
@@ -42,6 +111,11 @@
 */
 
 // Value structure (for passing args to and from):
+// o: originaly (before 64bit) it was designed to fit to 8bytes
+// o: but tuple was still allowed to have 10 bytes, so one could not receive
+// o: all possible tuple values in the extension side!!
+// Now, when there can be stored all 12 allowed tuple bytes, the value must have 16bytes
+// on both (32 and 64bit) targets, so maximum number of arguments could be extended (from 7 to 15)
 #pragma pack(4)
 typedef union rxi_arg_val {
 	void *addr;
@@ -75,6 +149,12 @@ typedef union rxi_arg_val {
 		REBFLG flags:16;  // Handle_Flags
 		REBCNT index:16;  // Index into Reb_Handle_Spec value
 	} handle;
+	struct {
+		// keeping the same layout how it was before (first byte is size)
+		// There could be a more optimal way how to pass colors!
+		REBYTE tuple_len;
+		REBYTE tuple_bytes[MAX_TUPLE];
+	};
 } RXIARG;
 
 // For direct access to arg array:
@@ -83,7 +163,7 @@ typedef union rxi_arg_val {
 
 // Command function call frame:
 typedef struct rxi_cmd_frame {
-	RXIARG args[8];	// arg values (64 bits each)
+	RXIARG args[8];	// arg values (128 bits each)
 } RXIFRM;
 
 typedef struct rxi_cmd_context {
@@ -111,20 +191,21 @@ typedef int (*RXICAL)(int cmd, RXIFRM *args, REBCEC *ctx);
 #define RXA_DATE(f,n)	(RXA_ARG(f,n).int32a)
 #define RXA_WORD(f,n)	(RXA_ARG(f,n).int32a)
 #define RXA_PAIR(f,n)	(RXA_ARG(f,n).pair)
-#define RXA_TUPLE(f,n)	(RXA_ARG(f,n).bytes)
+#define RXA_TUPLE(f,n)	(RXA_ARG(f,n).tuple_bytes)
+#define RXA_TUPLE_LEN(f,n)	(RXA_ARG(f,n).tuple_len)
 #define RXA_SERIES(f,n)	(RXA_ARG(f,n).series)
 #define RXA_INDEX(f,n)	(RXA_ARG(f,n).index)
 #define RXA_OBJECT(f,n)	(RXA_ARG(f,n).addr)
 #define RXA_MODULE(f,n)	(RXA_ARG(f,n).addr)
 #define RXA_HANDLE(f,n)	(RXA_ARG(f,n).handle.ptr)
 #define RXA_HANDLE_CONTEXT(f,n) (RXA_ARG(f,n).handle.hob)
-#define RXA_HANDLE_TYPE(f,n)   (RXA_ARG(f,n).handle.type)
-#define RXA_HANDLE_FLAGS(f,n)  (RXA_ARG(f,n).handle.flags)
-#define RXA_HANDLE_INDEX(f,n)  (RXA_ARG(f,n).handle.index)
-#define RXA_IMAGE(f,n)	      (RXA_ARG(f,n).image)
-#define RXA_IMAGE_BITS(f,n)	  ((REBYTE *)RL_SERIES((RXA_ARG(f,n).image), RXI_SER_DATA))
-#define RXA_IMAGE_WIDTH(f,n)  (RXA_ARG(f,n).width)
-#define RXA_IMAGE_HEIGHT(f,n) (RXA_ARG(f,n).height)
+#define RXA_HANDLE_TYPE(f,n)    (RXA_ARG(f,n).handle.type)
+#define RXA_HANDLE_FLAGS(f,n)   (RXA_ARG(f,n).handle.flags)
+#define RXA_HANDLE_INDEX(f,n)   (RXA_ARG(f,n).handle.index)
+#define RXA_IMAGE(f,n)	        (RXA_ARG(f,n).image)
+#define RXA_IMAGE_BITS(f,n)	    ((REBYTE *)RL_SERIES((RXA_ARG(f,n).image), RXI_SER_DATA))
+#define RXA_IMAGE_WIDTH(f,n)    (RXA_ARG(f,n).width)
+#define RXA_IMAGE_HEIGHT(f,n)   (RXA_ARG(f,n).height)
 
 // Command function return values:
 enum rxi_return {

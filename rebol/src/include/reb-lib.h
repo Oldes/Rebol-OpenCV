@@ -10,8 +10,8 @@
 ************************************************************************
 **
 **  Title: REBOL Host and Extension API
-**  Build: 3.5.3
-**  Date:  4-May-2021
+**  Build: 3.10.2
+**  Date:  1-Dec-2022
 **  File:  reb-lib.reb
 **
 **  AUTO-GENERATED FILE - Do not modify. (From: make-reb-lib.reb)
@@ -22,8 +22,8 @@
 // These constants are created by the release system and can be used to check
 // for compatiblity with the reb-lib DLL (using RL_Version.)
 #define RL_VER 3
-#define RL_REV 5
-#define RL_UPD 3
+#define RL_REV 10
+#define RL_UPD 2
 
 // Compatiblity with the lib requires that structs are aligned using the same
 // method. This is concrete, not abstract. The macro below uses struct
@@ -302,7 +302,7 @@ extern RL_LIB *RL;  // is passed to the RX_Init() function
 **
 */
 
-#define RL_PRINT(a,b)               RL->print(a,b)
+#define RL_PRINT(a,...)             RL->print(a,__VA_ARGS__)
 /*
 **	void RL_Print(REBYTE *fmt, ...)
 **
@@ -811,7 +811,7 @@ extern RL_LIB *RL;  // is passed to the RX_Init() function
 **	Stores handle's specification (required data size and optional free callback.
 **
 **	Returns:
-**		table index for the word (whether found or new)
+**		symbol id of the word (whether found or new)
 **		or NOT_FOUND if handle with give ID is already registered.
 **	Arguments:
 **		name      - handle's name as a c-string (length is being detected)

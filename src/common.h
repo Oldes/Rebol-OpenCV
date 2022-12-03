@@ -5,13 +5,27 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include "reb-host.h"
-#include "host-lib.h"
-#include <stdio.h>
 
-//#define USE_TRACES
-#ifdef  USE_TRACES
+#define REB_EXTENSION
+#define RL_API API_EXPORT
+#ifdef TO_WINDOWS
+#define API_EXPORT __declspec(dllexport)
+#else
+#define API_EXPORT __attribute__((visibility("default")))
+#endif
+
+#include "reb-ext.h"		// includes also reb-c.h and reb-defs.h
+#include "reb-device.h"
+#include "reb-file.h"
+#include "reb-filereq.h"
+#include "reb-event.h"
+#include "reb-evtypes.h"
+#include "reb-lib.h"
+
 //#include <stdio.h>
+
+#ifdef  USE_TRACES
+#include <stdio.h>
 #define debug_print(fmt, ...) do { printf(fmt, __VA_ARGS__); } while (0)
 #define trace(str) puts(str)
 #else

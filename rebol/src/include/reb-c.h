@@ -53,6 +53,10 @@
 #include <type_traits> // used in CASTING MACROS
 #endif
 
+#ifdef __OBJC__
+#define HAS_BOOL // don't redefine BOOL in objective-c code
+#endif
+
 #if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 /* C-code types: use C99 */
 
@@ -209,7 +213,7 @@ enum {
 **
 ***********************************************************************/
 
-#define MAX_INT_LEN     21
+#define MAX_INT_LEN     25
 #define MAX_HEX_LEN     16
 
 #ifdef ITOA64           // Integer to ascii conversion
@@ -237,7 +241,7 @@ enum {
 typedef long (__stdcall *FUNCPTR)();
 typedef void(__cdecl *CFUNC)(void *);
 #else
-typedef long (*FUNCPTR)();
+typedef long (*FUNCPTR)(void);
 typedef void(*CFUNC)(void *);
 #endif
 
@@ -304,6 +308,16 @@ typedef void(*CFUNC)(void *);
 
 #define ROUND_TO_INT(d) (REBINT)(floor((d) + 0.5))
 
+// https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+// Note: 32bit, v must be > 0
+#define U32_ROUND_UP_POWER_OF_2(v) \
+                    v--;           \
+                    v |= v >> 1;   \
+                    v |= v >> 2;   \
+                    v |= v >> 4;   \
+                    v |= v >> 8;   \
+                    v |= v >> 16;  \
+                    v++;           \
 
 /***********************************************************************
 **

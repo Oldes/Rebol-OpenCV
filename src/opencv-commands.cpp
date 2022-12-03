@@ -109,7 +109,7 @@ static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type) {
 	hob->handle = handle;
 	val->handle.ptr = hob;
 	val->handle.type = type;
-	val->handle.flags = HANDLE_CONTEXT;
+	val->handle.flags = hob->flags;
 	return RXR_VALUE;
 }
 
@@ -1344,7 +1344,6 @@ COMMAND cmd_createTrackbar(RXIFRM *frm, void *ctx) {
 	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(Handle_cvTrackbar);
 	debug_print("new hob: %p handle: %p (cvTrackbar)\n", hob, hob->data);
 	if (hob == NULL) return RXR_FALSE;
-	hob->flags |= HANDLE_CONTEXT; //@@ temp fix!
 	
 	CTX_TRACKBAR* bar = (CTX_TRACKBAR*)hob->data;
 	bar->name   = new String((const char*)((REBSER*)RXA_ARG(frm, 1).series)->data);
