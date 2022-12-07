@@ -21,7 +21,7 @@ All folowing examples expect, that OpenCV extension was imported using one of th
 1. Using direct path to the file: `cv: import %path/to/opencv.rebx`
 2. Using extension in the default location: `cv: import 'opencv`
 
-### 1. Making a blank matrix and displaying it.
+### Making a blank matrix and displaying it.
 
 Matrices are one of the main datatypes used by OpenCV extension.
 
@@ -31,7 +31,7 @@ cv/imshow mat          ;; open a window with default name "Image" displaying the
 cv/waitKey 0           ;; and wait for any key
 ```
 
-### 2. Closing a window
+### Closing a window
 
 Window is closed using `destroyWindow "Window name"`.
 It is possible to close all windows using `destroyAllWindows`
@@ -40,7 +40,7 @@ It is possible to close all windows using `destroyAllWindows`
 cv/destroyWindow "Image"       ;; because "Image" is the default window's name.
 ```
 
-### 3. Loading a matrix from file
+### Loading a matrix from file
 
 Instead of writting full paths to `cv` commands, like: `cv/imshow`, it is possible
 to bind the code to the `cv` context using `with cv [...]`
@@ -54,7 +54,7 @@ with cv [
 ]
 ```
 
-### 4. Moving/resizing an opened window
+### Moving/resizing an opened window
 
 Having the window from the previous example still open, it is possible to move it using `moveWindow`.
 
@@ -73,7 +73,7 @@ cv/waitKey 5000
 cv/destroyAllWindows           ;; closing both windows
 ```
 
-### 5. Getting matrix properties
+### Getting matrix properties
 
 Using still the matrix from above, resized using `resize` command so the output is not too long..
 
@@ -90,7 +90,7 @@ with cv [
 ]
 ```
 
-### 6. Manually releasing matrices
+### Manually releasing matrices
 
 Normally matrices are automatically released by Rebol's GC, but it is also possible to free them manually
 
@@ -104,7 +104,7 @@ It should be noted, that such a matrix is not usable anymore! This will fail:
 probe cv/imshow mat  ;; will return false!
 ```
 
-### 7. Color space conversion
+### Color space conversion
 
 ```rebol
 with cv [
@@ -124,7 +124,7 @@ with cv [
 ]
 ```
 
-### 8. Image threshold
+### Image threshold
 
 Having the grayscale version from above, we can applie a fixed-level threshold.
 
@@ -147,7 +147,7 @@ with cv [
 ]
 ```
 
-### 9. Using computed binary threshold as an opacity channel
+### Using computed binary threshold as an opacity channel
 
 ```rebol
 image: cv/get-property img     cv/MAT_IMAGE   ;; get Rebol image
@@ -156,7 +156,7 @@ image/alpha: alpha                            ;; replace image alpha with the ne
 save %tmp/masked.png image                    ;; using Rebol's PNG codec to save the new image
 ```
 
-### 10. Detecting edges in the image and their dilatation
+### Detecting edges in the image and their dilatation
 
 ```rebol
 with cv [
@@ -177,7 +177,7 @@ with cv [
 ]
 ```
 
-### 11. Blurring images
+### Blurring images
 
 ```rebol
 with cv [
@@ -214,7 +214,7 @@ with cv [
 ]
 ```
 
-### 12. Applying a color map
+### Applying a color map
 
 ```rebol
 with cv [
@@ -230,7 +230,7 @@ with cv [
 ]
 ```
 
-### 13. Applying Sepia filter to an image
+### Applying Sepia filter to an image
 
 ```rebol
 with cv [
@@ -250,7 +250,27 @@ with cv [
 ]
 ```
 
-### 14. Saving video from the camera
+### Using shared buffer
+
+When constructing matrices from a Rebol's binary or vector value, the buffer may be shared.
+```rebol
+with cv [
+    ;; allocate vector for a grayscale image of size 320x200
+    data: #[uint8! 64000]
+    ;; make an OpenCV metrix using the shared data
+    img: Matrix [320x200 :data]
+    ;; do some animation...
+    forever [
+        ;; manipulate the matrix data using Rebol code with the direct access
+        forall data [data/1: random 255]
+        ;; display the modified image using OpenCV
+        imshow img
+        if 0 < waitKey 10 [break]
+    ]
+]
+```
+
+### Saving video from the camera
 
 ```rebol
 with cv [
@@ -303,7 +323,7 @@ fourcc "avc1"    ;== 828601953
 fourcc 828601953 ;== "avc1"
 ```
 
-### 15. Computing absolute difference between 2 video frames
+### Computing absolute difference between 2 video frames
 
 `absdiff` is useful when tracking a moving objects (or to produce nice psychedelic video effects:).
 ```rebol

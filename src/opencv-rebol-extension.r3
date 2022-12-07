@@ -14,7 +14,7 @@ arg-words: [
 	CV_32S
 	CV_32F
 	CV_64F
-	CV_USRTYPE1
+	CV_16F
 	;- types:
 	CV_8UC1
 	CV_8SC1
@@ -23,7 +23,7 @@ arg-words: [
 	CV_32SC1
 	CV_32FC1
 	CV_64FC1
-	CV_USRC1
+	CV_16FC1
 	CV_8UC2
 	CV_8SC2
 	CV_16UC2
@@ -31,7 +31,7 @@ arg-words: [
 	CV_32SC2
 	CV_32FC2
 	CV_64FC2
-	CV_USRC2
+	CV_16FC2
 	CV_8UC3
 	CV_8SC3
 	CV_16UC3
@@ -39,7 +39,7 @@ arg-words: [
 	CV_32SC3
 	CV_32FC3
 	CV_64FC3
-	CV_USRC3
+	CV_16FC3
 	CV_8UC4
 	CV_8SC4
 	CV_16UC4
@@ -47,7 +47,7 @@ arg-words: [
 	CV_32SC4
 	CV_32FC4
 	CV_64FC4
-	CV_USRC4
+	CV_16FC4
 ]
 
 commands: [

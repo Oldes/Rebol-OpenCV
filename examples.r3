@@ -232,6 +232,25 @@ example "Applying Sepia filter to an image" {
     ]
     ```
 }
+example "Using shared buffer" {
+    When constructing matrices from a Rebol's binary or vector value, the buffer may be shared.
+    ```rebol
+    with cv [
+        ;; allocate vector for a grayscale image of size 320x200
+        data: #[uint8! 64000]
+        ;; make an OpenCV metrix using the shared data
+        img: Matrix [320x200 :data]
+        ;; do some animation...
+        forever [
+            ;; manipulate the matrix data using Rebol code with the direct access
+            forall data [data/1: random 255]
+            ;; display the modified image using OpenCV
+            imshow img
+            if 0 < waitKey 10 [break]
+        ]
+    ]
+    ```
+}
 example "Saving video from the camera" {
     ```rebol
     with cv [
@@ -335,7 +354,7 @@ emit-comment: func[str][
 ]
 emit-heading: func[str][
     ++ num
-    append insert trim/head/tail str ajoin ["^/### " num ". "] LF
+    append insert trim/head/tail str "^/### " LF
     print readme str
 ]
 emit-code: func[str][

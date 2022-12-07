@@ -43,7 +43,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 // Special Mat initialization... if Mat at frame n is NULL (arg was none), than it creates a new Mat with same size and type as m at this frame
 #define ARG_Mat_As(n,m)         (ARG_Is_Mat(n)\
 								? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle)\
-								: (m ? initRXHandle(frm,n,new Mat(m->size(),m->type()),Handle_cvMat),(Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL))
+								: (m ? initRXHandle(frm,n,new Mat(m->size(),m->type()),Handle_cvMat, NULL),(Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL))
 
 
 enum MatProperties {
@@ -54,6 +54,13 @@ enum MatProperties {
 	MAT_BINARY,
 	MAT_IMAGE,
 	MAT_VECTOR,
+};
+
+static unsigned char elementSizeByType[32] = {
+	1, 1, 2, 2,  4,  4,  8, 2, //CV_8UC1, CV_8SC1, CV_16UC1, CV_16SC1, CV_32SC1, CV_32FC1, CV_64FC1, CV_16FC1
+	2, 2, 4, 4,  8,  8, 16, 4, //CV_8UC2, CV_8SC2, CV_16UC2, CV_16SC2, CV_32SC2, CV_32FC2, CV_64FC2, CV_16FC2
+	3, 3, 6, 6, 12, 12, 24, 6, //CV_8UC3, CV_8SC3, CV_16UC3, CV_16SC3, CV_32SC3, CV_32FC3, CV_64FC3, CV_16FC3
+	4, 4, 8, 8, 16, 16, 32, 8, //CV_8UC4, CV_8SC4, CV_16UC4, CV_16SC4, CV_32SC4, CV_32FC4, CV_64FC4, CV_16FC4
 };
 
 using namespace cv;
@@ -102,20 +109,21 @@ extern "C" {
 	}
 }
 
-static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type) {
+static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type, REBSER* ser) {
 	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(type);
 	debug_print("new hob: %p handle: %p\n", hob, handle);
 	if (hob == NULL) return RXR_FALSE;
 	hob->handle = handle;
+	hob->series = ser;
 	val->handle.ptr = hob;
 	val->handle.type = type;
 	val->handle.flags = hob->flags;
 	return RXR_VALUE;
 }
 
-static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type) {
+static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type, REBSER* ser) {
 	RXA_TYPE(frm, index) = RXT_HANDLE;
-	return initRXHandleArg(&RXA_ARG(frm, index), handle, type);
+	return initRXHandleArg(&RXA_ARG(frm, index), handle, type, ser);
 }
 
 static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
@@ -212,10 +220,12 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	REBSER *bin = NULL;
 	REBSER *blk;
 	REBCNT n, t;
+	REBOOL resolved;
+	REBOOL sharedBin = FALSE;
 	RXIARG val;
 	Size size = Size(0,0);
 	int type = CV_8UC4;
-	int binBytes;
+	int binBytes = 0, matBytes = 0;
 	
 	if (ARG_Is_Block(1)) {
 		blk = (REBSER *)RXA_SERIES(frm, 1);
@@ -223,15 +233,19 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 		for(n = RXA_INDEX(frm, 1); (t = RL_GET_VALUE(blk, n, &val)); n++) {
 			if (t == RXT_END) break;
 			if (t == RXT_GET_WORD || t == RXT_GET_PATH) {
+				resolved = TRUE;
 				t = RL_GET_VALUE_RESOLVED(blk, n, &val);
+			} else {
+				resolved = FALSE;
 			}
 			if (t == RXT_PAIR) {
 				size = Size((int)val.pair.x, (int)val.pair.y);
 			}
 			else if (t == RXT_WORD) {
 				type = RL_FIND_WORD(ext_arg_words, val.int32a);
-				if (type < W_OPENCV_ARG_CV_8UC1 || type > W_OPENCV_ARG_CV_USRC4) return RXR_FALSE;
+				if (type < W_OPENCV_ARG_CV_8UC1 || type > W_OPENCV_ARG_CV_16FC4) return RXR_FALSE;
 				type -= W_OPENCV_ARG_CV_8UC1;
+				printf("type: %i\n", type);
 			}
 			else if (t == RXT_TUPLE) {
 				if (RXT_END != RL_GET_VALUE(blk, ++n, &val)) goto err_spec;
@@ -242,6 +256,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 			else if (t == RXT_BINARY) {
 				bin = (REBSER*)val.series;
 				binBytes = SERIES_TAIL(bin) - val.index;
+				sharedBin = resolved; // use shared series only if argument was passed by word or path
 			}
 			else if (t == RXT_VECTOR) {
 				// Current Rebol's vector has only one dimension,
@@ -258,6 +273,8 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				int depth = (bin->tail - val.index) / (size.width * size.height);
 				binBytes = (SERIES_TAIL(bin) - val.index) * VECT_BYTE_SIZE(vecType);
 				type = CV_MAKETYPE(type, depth);
+				if (type < 0 || type > CV_16FC4) goto err_vect;
+				sharedBin = resolved; // use shared series only if argument was passed by word or path
 			}
 			else if (t == RXT_HANDLE) {
 				Mat *src;
@@ -293,22 +310,36 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 		}
 		if (bin) {
 			if (size.width <= 0 || size.height <= 0) goto err_size;
+			if (type < 0 || type > CV_16FC4) goto err_type;
 			// It should be possible to create a matrix, which is using directly the Rebol binary data.
 			// https://docs.opencv.org/3.4/d3/d63/classcv_1_1Mat.html#a9fa74fb14362d87cb183453d2441948f
-			// mat = new Mat(size, type, bin->data);
-			// But first I must resolve, how to guard these data from GC on the Rebol side.
-			// So for now I will rather copy the binary data into the new matrix instead.
-			mat = new Mat(size, type);
-			int matBytes = mat->elemSize() * mat->cols * mat->rows;
-			if (binBytes < matBytes) {
-				unsigned char *bp = mat->data;
-				for (;binBytes <= matBytes; bp += binBytes, matBytes--) {
-					memcpy(bp, SERIES_SKIP(bin, val.index), binBytes);
-				}
-				goto done;
+			matBytes =  size.width * size.height * elementSizeByType[type];
+
+			if (sharedBin) {
+				//trace("shared binary");
+				debug_print("mat type %i, %i\n", type, elementSizeByType[type]);
+				if(binBytes < matBytes) goto err_size;
+				mat = new Mat(size, type, bin->data);
 			}
-			if (matBytes > 0)
-				memcpy(mat->data, SERIES_SKIP(bin, val.index), matBytes);
+			else {
+				// Create a non shared binary data!
+				REBSER *ser = NULL;
+				if (matBytes > 0) {
+					ser = (REBSER *)RL_MAKE_STRING(matBytes, FALSE);
+					SERIES_TAIL(ser) = matBytes;
+					mat = new Mat(size, type, ser->data);
+
+					if (binBytes < matBytes) {
+						unsigned char *bp = ser->data;
+						for (;binBytes <= matBytes; bp += binBytes, matBytes--) {
+							memcpy(bp, SERIES_SKIP(bin, val.index), binBytes);
+						}
+					} else {
+						memcpy(ser->data, SERIES_SKIP(bin, val.index), matBytes);
+					}
+				}
+				*bin = *ser;
+			}
 			goto done;
 		}
 	}
@@ -331,12 +362,21 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	mat = new Mat(size, type);
 	
 done:
-	return initRXHandle(frm, 1, mat, Handle_cvMat);
+	return initRXHandle(frm, 1, mat, Handle_cvMat, bin);
 err_size:
 	trace("Invalid or missing size specification!");
 	return RXR_FALSE;
 err_spec:
 	debug_print("Invalid matrix spec at index... %u\n", n);
+	return RXR_FALSE;
+err_shortBin:
+	debug_print("Insufficient series size! Requited %i, but got only %i bytes.", matBytes, binBytes);
+	return RXR_FALSE;
+err_type:
+	debug_print("Invalid matrix type %i!\n", type);
+	return RXR_FALSE;
+err_vect:
+	trace("Vector size does not match with the given matrix size!");
 	return RXR_FALSE;
 }
 
@@ -362,7 +402,7 @@ COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
 		return RXR_FALSE;
 	}
 
-	return initRXHandle(frm, 1, cap, Handle_cvVideoCapture);
+	return initRXHandle(frm, 1, cap, Handle_cvVideoCapture, NULL);
 }
 
 COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
@@ -388,7 +428,7 @@ COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
 
 	EXCEPTION_CATCH
 
-	return initRXHandle(frm, 1, writer, Handle_cvVideoWriter);
+	return initRXHandle(frm, 1, writer, Handle_cvVideoWriter, NULL);
 }
 
 COMMAND cmd_free(RXIFRM *frm, void *ctx) {
@@ -460,8 +500,12 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 		result = cap->get(propid);
 	}
 	else if (ARG_Is_Mat(1)) {
-		Mat *mat = ARG_Mat(1);
+		REBHOB* hob = RXA_HANDLE_CONTEXT(frm, 1);
+		if (!hob) return RXR_NONE;
+		Mat *mat = (Mat*)hob->handle;
 		if (!mat) return RXR_NONE;
+		REBSER* ser = hob->series;
+
 		switch(propid){
 			case MAT_SIZE: {
 				Size size = mat->size();
@@ -486,8 +530,13 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				return RXR_VALUE;
 			}
 			case MAT_BINARY: {
-				REBSER *bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
-				mat2ser(mat, bin, &RXA_ARG(frm,1));
+				if (ser) {
+					RXA_SERIES(frm, 1) = ser;
+					RXA_INDEX(frm, 1) = 0;
+				} else {
+					REBSER *bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
+					mat2ser(mat, bin, &RXA_ARG(frm,1));
+				}
 				RXA_TYPE  (frm, 1) = RXT_BINARY;
 				return RXR_VALUE;
 			}
@@ -508,23 +557,29 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				return RXR_VALUE;
 			}
 			case MAT_VECTOR: {
-				REBINT type; // int = 0, decimal = 1
-				REBINT sign; // 0 = signed, 1 = unsigned
-				REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
-				REBINT size = mat->cols * mat->rows * mat->channels();
-				switch(mat->depth()) {
-					case CV_8U:  type = 0; sign = 1; bits = 8;  break;
-					case CV_8S:  type = 0; sign = 0; bits = 8;  break;
-					case CV_16U: type = 0; sign = 1; bits = 16; break;
-					case CV_16S: type = 0; sign = 0; bits = 16; break;
-					case CV_32S: type = 0; sign = 0; bits = 32; break;
-					case CV_32F: type = 1; sign = 0; bits = 32; break;
-					case CV_64F: type = 1; sign = 0; bits = 64; break;
+				if (ser) {
+					RXA_SERIES(frm, 1) = ser;
+					RXA_INDEX(frm, 1) = 0;
+					trace("shared vect");
+				} else {
+					REBINT type; // int = 0, decimal = 1
+					REBINT sign; // 0 = signed, 1 = unsigned
+					REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
+					REBINT size = mat->cols * mat->rows * mat->channels();
+					switch(mat->depth()) {
+						case CV_8U:  type = 0; sign = 1; bits = 8;  break;
+						case CV_8S:  type = 0; sign = 0; bits = 8;  break;
+						case CV_16U: type = 0; sign = 1; bits = 16; break;
+						case CV_16S: type = 0; sign = 0; bits = 16; break;
+						case CV_32S: type = 0; sign = 0; bits = 32; break;
+						case CV_32F: type = 1; sign = 0; bits = 32; break;
+						case CV_64F: type = 1; sign = 0; bits = 64; break;
+					}
+					
+					REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
+					mat2ser(mat, vec, &RXA_ARG(frm,1));
+					SERIES_TAIL(vec) = size;
 				}
-				
-				REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
-				mat2ser(mat, vec, &RXA_ARG(frm,1));
-				SERIES_TAIL(vec) = size;
 				RXA_TYPE  (frm, 1) = RXT_VECTOR;
 				return RXR_VALUE;
 			}
@@ -570,7 +625,7 @@ COMMAND cmd_read(RXIFRM *frm, void *ctx) {
 	frame = ARG_Mat(3); // destination
 	if (!frame) {
 		frame = new Mat();
-		if (RXR_VALUE != initRXHandle(frm, 1, frame, Handle_cvMat))
+		if (RXR_VALUE != initRXHandle(frm, 1, frame, Handle_cvMat, NULL))
 			return RXR_FALSE;
 	}
 
@@ -625,7 +680,7 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	if (image.empty()) return RXR_NONE;
 	if (ARG_Is_None(2)) {
 		Mat *result = new Mat(image);
-		if (RXR_VALUE != initRXHandle(frm, 1, result, Handle_cvMat))
+		if (RXR_VALUE != initRXHandle(frm, 1, result, Handle_cvMat, NULL))
 			return RXR_FALSE;
 	}
 	else {
@@ -663,7 +718,7 @@ COMMAND cmd_imreadmulti(RXIFRM *frm, void *ctx) {
 		Mat *image;
 		for (n = 0; n < num; n++) {
 			image = new Mat(images[n]);
-			initRXHandleArg(&val, image, Handle_cvMat);
+			initRXHandleArg(&val, image, Handle_cvMat, NULL);
 			RL_SET_VALUE(blk, n, val, RXT_HANDLE);
 		}
 	} else {
@@ -768,7 +823,7 @@ COMMAND cmd_resize(RXIFRM *frm, void *ctx) {
 	}
 
 	if (newHandle) {
-		return initRXHandle(frm, 1, dst, Handle_cvMat);
+		return initRXHandle(frm, 1, dst, Handle_cvMat, NULL);
 	}
 	else {
 		// requested output to given existing array
@@ -863,7 +918,7 @@ COMMAND cmd_getStructuringElement(RXIFRM *frm, void *ctx) {
 	*dst = getStructuringElement(shape, ksize, anchor);
 	EXCEPTION_CATCH
 
-	return initRXHandle(frm, 1, dst, Handle_cvMat);
+	return initRXHandle(frm, 1, dst, Handle_cvMat, NULL);
 }
 
 COMMAND cmd_Laplacian(RXIFRM *frm, void *ctx) {
