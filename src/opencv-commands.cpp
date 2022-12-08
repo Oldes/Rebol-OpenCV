@@ -245,7 +245,6 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				type = RL_FIND_WORD(ext_arg_words, val.int32a);
 				if (type < W_OPENCV_ARG_CV_8UC1 || type > W_OPENCV_ARG_CV_16FC4) return RXR_FALSE;
 				type -= W_OPENCV_ARG_CV_8UC1;
-				printf("type: %i\n", type);
 			}
 			else if (t == RXT_TUPLE) {
 				if (RXT_END != RL_GET_VALUE(blk, ++n, &val)) goto err_spec;
@@ -311,13 +310,13 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 		if (bin) {
 			if (size.width <= 0 || size.height <= 0) goto err_size;
 			if (type < 0 || type > CV_16FC4) goto err_type;
-			// It should be possible to create a matrix, which is using directly the Rebol binary data.
+			// It is possible to create a matrix, which is using directly the Rebol binary data.
 			// https://docs.opencv.org/3.4/d3/d63/classcv_1_1Mat.html#a9fa74fb14362d87cb183453d2441948f
+
 			matBytes =  size.width * size.height * elementSizeByType[type];
 
 			if (sharedBin) {
 				//trace("shared binary");
-				debug_print("mat type %i, %i\n", type, elementSizeByType[type]);
 				if(binBytes < matBytes) goto err_size;
 				mat = new Mat(size, type, bin->data);
 			}
