@@ -432,32 +432,14 @@ COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 	REBCNT type = RXA_HANDLE_TYPE(frm, 1);
-	
-	EXCEPTION_TRY
-	if (type == Handle_cvMat) {
-		Mat *mat = ARG_Mat(1);
-		debug_print("Free Mat %p\n", mat);
-		if (mat == NULL) return RXR_FALSE;
-		mat->release();
-	}
-	else if (type == Handle_cvVideoCapture) {
-		VideoCapture *cap = ARG_VideoCapture(1);
-		debug_print("Free VideoCapture %p\n", cap);
-		if (cap == NULL) return RXR_FALSE;
-		cap->release();
-	}
-	else if (type == Handle_cvVideoWriter) {
-		VideoWriter *writer = ARG_VideoWriter(1);
-		debug_print("Free VideoWriter %p\n", writer);
-		if (writer == NULL) return RXR_FALSE;
-		writer->release();
+	if (type) {
+		// calling Rebol's release function, which will call appropriate
+		// GC callback to release OpenCV resources.
+		RL_FREE_HANDLE_CONTEXT((REBHOB*)RXA_HANDLE_CONTEXT(frm, 1));
 	}
 	else {
 		return RXR_NONE;
 	}
-	RXA_HANDLE_CONTEXT(frm, 1)->handle = NULL;
-	EXCEPTION_CATCH
-
 	return RXR_TRUE;
 }
 
