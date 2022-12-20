@@ -318,7 +318,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 			if (sharedBin) {
 				//trace("shared binary");
 				if(binBytes < matBytes) goto err_size;
-				mat = new Mat(size, type, bin->data);
+				mat = new Mat(size, type, SERIES_SKIP(bin, val.index));
 			}
 			else {
 				// Create a non shared binary data!
