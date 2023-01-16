@@ -56,10 +56,6 @@ files: [
 	%opencv-commands.cpp
 	%opencv-commands-table.c
 ]
-include: [
-	%src/
-	%rebol/src/include/
-]
 
 cflags:  [-fpermissive]
 flags:   [-O2 shared]
@@ -71,7 +67,7 @@ flags:   [-O2 shared]
 
 #if posix? [
 	cppflag: "-std=c++11"
-	lflag: "-lstdc++"
+	lflag:   "-lstdc++"
 	include: %/usr/local/include/
 	library: %/usr/local/lib/opencv/
 	library: %opencv_core
