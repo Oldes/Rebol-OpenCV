@@ -28,6 +28,7 @@ enum ext_commands {
 	CMD_OPENCV_BILATERALFILTER,
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_DILATE,
+	CMD_OPENCV_ERODE,
 	CMD_OPENCV_GAUSSIANBLUR,
 	CMD_OPENCV_GETSTRUCTURINGELEMENT,
 	CMD_OPENCV_LAPLACIAN,
@@ -143,6 +144,7 @@ int cmd_resize(RXIFRM *frm, void *ctx);
 int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_dilate(RXIFRM *frm, void *ctx);
+int cmd_erode(RXIFRM *frm, void *ctx);
 int cmd_GaussianBlur(RXIFRM *frm, void *ctx);
 int cmd_getStructuringElement(RXIFRM *frm, void *ctx);
 int cmd_Laplacian(RXIFRM *frm, void *ctx);
@@ -216,6 +218,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"bilateralFilter: command [\"Applies the bilateral filter to an image.\" src [handle!] {Source 8-bit or floating-point, 1-channel or 3-channel image.} dst [handle! none!] {Destination image of the same size and type as src.} diameter [integer!] {Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.} sigmaColor [number!] sigmaSpace [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"blur: command [\"Blurs an image using the normalized box filter.\" src [handle!] \"cvMat handle\" dst [handle! none!] size [pair! integer!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"dilate: command [{Dilates an image by using a specific structuring element.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" kernel [handle!] anchor [pair! integer!] \"position of the anchor within the element\" iterations [integer!] \"number of times dilation is applied\"]\n"\
+	"erode: command [{Erodes an image by using a specific structuring element.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" kernel [handle!] anchor [pair! integer!] \"position of the anchor within the element\" iterations [integer!] \"number of times dilation is applied\"]\n"\
 	"GaussianBlur: command [\"Blurs an image using a Gaussian filter.\" src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" size [pair! integer!] \"blurring kernel size\" sigmaX [number!] sigmaY [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"getStructuringElement: command [{Returns a structuring element of the specified size and shape for morphological operations.} shape [integer!] {Element shape that could be one of MorphShapes (rect = 0, cross = 1, ellipse = 2)} ksize [pair! integer!] \"Size of the structuring element\" anchor [pair! integer!] \"Anchor position within the element\"]\n"\
 	"Laplacian: command [\"Calculates the Laplacian of an image.\" src [handle!] \"Source image\" dst [handle! none!] {Destination image of the same size and the same number of channels as src} ddepth [number!] \"Desired depth of the destination image\" ksize [number!] {Aperture size used to compute the second-derivative filters. The size must be positive and odd.} scale [number!] \"Scale factor for the computed Laplacian values.\" delta [number!] {Optional delta value that is added to the results prior to storing them in dst.}]\n"\

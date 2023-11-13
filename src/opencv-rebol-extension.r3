@@ -185,7 +185,14 @@ commands: [
 		anchor [pair! integer!]	"position of the anchor within the element"
 		iterations [integer!]   "number of times dilation is applied"
 	]
-	;erode
+	erode: [
+		"Erodes an image by using a specific structuring element."
+		src    [handle!] "cvMat"
+		dst    [handle! none!] "cvMat"
+		kernel [handle!]
+		anchor [pair! integer!]	"position of the anchor within the element"
+		iterations [integer!]   "number of times dilation is applied"
+	]
 	;filter2D
 	GaussianBlur: [
 		"Blurs an image using a Gaussian filter."

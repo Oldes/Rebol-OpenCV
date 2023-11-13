@@ -20,6 +20,7 @@ MyCommandPointer Command[] = {
 	cmd_bilateralFilter,
 	cmd_blur,
 	cmd_dilate,
+	cmd_erode,
 	cmd_GaussianBlur,
 	cmd_getStructuringElement,
 	cmd_Laplacian,

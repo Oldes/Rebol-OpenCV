@@ -871,6 +871,23 @@ COMMAND cmd_dilate(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_erode(RXIFRM *frm, void *ctx) {
+	Mat *src          = ARG_Mat(1);
+	Mat *dst          = ARG_Mat_As(2, src);
+	Mat *kernel       = ARG_Mat(3);
+	Point anchor      = ARG_Point(4);
+	int iterations    = ARG_Int(5);
+
+	if(!src || !dst || !kernel) return RXR_FALSE;
+
+	EXCEPTION_TRY
+	erode(*src, *dst, *kernel, anchor, iterations);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
 COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
