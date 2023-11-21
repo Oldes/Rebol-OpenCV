@@ -1249,6 +1249,21 @@ COMMAND cmd_invert(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
+COMMAND cmd_max(RXIFRM *frm, void *ctx) {
+	Mat *src1 = ARG_Mat(1);
+	Mat *src2 = ARG_Mat(2);
+	Mat *dst  = ARG_Mat_As(3, src1);
+
+	if (!src1 || !src2) return RXR_NONE;
+
+	EXCEPTION_TRY
+	max(*src1, *src2, *dst);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 3);
+	return RXR_VALUE;	
+}
+
 COMMAND cmd_normalize(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);

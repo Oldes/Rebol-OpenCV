@@ -411,7 +411,12 @@ commands: [
 	;LUT
 	;magnitude 
 	;Mahalanobis
-	;max 
+	max: [
+		"Calculates per-element maximum of two arrays or an array and a scalar."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
+	] 
 	;mean
 	;meanStdDev 
 	;merge 

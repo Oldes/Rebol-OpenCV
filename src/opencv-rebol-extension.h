@@ -5,8 +5,8 @@
 #include "common.h"
 
 #define MIN_REBOL_VER 3
-#define MIN_REBOL_REV 10
-#define MIN_REBOL_UPD 2
+#define MIN_REBOL_REV 14
+#define MIN_REBOL_UPD 1
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
 
@@ -49,6 +49,7 @@ enum ext_commands {
 	CMD_OPENCV_DIVIDE,
 	CMD_OPENCV_FLIP,
 	CMD_OPENCV_INVERT,
+	CMD_OPENCV_MAX,
 	CMD_OPENCV_MULTIPLY,
 	CMD_OPENCV_NORMALIZE,
 	CMD_OPENCV_SUBTRACT,
@@ -167,6 +168,7 @@ int cmd_convertScaleAbs(RXIFRM *frm, void *ctx);
 int cmd_divide(RXIFRM *frm, void *ctx);
 int cmd_flip(RXIFRM *frm, void *ctx);
 int cmd_invert(RXIFRM *frm, void *ctx);
+int cmd_max(RXIFRM *frm, void *ctx);
 int cmd_multiply(RXIFRM *frm, void *ctx);
 int cmd_normalize(RXIFRM *frm, void *ctx);
 int cmd_subtract(RXIFRM *frm, void *ctx);
@@ -204,7 +206,7 @@ int cmd_setUseOptimized(RXIFRM *frm, void *ctx);
 typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 
 #define OPENCV_EXT_INIT_CODE \
-	"REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: []]\n"\
+	"REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: [] Require: 3.14.1]\n"\
 	"init-words: command [cmd-words [block!] arg-words [block!]]\n"\
 	"test: command [\"Simple OpenCV test\"]\n"\
 	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! block!]]\n"\
@@ -243,6 +245,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"divide: command [\"Calculates the per-element division of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
 	"flip: command [{Flips a 2D array around vertical, horizontal, or both axes.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" flipCode [integer!] {a flag to specify how to flip the array; 0 means flipping around the x-axis and positive value (for example, 1) means flipping around y-axis. Negative value (for example, -1) means flipping around both axes}]\n"\
 	"invert: command [\"Finds the inverse or pseudo-inverse of a matrix.\" src [handle!] \"Input floating-point M x N matrix.\" dst [handle! none!] {Output matrix of N x M size and the same type as src.} flags [integer!] \"Inversion method; One of DecompTypes (DECOMP_*)\"]\n"\
+	"max: command [{Calculates per-element maximum of two arrays or an array and a scalar.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\"]\n"\
 	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\
 	"normalize: command [{Calculates the per-element scaled product of two arrays.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" alpha [number!] {norm value to normalize to or the lower range boundary in case of the range normalization} beta [number!] {upper range boundary in case of the range normalization; it is not used for the norm normalization} norm_type [integer!] \"normalization type\" /mask m [handle!] \"optional operation mask\"]\n"\
 	"subtract: command [{Calculates the per-element difference between two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /mask m [handle!] \"cvMat\"]\n"\
