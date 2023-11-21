@@ -888,6 +888,25 @@ COMMAND cmd_erode(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+COMMAND cmd_filter2D(RXIFRM *frm, void *ctx) {
+	Mat *src          = ARG_Mat(1);
+	Mat *dst          = ARG_Mat_As(2, src);
+	int ddepth        = ARG_Int(3);
+	Mat *kernel       = ARG_Mat(4);
+	Point anchor      = ARG_Point(5);
+	double delta      = ARG_Double(6);
+	int borderType    = ARG_BorderType(8);
+
+	if(!src || !dst || !kernel) return RXR_FALSE;
+
+	EXCEPTION_TRY
+	filter2D(*src, *dst, ddepth, *kernel, anchor, delta, borderType);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
+	return RXR_VALUE;
+}
+
 COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
@@ -904,6 +923,23 @@ COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 
 	RXA_ARG(frm, 1) = RXA_ARG(frm, 2);
 	return RXR_VALUE;
+}
+
+COMMAND cmd_getGaborKernel(RXIFRM *frm, void *ctx) {
+	Size 	ksize  = ARG_Size(1);
+	double 	sigma  = ARG_Double(2);
+	double 	theta  = ARG_Double(3);
+	double 	lambd  = ARG_Double(4);
+	double 	gamma  = ARG_Double(5);
+	double 	psi    = ARG_Double(6);
+	int 	ktype  = ARG_Int(7);
+	Mat    *kernel = new Mat();
+
+	EXCEPTION_TRY
+	*kernel = getGaborKernel(ksize, sigma, theta, lambd, gamma, psi, ktype);
+	EXCEPTION_CATCH
+
+	return initRXHandle(frm, 1, kernel, Handle_cvMat, NULL);
 }
 
 COMMAND cmd_getStructuringElement(RXIFRM *frm, void *ctx) {

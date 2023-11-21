@@ -29,7 +29,9 @@ enum ext_commands {
 	CMD_OPENCV_BLUR,
 	CMD_OPENCV_DILATE,
 	CMD_OPENCV_ERODE,
+	CMD_OPENCV_FILTER2D,
 	CMD_OPENCV_GAUSSIANBLUR,
+	CMD_OPENCV_GETGABORKERNEL,
 	CMD_OPENCV_GETSTRUCTURINGELEMENT,
 	CMD_OPENCV_LAPLACIAN,
 	CMD_OPENCV_MEDIANBLUR,
@@ -145,7 +147,9 @@ int cmd_bilateralFilter(RXIFRM *frm, void *ctx);
 int cmd_blur(RXIFRM *frm, void *ctx);
 int cmd_dilate(RXIFRM *frm, void *ctx);
 int cmd_erode(RXIFRM *frm, void *ctx);
+int cmd_filter2D(RXIFRM *frm, void *ctx);
 int cmd_GaussianBlur(RXIFRM *frm, void *ctx);
+int cmd_getGaborKernel(RXIFRM *frm, void *ctx);
 int cmd_getStructuringElement(RXIFRM *frm, void *ctx);
 int cmd_Laplacian(RXIFRM *frm, void *ctx);
 int cmd_medianBlur(RXIFRM *frm, void *ctx);
@@ -219,7 +223,9 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"blur: command [\"Blurs an image using the normalized box filter.\" src [handle!] \"cvMat handle\" dst [handle! none!] size [pair! integer!] \"blurring kernel size\" /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"dilate: command [{Dilates an image by using a specific structuring element.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" kernel [handle!] anchor [pair! integer!] \"position of the anchor within the element\" iterations [integer!] \"number of times dilation is applied\"]\n"\
 	"erode: command [{Erodes an image by using a specific structuring element.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" kernel [handle!] anchor [pair! integer!] \"position of the anchor within the element\" iterations [integer!] \"number of times dilation is applied\"]\n"\
+	"filter2D: command [\"Convolves an image with the kernel.\" src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" ddepth [integer!] \"desired depth of the destination image\" kernel [handle!] {convolution kernel (or rather a correlation kernel), a single-channel floating point matrix} anchor [pair! integer!] \"position of the anchor within the element\" delta [number!] {value added to the filtered pixels before storing them in dst} /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
 	"GaussianBlur: command [\"Blurs an image using a Gaussian filter.\" src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" size [pair! integer!] \"blurring kernel size\" sigmaX [number!] sigmaY [number!] /border {border mode used to extrapolate pixels outside of the image} type [integer!] \"one of: [0 1 2 4 5 16]\"]\n"\
+	"getGaborKernel: command [\"Returns Gabor filter coefficients.\" ksize [pair!] \"Size of the filter returned\" sigma [number!] \"Standard deviation of the gaussian envelope\" theta [number!] {Orientation of the normal to the parallel stripes of a Gabor function.} lambd [number!] \"Wavelength of the sinusoidal factor\" gamma [number!] \"Spatial aspect ratio\" psi [number!] \"Phase offset\" ktype [integer!] {Type of filter coefficients. It can be CV_32F or CV_64F}]\n"\
 	"getStructuringElement: command [{Returns a structuring element of the specified size and shape for morphological operations.} shape [integer!] {Element shape that could be one of MorphShapes (rect = 0, cross = 1, ellipse = 2)} ksize [pair! integer!] \"Size of the structuring element\" anchor [pair! integer!] \"Anchor position within the element\"]\n"\
 	"Laplacian: command [\"Calculates the Laplacian of an image.\" src [handle!] \"Source image\" dst [handle! none!] {Destination image of the same size and the same number of channels as src} ddepth [number!] \"Desired depth of the destination image\" ksize [number!] {Aperture size used to compute the second-derivative filters. The size must be positive and odd.} scale [number!] \"Scale factor for the computed Laplacian values.\" delta [number!] {Optional delta value that is added to the results prior to storing them in dst.}]\n"\
 	"medianBlur: command [\"Blurs an image using the median filter.\" src [handle!] {input 1-, 3-, or 4-channel image; when ksize is 3 or 5, the image depth should be CV_8U, CV_16U, or CV_32F, for larger aperture sizes, it can only be CV_8U} dst [handle! none!] \"destination array of the same size and type as src\" size [number!] {aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7...}]\n"\

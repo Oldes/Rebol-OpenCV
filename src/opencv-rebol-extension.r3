@@ -193,7 +193,17 @@ commands: [
 		anchor [pair! integer!]	"position of the anchor within the element"
 		iterations [integer!]   "number of times dilation is applied"
 	]
-	;filter2D
+	filter2D: [
+		"Convolves an image with the kernel."
+		src    [handle!] "cvMat"
+		dst    [handle! none!] "cvMat"
+		ddepth [integer!] "desired depth of the destination image"
+		kernel [handle!] "convolution kernel (or rather a correlation kernel), a single-channel floating point matrix"
+		anchor [pair! integer!]	"position of the anchor within the element"
+		delta  [number!] "value added to the filtered pixels before storing them in dst"
+		/border "border mode used to extrapolate pixels outside of the image"
+		type [integer!] "one of: [0 1 2 4 5 16]"
+	]
 	GaussianBlur: [
 		"Blurs an image using a Gaussian filter."
 		src    [handle!] "cvMat"
@@ -205,7 +215,16 @@ commands: [
 		type [integer!] "one of: [0 1 2 4 5 16]"
 	]
 	;getDerivKernels
-	;getGaborKernel
+	getGaborKernel: [
+		"Returns Gabor filter coefficients."
+		ksize [pair!]    "Size of the filter returned"
+		sigma [number!]  "Standard deviation of the gaussian envelope"
+		theta [number!]  "Orientation of the normal to the parallel stripes of a Gabor function."
+		lambd [number!]  "Wavelength of the sinusoidal factor"
+		gamma [number!]  "Spatial aspect ratio"
+		psi   [number!]  "Phase offset"
+		ktype [integer!] "Type of filter coefficients. It can be CV_32F or CV_64F"
+	]
 	;getGaussianKernel
 	getStructuringElement: [
 		"Returns a structuring element of the specified size and shape for morphological operations."
@@ -563,7 +582,7 @@ commands: [
 ]
 
 
-header: {REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: []]}
+header: {REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: [] Require: 3.14.1]}
 enum-commands:  "enum ext_commands {"
 enum-cmd-words: "enum ext_cmd_words {W_OPENCV_CMD_0,"
 enum-arg-words: "enum ext_arg_words {W_OPENCV_ARG_0,"
@@ -1076,8 +1095,8 @@ append out reword {//
 #include "common.h"
 
 #define MIN_REBOL_VER 3
-#define MIN_REBOL_REV 10
-#define MIN_REBOL_UPD 2
+#define MIN_REBOL_REV 14
+#define MIN_REBOL_UPD 1
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
 
