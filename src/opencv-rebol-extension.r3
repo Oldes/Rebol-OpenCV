@@ -587,7 +587,7 @@ commands: [
 ]
 
 
-header: {REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: [] Require: 3.14.1]}
+header: {REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: [] Require: 3.14.0]}
 enum-commands:  "enum ext_commands {"
 enum-cmd-words: "enum ext_cmd_words {W_OPENCV_CMD_0,"
 enum-arg-words: "enum ext_arg_words {W_OPENCV_ARG_0,"
@@ -1101,7 +1101,7 @@ append out reword {//
 
 #define MIN_REBOL_VER 3
 #define MIN_REBOL_REV 14
-#define MIN_REBOL_UPD 1
+#define MIN_REBOL_UPD 0
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
 
