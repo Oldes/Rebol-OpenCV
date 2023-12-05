@@ -412,7 +412,7 @@ commands: [
 	;magnitude 
 	;Mahalanobis
 	max: [
-		"Calculates per-element maximum of two arrays or an array and a scalar."
+		"Calculates per-element maximum of two arrays."
 		src1 [handle!] "cvMat"
 		src2 [handle!] "cvMat"
 		dst  [handle! none!] "cvMat"
@@ -420,7 +420,12 @@ commands: [
 	;mean
 	;meanStdDev 
 	;merge 
-	;min 
+	min: [
+		"Calculates per-element minimum of two arrays."
+		src1 [handle!] "cvMat"
+		src2 [handle!] "cvMat"
+		dst  [handle! none!] "cvMat"
+	]
 	;minMaxIdx
 	minMaxLoc: [
 		"Finds the global minimum and maximum in an array."

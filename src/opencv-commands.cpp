@@ -541,7 +541,8 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 				if (ser) {
 					RXA_SERIES(frm, 1) = ser;
 					RXA_INDEX(frm, 1) = 0;
-					trace("shared vect");
+					//TODO: propper casting from binary series to vector of type used by the Matrix
+					//     (which needs modification on Rebol side)
 				} else {
 					REBINT type; // int = 0, decimal = 1
 					REBINT sign; // 0 = signed, 1 = unsigned
@@ -1258,6 +1259,21 @@ COMMAND cmd_max(RXIFRM *frm, void *ctx) {
 
 	EXCEPTION_TRY
 	max(*src1, *src2, *dst);
+	EXCEPTION_CATCH
+
+	RXA_ARG(frm, 1) = RXA_ARG(frm, 3);
+	return RXR_VALUE;	
+}
+
+COMMAND cmd_min(RXIFRM *frm, void *ctx) {
+	Mat *src1 = ARG_Mat(1);
+	Mat *src2 = ARG_Mat(2);
+	Mat *dst  = ARG_Mat_As(3, src1);
+
+	if (!src1 || !src2) return RXR_NONE;
+
+	EXCEPTION_TRY
+	min(*src1, *src2, *dst);
 	EXCEPTION_CATCH
 
 	RXA_ARG(frm, 1) = RXA_ARG(frm, 3);
