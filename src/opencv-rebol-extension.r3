@@ -422,7 +422,10 @@ commands: [
 	;merge 
 	;min 
 	;minMaxIdx
-	;minMaxLoc
+	minMaxLoc: [
+		"Finds the global minimum and maximum in an array."
+		src [handle!] "input single-channel array (cvMat)"
+	]
 	;mixChannels 
 	;mulSpectrums
 	multiply: [

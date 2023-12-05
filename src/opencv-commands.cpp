@@ -1264,6 +1264,39 @@ COMMAND cmd_max(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
+COMMAND cmd_minMaxLoc(RXIFRM *frm, void *ctx) {
+	Mat *src = ARG_Mat(1);
+	double minVal; 
+	double maxVal; 
+	Point minLoc; 
+	Point maxLoc;
+
+	if (!src) return RXR_NONE;
+
+	EXCEPTION_TRY
+	minMaxLoc(*src, &minVal, &maxVal, &minLoc, &maxLoc);
+	EXCEPTION_CATCH
+
+	REBSER *blk = (REBSER*)RL_MAKE_BLOCK(4);
+	RXIARG val;
+
+	val.dec64 = minVal;
+	RL_SET_VALUE(blk, 0, val, RXT_DECIMAL);
+	val.dec64 = maxVal;
+	RL_SET_VALUE(blk, 1, val, RXT_DECIMAL);
+	val.pair.x = (float)minLoc.x;
+	val.pair.y = (float)minLoc.y;
+	RL_SET_VALUE(blk, 2, val, RXT_PAIR);
+	val.pair.x = (float)maxLoc.x;
+	val.pair.y = (float)maxLoc.y;
+	RL_SET_VALUE(blk, 3, val, RXT_PAIR);
+
+	RXA_TYPE(frm, 1) = RXT_BLOCK;
+	RXA_SERIES(frm, 1) = blk;
+	RXA_INDEX(frm, 1) = 0;
+	return RXR_VALUE;
+}
+
 COMMAND cmd_normalize(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
