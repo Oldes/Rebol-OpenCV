@@ -9,8 +9,8 @@
 RL_LIB *RL; // Link back to reb-lib from embedded extensions
 
 //==== Globals ===============================//
-u32*   ext_cmd_words;
-u32*   ext_arg_words;
+u32* arg_words;
+u32* type_words;
 REBCNT Handle_cvVideoCapture;
 REBCNT Handle_cvVideoWriter;
 REBCNT Handle_cvMat;
@@ -24,8 +24,8 @@ extern MyCommandPointer Command[];
 static const char* init_block = OPENCV_EXT_INIT_CODE;
 
 int cmd_init_words(RXIFRM *frm, void *ctx) {
-	ext_cmd_words = RL_MAP_WORDS(RXA_SERIES(frm,1));
-	ext_arg_words = RL_MAP_WORDS(RXA_SERIES(frm,2));
+	arg_words = RL_MAP_WORDS(RXA_SERIES(frm,1));
+	type_words = RL_MAP_WORDS(RXA_SERIES(frm,2));
 	return RXR_NONE;
 }
 
@@ -34,6 +34,16 @@ extern void* releaseVideoWriter(void* cls);
 extern void* releaseMat(void* cls);
 extern void* releaseTrackbar(void* cls);
 
+
+int Common_mold(REBHOB *hob, REBSER *ser);
+
+int cvMat_free(void* hndl);
+int cvMat_get_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg);
+int cvMat_set_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg);
+
+int cvVideoCapture_free(void* hndl);
+int cvVideoCapture_get_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg);
+int cvVideoCapture_set_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg);
 
 RXIEXT const char *RX_Init(int opts, RL_LIB *lib) {
 	RL = lib;
@@ -49,10 +59,27 @@ RXIEXT const char *RX_Init(int opts, RL_LIB *lib) {
 		trace("CHECK_STRUCT_ALIGN failed!");
 		return 0;
 	}
-	Handle_cvVideoCapture = RL_REGISTER_HANDLE((REBYTE*)"cvVideoCapture", sizeof(void*), releaseVideoCapture);
+
+	REBHSP spec;
+	spec.mold = Common_mold;
+
+	spec.size      = sizeof(void*);
+	//spec.flags     = HANDLE_REQUIRES_HOB_ON_FREE;
+	spec.flags = 0;
+	spec.free      = cvMat_free;
+	spec.get_path  = cvMat_get_path;
+	//spec.set_path  = cvMat_Set_path;
+	Handle_cvMat  = RL_REGISTER_HANDLE_SPEC((REBYTE*)"cvMat", &spec);
+
+	spec.free      = cvVideoCapture_free;
+	spec.get_path  = cvVideoCapture_get_path;
+	//spec.set_path  = cvVideoCapture_Set_path;
+	Handle_cvVideoCapture  = RL_REGISTER_HANDLE_SPEC((REBYTE*)"cvVideoCapture", &spec);
+
+//	Handle_cvVideoCapture = RL_REGISTER_HANDLE((REBYTE*)"cvVideoCapture", sizeof(void*), releaseVideoCapture);
 	Handle_cvVideoWriter  = RL_REGISTER_HANDLE((REBYTE*)"cvVideoWriter",  sizeof(void*), releaseVideoWriter);
 	//Handle_cvMat          = RL_REGISTER_HANDLE((REBYTE*)"cvMat", sizeof(CTX_MAT), releaseMat);
-	Handle_cvMat          = RL_REGISTER_HANDLE((REBYTE*)"cvMat", sizeof(void*), releaseMat);
+//	Handle_cvMat          = RL_REGISTER_HANDLE((REBYTE*)"cvMat", sizeof(void*), cvMat_free);
 	Handle_cvTrackbar     = RL_REGISTER_HANDLE((REBYTE*)"cvTrackbar", sizeof(CTX_TRACKBAR), releaseTrackbar);
 	return init_block;
 }

@@ -74,6 +74,19 @@ example "Getting matrix properties" {
         probe get-property mat MAT_IMAGE    ;; Rebol image value
     ]
     ```
+    Above is now also possible with direct getters, like:
+    ```rebol
+    with cv [
+        mat: resize mat 10%
+        print ["Image size:"         mat/size     ]
+        print ["CV type:"            mat/type     ]
+        print ["Channels:"           mat/channels ]
+        print ["CV depth:"           mat/depth    ]
+        print ["Rebol binary data:"  mat/binary   ]
+        print ["Rebol vector value:" mat/vector   ]
+        print ["Rebol image value:"  mat/image    ]
+    ]
+    ```
 }
 example "Manually releasing matrices" {
     Normally matrices are automatically released by Rebol's GC, but it is also possible to free them manually
@@ -416,7 +429,7 @@ emit-code: func[str][
 readme {
 # Rebol/OpenCV
 
-Initial implementation of the OpenCV extension for [Rebol3](https://github.com/Oldes/Rebol3).
+Initial implementation of the OpenCV extension for [Rebol3](https://github.com/Oldes/Rebol3) (3.14.0 or newer).
 
 So far it is considered just like a proof of concept and tested only on macOS with [OpenCV installed using homebrew](https://formulae.brew.sh/formula/opencv)!
 
@@ -429,6 +442,8 @@ ln -s /opt/homebrew/Cellar/opencv/4.6.0/lib /usr/local/lib/opencv
 To import the extension from Rebol on macOS, the Rebol must be signed with entitlemens containing `com.apple.security.cs.disable-library-validation` as `true`. 
 
 Feature requests are welcome.
+
+For list of currently supported extension commands and other values, read [Commands.md](Commands.md).
 
 ## Usage
 }

@@ -17,7 +17,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define PAIR_X(frm, n)    (int)RXA_PAIR(frm,n).x
 #define PAIR_Y(frm, n)    (int)RXA_PAIR(frm,n).y
 
-#define FRM_IS_HANDLE(n, t)     (RXA_TYPE(frm,n) == RXT_HANDLE && RXA_HANDLE_TYPE(frm, n) == t)
+#define FRM_IS_HANDLE(n, t)     (RXA_TYPE(frm,n) == RXT_HANDLE && RXA_HANDLE_TYPE(frm, n) == t && IS_USED_HOB(RXA_HANDLE_CONTEXT(frm, n)))
 #define ARG_Is_Mat(n)           FRM_IS_HANDLE(n, Handle_cvMat)
 #define ARG_Is_VideoCapture(n)  FRM_IS_HANDLE(n, Handle_cvVideoCapture)
 #define ARG_Is_VideoWriter(n)   FRM_IS_HANDLE(n, Handle_cvVideoWriter)
@@ -32,7 +32,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_Trackbar(n)         (ARG_Is_Trackbar(n) ? (CTX_TRACKBAR*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
-#define ARG_MatType(n)          (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : RL_FIND_WORD(ext_arg_words, RXA_INT32(frm,n))-W_OPENCV_ARG_CV_8UC1)
+#define ARG_MatType(n)          (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : RL_FIND_WORD(type_words, RXA_INT32(frm,n))-W_TYPE_CV_8UC1)
 #define ARG_Double(n)           (RXA_TYPE(frm,n) == RXT_DECIMAL ? RXA_DEC64(frm,n) : (double)RXA_INT64(frm,n))
 #define ARG_Int(n)              (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : (int)RXA_DEC64(frm,n))
 #define ARG_Size(n)             (RXA_TYPE(frm,n) == RXT_PAIR ? Size(PAIR_X(frm,n), PAIR_Y(frm,n)) : Size(RXA_INT32(frm,n), RXA_INT32(frm,n)));
@@ -44,6 +44,20 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Mat_As(n,m)         (ARG_Is_Mat(n)\
 								? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle)\
 								: (m ? initRXHandle(frm,n,new Mat(m->size(),m->type()),Handle_cvMat, NULL),(Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL))
+
+
+#define APPEND_STRING(str, ...) \
+	len = snprintf(NULL,0,__VA_ARGS__);\
+	if (len > SERIES_REST(str)-SERIES_LEN(str)) {\
+		RL_EXPAND_SERIES(str, SERIES_TAIL(str), len);\
+		SERIES_TAIL(str) -= len;\
+	}\
+	len = snprintf( \
+		SERIES_TEXT(str)+SERIES_TAIL(str),\
+		SERIES_REST(str)-SERIES_TAIL(str),\
+		__VA_ARGS__\
+	);\
+	SERIES_TAIL(str) += len;
 
 
 enum MatProperties {
@@ -72,7 +86,181 @@ extern "C" {
 	extern REBCNT Handle_cvMat;
 	extern REBCNT Handle_cvTrackbar;
 
-	void* releaseVideoCapture(void* cls) {
+
+	static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type, REBSER* ser) {
+		REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(type);
+		debug_print("new hob: %p handle: %p\n", hob, handle);
+		if (hob == NULL) return RXR_FALSE;
+		hob->handle = handle;
+		hob->series = ser;
+		val->handle.ptr = hob;
+		val->handle.type = type;
+		val->handle.flags = hob->flags;
+		return RXR_VALUE;
+	}
+
+	static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type, REBSER* ser) {
+		RXA_TYPE(frm, index) = RXT_HANDLE;
+		return initRXHandleArg(&RXA_ARG(frm, index), handle, type, ser);
+	}
+
+	static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
+		RXIARG arg = RXA_ARG(frm, index);
+		Mat *mat = new Mat(arg.height, arg.width, CV_8UC4);
+		mat->data = ((REBSER*)arg.series)->data;
+		return mat;
+	}
+
+	static REBSER* new_Reb_Vector(REBCNT size, int depth) {
+		REBINT type; // int = 0, decimal = 1
+		REBINT sign; // 0 = signed, 1 = unsigned
+		REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
+		switch(depth) {
+			case CV_8U:  type = 0; sign = 1; bits = 8;  break;
+			case CV_8S:  type = 0; sign = 0; bits = 8;  break;
+			case CV_16U: type = 0; sign = 1; bits = 16; break;
+			case CV_16S: type = 0; sign = 0; bits = 16; break;
+			case CV_32S: type = 0; sign = 0; bits = 32; break;
+			case CV_32F: type = 1; sign = 0; bits = 32; break;
+			case CV_64F: type = 1; sign = 0; bits = 64; break;
+		}
+		
+		REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
+		SERIES_TAIL(vec) = size;
+		return vec;
+	}
+
+	static void mat2ser(Mat *mat, REBSER *bin, RXIARG *arg) {
+		size_t elemSize = mat->elemSize();
+		size_t bytes = elemSize * mat->cols * mat->rows;
+
+		if (mat->isContinuous()) {
+			memcpy(bin->data, mat->data,  bytes);
+		} else {
+			unsigned char *bp = mat->data;
+			unsigned char *dp = bin->data;
+			size_t wb = elemSize * mat->cols;
+			size_t st = mat->step;
+			for( int j = 0; j < mat->rows; j++ ) {
+				memcpy(dp, bp, wb);
+				bp += st;
+				dp += wb;
+			}
+		}
+		SERIES_TAIL(bin) = bytes;
+		arg->series = bin;
+		arg->index = 0;
+	}
+
+	int Common_mold(REBHOB *hob, REBSER *str) {
+		int len;
+		if (!str) return 0;
+		SERIES_TAIL(str) = 0;
+		APPEND_STRING(str, "0#%lx", (unsigned long)hob->data);
+		return len;
+	}
+
+	void* cvMat_free(void* cls) {
+		debug_print("GC Mat class %p\n", cls);
+		if (cls != NULL) {
+			Mat *mat = (Mat*)cls;
+			mat->release();
+		}
+		return NULL;
+	}
+
+	int cvMat_get_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg) {
+		Size size;
+		Mat tmp;
+		Mat *mat = (Mat*)hob->handle;
+		if (!mat) return RXR_NONE;
+		REBSER* ser = hob->series;
+		REBSER* bin;
+		int channels;
+		
+
+		word = RL_FIND_WORD(arg_words, word);
+
+		switch(word){
+		case W_ARG_SIZE:
+			*type = RXT_PAIR;
+			size = mat->size();
+			arg->dec32a = size.width;
+			arg->dec32b = size.height;
+			break;
+		case W_ARG_WIDTH:
+		case W_ARG_HEIGHT:
+			*type = RXT_INTEGER;
+			size = mat->size();
+			arg->uint64 = (word == W_ARG_WIDTH) ? size.width : size.height;
+			break;
+		case W_ARG_TYPE:
+			*type = RXT_WORD;
+			arg->int64 = type_words[mat->type() + W_TYPE_CV_8UC1];
+			break;
+		case W_ARG_DEPTH:
+			*type = RXT_WORD;
+			arg->int64 = type_words[mat->depth() + W_TYPE_CV_8U];
+			break;
+		case W_ARG_CHANNELS: 
+			*type = RXT_INTEGER;
+			arg->uint64 = mat->channels();
+			break;
+		case W_ARG_BINARY:
+			*type = RXT_BINARY;
+			if (ser) {
+				arg->series = ser;
+				arg->index = 0;
+			} else {
+				bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
+				mat2ser(mat, bin, arg);
+			}
+			break;
+		case W_ARG_IMAGE:
+			*type = RXT_IMAGE;
+			channels = mat->channels();
+			if (channels == 1) {
+				cvtColor(*mat, tmp, COLOR_GRAY2BGRA);
+			}
+			else if (channels == 3 || channels == 4) {
+				cvtColor(*mat, tmp, COLOR_BGR2BGRA);
+			}
+			else {
+				*type = RXT_NONE;
+				break;
+			}
+			bin = (REBSER *)RL_MAKE_IMAGE(tmp.cols, tmp.rows);
+			mat2ser(&tmp, bin, arg);
+			arg->width  = tmp.cols;
+			arg->height = tmp.rows;
+			break;
+		case W_ARG_VECTOR:
+			*type = RXT_VECTOR;
+			if (ser) {
+				arg->series = ser;
+				arg->index = 0;
+				//TODO: propper casting from binary series to vector of type used by the Matrix
+				//     (which needs modification on Rebol side)
+			} else {
+				REBSER *vec = new_Reb_Vector(mat->cols * mat->rows * mat->channels(), mat->depth());
+				mat2ser(mat, vec, arg);
+			}
+			break;
+		case W_ARG_TOTAL: 
+			*type = RXT_INTEGER;
+			arg->uint64 = mat->total();
+			break;
+		case W_ARG_IS_SUBMATRIX: 
+			*type = RXT_LOGIC;
+			arg->int32a = mat->isSubmatrix();
+			break;
+		default:
+			return PE_BAD_SELECT;	
+		}
+		return PE_USE;
+	}
+
+	void* cvVideoCapture_free(void* cls) {
 		debug_print("GC VideoCapture class %p\n", cls);
 		if (cls != NULL) {
 			VideoCapture *cap = (VideoCapture*)cls;
@@ -80,6 +268,42 @@ extern "C" {
 		}
 		return NULL;
 	}
+
+	int cvVideoCapture_get_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg) {
+		VideoCapture *cap= (VideoCapture*)hob->handle;
+		if (!cap) return RXR_NONE;
+
+		word = RL_FIND_WORD(arg_words, word);
+
+		if (word == W_ARG_WIDTH) {
+			*type = RXT_INTEGER;
+			arg->uint64 = cap->get(CAP_PROP_FRAME_WIDTH);
+			return PE_USE;
+		}
+		if (word == W_ARG_HEIGHT) {
+			*type = RXT_INTEGER;
+			arg->uint64 = cap->get(CAP_PROP_FRAME_HEIGHT);
+			return PE_USE;
+		}
+		if (word == W_ARG_FRAMES) {
+			*type = RXT_INTEGER;
+			arg->uint64 = cap->get(CAP_PROP_FRAME_COUNT);
+			return PE_USE;
+		}
+		if (word == W_ARG_FORMAT) {
+			*type = RXT_WORD;
+			arg->int64 = type_words[(int)cap->get(CAP_PROP_FORMAT) + W_TYPE_CV_8UC1];
+			return PE_USE;
+		}
+		if (word >= W_ARG_POS_MS && word <= W_ARG_FRAMES) {
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(word - W_ARG_POS_MS);
+			return PE_USE;
+		}
+		return PE_BAD_SELECT;	
+	}
+
+
 	void* releaseVideoWriter(void* cls) {
 		debug_print("GC VideoWriter class %p\n", cls);
 		if (cls != NULL) {
@@ -88,14 +312,7 @@ extern "C" {
 		}
 		return NULL;
 	}
-	void* releaseMat(void* cls) {
-		debug_print("GC Mat class %p\n", cls);
-		if (cls != NULL) {
-			Mat *mat = (Mat*)cls;
-			mat->release();
-		}
-		return NULL;
-	}
+
 	void* releaseTrackbar(void* cls) {
 		debug_print("GC cvTrackbar %p\n", cls);
 		if (cls != NULL) {
@@ -109,48 +326,7 @@ extern "C" {
 	}
 }
 
-static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type, REBSER* ser) {
-	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(type);
-	debug_print("new hob: %p handle: %p\n", hob, handle);
-	if (hob == NULL) return RXR_FALSE;
-	hob->handle = handle;
-	hob->series = ser;
-	val->handle.ptr = hob;
-	val->handle.type = type;
-	val->handle.flags = hob->flags;
-	return RXR_VALUE;
-}
 
-static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type, REBSER* ser) {
-	RXA_TYPE(frm, index) = RXT_HANDLE;
-	return initRXHandleArg(&RXA_ARG(frm, index), handle, type, ser);
-}
-
-static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
-	RXIARG arg = RXA_ARG(frm, index);
-	Mat *mat = new Mat(arg.height, arg.width, CV_8UC4);
-	mat->data = ((REBSER*)arg.series)->data;
-	return mat;
-}
-
-static REBSER* new_Reb_Vector(REBCNT size, int depth) {
-	REBINT type; // int = 0, decimal = 1
-	REBINT sign; // 0 = signed, 1 = unsigned
-	REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
-	switch(depth) {
-		case CV_8U:  type = 0; sign = 1; bits = 8;  break;
-		case CV_8S:  type = 0; sign = 0; bits = 8;  break;
-		case CV_16U: type = 0; sign = 1; bits = 16; break;
-		case CV_16S: type = 0; sign = 0; bits = 16; break;
-		case CV_32S: type = 0; sign = 0; bits = 32; break;
-		case CV_32F: type = 1; sign = 0; bits = 32; break;
-		case CV_64F: type = 1; sign = 0; bits = 64; break;
-	}
-	
-	REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
-	SERIES_TAIL(vec) = size;
-	return vec;
-}
 
 COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 	Mat src;
@@ -261,9 +437,9 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				size = Size((int)val.pair.x, (int)val.pair.y);
 			}
 			else if (t == RXT_WORD) {
-				type = RL_FIND_WORD(ext_arg_words, val.int32a);
-				if (type < W_OPENCV_ARG_CV_8UC1 || type > W_OPENCV_ARG_CV_16FC4) return RXR_FALSE;
-				type -= W_OPENCV_ARG_CV_8UC1;
+				type = RL_FIND_WORD(type_words, val.int32a);
+				if (type < W_TYPE_CV_8UC1 || type > W_TYPE_CV_16FC4) return RXR_FALSE;
+				type -= W_TYPE_CV_8UC1;
 			}
 			else if (t == RXT_TUPLE) {
 				if (RXT_END != RL_GET_VALUE(blk, ++n, &val)) goto err_spec;
@@ -455,6 +631,7 @@ COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 		// calling Rebol's release function, which will call appropriate
 		// GC callback to release OpenCV resources.
 		RL_FREE_HANDLE_CONTEXT((REBHOB*)RXA_HANDLE_CONTEXT(frm, 1));
+		//UNMARK_HOB((REBHOB*)RXA_HANDLE_CONTEXT(frm, 1));
 	}
 	else {
 		return RXR_NONE;
@@ -465,28 +642,6 @@ COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 //;-----------------------------------------------------------------------
 //;- Accessors                                                            
 //;-----------------------------------------------------------------------
-
-static void mat2ser(Mat *mat, REBSER *bin, RXIARG *arg) {
-	size_t elemSize = mat->elemSize();
-	size_t bytes = elemSize * mat->cols * mat->rows;
-
-	if (mat->isContinuous()) {
-		memcpy(bin->data, mat->data,  bytes);
-	} else {
-		unsigned char *bp = mat->data;
-		unsigned char *dp = bin->data;
-		size_t wb = elemSize * mat->cols;
-		size_t st = mat->step;
-		for( int j = 0; j < mat->rows; j++ ) {
-			memcpy(dp, bp, wb);
-			bp += st;
-			dp += wb;
-		}
-	}
-	SERIES_TAIL(bin) = bytes;
-	arg->series = bin;
-	arg->index = 0;
-}
 
 COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 	int propid = RXA_INT32(frm, 2);
@@ -516,7 +671,7 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 			}
 			case MAT_TYPE: {
 				RXA_TYPE(frm,1) = RXT_WORD;
-				RXA_ARG(frm,1).int64 = ext_arg_words[mat->type() + W_OPENCV_ARG_CV_8UC1];
+				RXA_ARG(frm,1).int64 = type_words[mat->type() + W_TYPE_CV_8UC1];
 				return RXR_VALUE;
 			}
 			case MAT_DEPTH: {
@@ -1424,6 +1579,8 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	Mat *image  = ARG_Mat(1);
 	// check if name was provided or use default
 	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : ARG_String(3);
+
+	printf("imshow... %p 0#%lx\n", image, image);
 
 	if (image) {
 		Size size = image->size();

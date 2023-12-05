@@ -4,11 +4,17 @@
 
 #include "common.h"
 
+#define SERIES_TEXT(s)   ((char*)SERIES_DATA(s))
+
 #define MIN_REBOL_VER 3
 #define MIN_REBOL_REV 14
 #define MIN_REBOL_UPD 0
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
+
+
+extern u32* arg_words;
+extern u32* type_words;
 
 enum ext_commands {
 	CMD_OPENCV_INIT_WORDS,
@@ -86,50 +92,6 @@ enum ext_commands {
 	CMD_OPENCV_GETBUILDINFORMATION,
 	CMD_OPENCV_USEOPTIMIZED,
 	CMD_OPENCV_SETUSEOPTIMIZED,
-};
-enum ext_cmd_words {W_OPENCV_CMD_0,
-};
-enum ext_arg_words {W_OPENCV_ARG_0,
-	W_OPENCV_ARG_CV_8U,
-	W_OPENCV_ARG_CV_8S,
-	W_OPENCV_ARG_CV_16U,
-	W_OPENCV_ARG_CV_16S,
-	W_OPENCV_ARG_CV_32S,
-	W_OPENCV_ARG_CV_32F,
-	W_OPENCV_ARG_CV_64F,
-	W_OPENCV_ARG_CV_16F,
-	W_OPENCV_ARG_CV_8UC1,
-	W_OPENCV_ARG_CV_8SC1,
-	W_OPENCV_ARG_CV_16UC1,
-	W_OPENCV_ARG_CV_16SC1,
-	W_OPENCV_ARG_CV_32SC1,
-	W_OPENCV_ARG_CV_32FC1,
-	W_OPENCV_ARG_CV_64FC1,
-	W_OPENCV_ARG_CV_16FC1,
-	W_OPENCV_ARG_CV_8UC2,
-	W_OPENCV_ARG_CV_8SC2,
-	W_OPENCV_ARG_CV_16UC2,
-	W_OPENCV_ARG_CV_16SC2,
-	W_OPENCV_ARG_CV_32SC2,
-	W_OPENCV_ARG_CV_32FC2,
-	W_OPENCV_ARG_CV_64FC2,
-	W_OPENCV_ARG_CV_16FC2,
-	W_OPENCV_ARG_CV_8UC3,
-	W_OPENCV_ARG_CV_8SC3,
-	W_OPENCV_ARG_CV_16UC3,
-	W_OPENCV_ARG_CV_16SC3,
-	W_OPENCV_ARG_CV_32SC3,
-	W_OPENCV_ARG_CV_32FC3,
-	W_OPENCV_ARG_CV_64FC3,
-	W_OPENCV_ARG_CV_16FC3,
-	W_OPENCV_ARG_CV_8UC4,
-	W_OPENCV_ARG_CV_8SC4,
-	W_OPENCV_ARG_CV_16UC4,
-	W_OPENCV_ARG_CV_16SC4,
-	W_OPENCV_ARG_CV_32SC4,
-	W_OPENCV_ARG_CV_32FC4,
-	W_OPENCV_ARG_CV_64FC4,
-	W_OPENCV_ARG_CV_16FC4,
 };
 
 
@@ -209,11 +171,74 @@ int cmd_getBuildInformation(RXIFRM *frm, void *ctx);
 int cmd_useOptimized(RXIFRM *frm, void *ctx);
 int cmd_setUseOptimized(RXIFRM *frm, void *ctx);
 
+enum cv_arg_words {W_ARG_0,
+	W_ARG_SIZE,
+	W_ARG_TYPE,
+	W_ARG_DEPTH,
+	W_ARG_CHANNELS,
+	W_ARG_BINARY,
+	W_ARG_IMAGE,
+	W_ARG_VECTOR,
+	W_ARG_TOTAL,
+	W_ARG_IS_SUBMATRIX,
+	W_ARG_WIDTH,
+	W_ARG_HEIGHT,
+	W_ARG_POS_MS,
+	W_ARG_POS_FRAME,
+	W_ARG_POS_RATIO,
+	W_ARG_FPS,
+	W_ARG_FOURCC,
+	W_ARG_FRAMES,
+	W_ARG_FORMAT
+};
+enum cv_type_words {W_TYPE_0,
+	W_TYPE_CV_8U,
+	W_TYPE_CV_8S,
+	W_TYPE_CV_16U,
+	W_TYPE_CV_16S,
+	W_TYPE_CV_32S,
+	W_TYPE_CV_32F,
+	W_TYPE_CV_64F,
+	W_TYPE_CV_16F,
+	W_TYPE_CV_8UC1,
+	W_TYPE_CV_8SC1,
+	W_TYPE_CV_16UC1,
+	W_TYPE_CV_16SC1,
+	W_TYPE_CV_32SC1,
+	W_TYPE_CV_32FC1,
+	W_TYPE_CV_64FC1,
+	W_TYPE_CV_16FC1,
+	W_TYPE_CV_8UC2,
+	W_TYPE_CV_8SC2,
+	W_TYPE_CV_16UC2,
+	W_TYPE_CV_16SC2,
+	W_TYPE_CV_32SC2,
+	W_TYPE_CV_32FC2,
+	W_TYPE_CV_64FC2,
+	W_TYPE_CV_16FC2,
+	W_TYPE_CV_8UC3,
+	W_TYPE_CV_8SC3,
+	W_TYPE_CV_16UC3,
+	W_TYPE_CV_16SC3,
+	W_TYPE_CV_32SC3,
+	W_TYPE_CV_32FC3,
+	W_TYPE_CV_64FC3,
+	W_TYPE_CV_16FC3,
+	W_TYPE_CV_8UC4,
+	W_TYPE_CV_8SC4,
+	W_TYPE_CV_16UC4,
+	W_TYPE_CV_16SC4,
+	W_TYPE_CV_32SC4,
+	W_TYPE_CV_32FC4,
+	W_TYPE_CV_64FC4,
+	W_TYPE_CV_16FC4
+};
+
 typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 
 #define OPENCV_EXT_INIT_CODE \
 	"REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: [] Require: 3.14.0]\n"\
-	"init-words: command [cmd-words [block!] arg-words [block!]]\n"\
+	"init-words: command [args [block!] type [block!]]\n"\
 	"test: command [\"Simple OpenCV test\"]\n"\
 	"Matrix: command [\"Initialize new cvMat class\" spec [pair! handle! image! block!]]\n"\
 	"VideoCapture: command [\"Initialize new VideoCapture class\" src [integer! file! string!]]\n"\
@@ -288,8 +313,9 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"getBuildInformation: command [\"Returns full configuration time cmake output.\"]\n"\
 	"useOptimized: command [\"Returns the status of optimized code usage.\"]\n"\
 	"setUseOptimized: command [\"Enables or disables the optimized code.\" onoff [logic!]]\n"\
-	"init-words words: [] [CV_8U CV_8S CV_16U CV_16S CV_32S CV_32F CV_64F CV_16F CV_8UC1 CV_8SC1 CV_16UC1 CV_16SC1 CV_32SC1 CV_32FC1 CV_64FC1 CV_16FC1 CV_8UC2 CV_8SC2 CV_16UC2 CV_16SC2 CV_32SC2 CV_32FC2 CV_64FC2 CV_16FC2 CV_8UC3 CV_8SC3 CV_16UC3 CV_16SC3 CV_32SC3 CV_32FC3 CV_64FC3 CV_16FC3 CV_8UC4 CV_8SC4 CV_16UC4 CV_16SC4 CV_32SC4 CV_32FC4 CV_64FC4 CV_16FC4]\n"\
+	"init-words [size type depth channels binary image vector total is-submatrix width height pos-ms pos-frame pos-ratio fps fourcc frames format][CV_8U CV_8S CV_16U CV_16S CV_32S CV_32F CV_64F CV_16F CV_8UC1 CV_8SC1 CV_16UC1 CV_16SC1 CV_32SC1 CV_32FC1 CV_64FC1 CV_16FC1 CV_8UC2 CV_8SC2 CV_16UC2 CV_16SC2 CV_32SC2 CV_32FC2 CV_64FC2 CV_16FC2 CV_8UC3 CV_8SC3 CV_16UC3 CV_16SC3 CV_32SC3 CV_32FC3 CV_64FC3 CV_16FC3 CV_8UC4 CV_8SC4 CV_16UC4 CV_16SC4 CV_32SC4 CV_32FC4 CV_64FC4 CV_16FC4]\n"\
 	"protect/hide 'init-words\n"\
+	"\n"\
 	"; imread flags..\n"\
 	"IMREAD_UNCHANGED: -1\n"\
 	"IMREAD_GRAYSCALE: 0\n"\
@@ -752,4 +778,14 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"COLORMAP_TWILIGHT_SHIFTED: 19\n"\
 	"COLORMAP_TURBO: 20\n"\
 	"COLORMAP_DEEPGREEN: 21\n"\
-	"\n"\
+	"\n"
+
+#ifdef  USE_TRACES
+#include <stdio.h>
+#define debug_print(fmt, ...) do { printf(fmt, __VA_ARGS__); } while (0)
+#define trace(str) puts(str)
+#else
+#define debug_print(fmt, ...)
+#define trace(str) 
+#endif
+

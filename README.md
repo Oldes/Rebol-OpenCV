@@ -15,6 +15,8 @@ To import the extension from Rebol on macOS, the Rebol must be signed with entit
 
 Feature requests are welcome.
 
+For list of currently supported extension commands and other values, read [Commands.md](Commands.md).
+
 ## Usage
 
 All folowing examples expect, that OpenCV extension was imported using one of these methods:
@@ -87,6 +89,19 @@ with cv [
     probe get-property mat MAT_BINARY   ;; raw binary data
     probe get-property mat MAT_VECTOR   ;; Rebol vector value
     probe get-property mat MAT_IMAGE    ;; Rebol image value
+]
+```
+Above is now also possible with direct getters, like:
+```rebol
+with cv [
+    mat: resize mat 10%
+    print ["Image size:"         mat/size     ]
+    print ["CV type:"            mat/type     ]
+    print ["Channels:"           mat/channels ]
+    print ["CV depth:"           mat/depth    ]
+    print ["Rebol binary data:"  mat/binary   ]
+    print ["Rebol vector value:" mat/vector   ]
+    print ["Rebol image value:"  mat/image    ]
 ]
 ```
 

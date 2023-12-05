@@ -3,8 +3,7 @@ REBOL [
 	type: module
 ]
 
-cmd-words: []
-arg-words: [
+type-words: [
 	;@@ order of these is important!
 	;- depths
 	CV_8U
@@ -52,7 +51,7 @@ arg-words: [
 
 commands: [
 	; init-words is internal extension initialization (for mapping Rebol words to local equivalents)
-	init-words: [cmd-words [block!] arg-words [block!]]
+	init-words: [args [block!] type [block!]] ;; used internaly only!
 	test: [{Simple OpenCV test}]
 
 	;-----------------------------------------------------------------------------------------------
@@ -597,46 +596,7 @@ commands: [
 	setUseOptimized: ["Enables or disables the optimized code." onoff [logic!]]
 ]
 
-
-header: {REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: [] Require: 3.14.0]}
-enum-commands:  "enum ext_commands {"
-enum-cmd-words: "enum ext_cmd_words {W_OPENCV_CMD_0,"
-enum-arg-words: "enum ext_arg_words {W_OPENCV_ARG_0,"
-cmd-declares: ""
-cmd-dispatch: ""
-uname: none
-
-foreach word cmd-words [
-	word: uppercase form word
-	replace/all word #"-" #"_"
-	append enum-cmd-words ajoin ["^/^-W_OPENCV_CMD_" word #","]
-]
-foreach word arg-words [
-	word: uppercase form word
-	replace/all word #"-" #"_"
-	append enum-arg-words ajoin ["^/^-W_OPENCV_ARG_" word #","]
-]
-
-foreach [name spec] commands [
-	append header ajoin [lf name ": command "]
-	new-line/all spec false
-	append/only header mold spec
-
-	name: form name
-	replace/all name #"-" #"_"
-	uname: uppercase copy name
-	
-	append enum-commands ajoin ["^/^-CMD_OPENCV_" uname #","]
-
-	append cmd-declares ajoin ["^/int cmd_" name "(RXIFRM *frm, void *ctx);"]
-	append cmd-dispatch ajoin ["^-cmd_" name ",^/"]
-]
-
-new-line/all cmd-words false
-new-line/all arg-words false
-append header rejoin [{^/init-words words: } mold cmd-words #" " mold arg-words]
-append header {^/protect/hide 'init-words}
-append header {
+ext-values: {
 ; imread flags..
 IMREAD_UNCHANGED: -1
 IMREAD_GRAYSCALE: 0
@@ -1101,14 +1061,130 @@ COLORMAP_TURBO: 20
 COLORMAP_DEEPGREEN: 21
 }
 
-;print header
+handles: make map! [
+	cvMat: [
+		"OpenCV Matrix"
+		size           pair!     none  "2D size of a matrix element"
+		type           word!     none  "Type of a matrix element"
+		depth          word!     none  "Depth of a matrix element"
+		channels       integer!  none  "Number of channels"
+		binary         binary!   none  "Binary"
+		image          image!    none  "Image"
+		vector         vector!   none  "Vector"
+		total          integer!  none  "Number of array elements (a number of pixels if the array represents an image)"
+		is-submatrix   logic!    none  "Returns true if the matrix is a submatrix of another matrix"
+		width          integer!  none  "Width of the Matrix"
+		height         integer!  none  "Height of the Matrix"
+	]
+	cvVideoCapture: [
+		"Class for video capturing from video files, image sequences or cameras"
+		pos-ms         decimal!  none  "Current position of the video file in milliseconds"
+		pos-frame      decimal!  none  "0-based index of the frame to be decoded/captured next"
+		pos-ratio      decimal!  none  "Relative position of the video file: 0=start of the film, 1=end of the film"
+		width          integer!  none  "Width of the frames in the video stream"
+		height         integer!  none  "Height of the frames in the video stream"
+		fps            decimal!  none  "Frame rate"
+		fourcc         decimal!  none  "4-character code of codec"
+		frames         integer!  none  "Number of frames in the video file"
+		format         word!     none  "Format of the Mat objects"
+		;TODO: add the rest...
+	]
+]
 
-out: make string! 2000
-append out reword {//
+arg-words:   copy []
+handles-doc: copy {}
+
+foreach [name spec] handles [
+	append handles-doc ajoin [
+		LF LF "#### __" uppercase form name "__ - " spec/1 LF
+		LF "```rebol"
+		LF ";Refinement       Gets                Sets                          Description"
+	]
+	foreach [name gets sets desc] next spec [
+		append handles-doc rejoin [
+			LF
+			#"/" pad name 17
+			pad mold gets 20
+			pad mold sets 30
+			#"^"" desc #"^""
+		]
+		append arg-words name
+	]
+	append handles-doc "^/```"
+]
+;print handles-doc
+arg-words: unique arg-words
+probe arg-words
+
+
+;-------------------------------------- ----------------------------------------
+reb-code: {REBOL [Title: {Rebol OpenCV Extension} Type: module Exports: [] Require: 3.14.0]}
+enu-commands:  "" ;; command name enumerations
+cmd-declares:  "" ;; command function declarations
+cmd-dispatch:  "" ;; command functionm dispatcher
+
+cv-arg-words: "enum cv_arg_words {W_ARG_0"
+cv-type-words: "enum cv_type_words {W_TYPE_0"
+
+;- generate C and Rebol code from the command specifications -------------------
+foreach [name spec] commands [
+	append reb-code ajoin [lf name ": command "]
+	new-line/all spec false
+	append/only reb-code mold spec
+
+	name: form name
+	replace/all name #"-" #"_"
+	replace/all name #"?" #"q"
+	
+	append enu-commands ajoin ["^/^-CMD_OPENCV_" uppercase copy name #","]
+
+	append cmd-declares ajoin ["^/int cmd_" name "(RXIFRM *frm, void *ctx);"]
+	append cmd-dispatch ajoin ["^-cmd_" name ",^/"]
+]
+
+;- additional Rebol initialization code ----------------------------------------
+
+foreach word arg-words [
+	word: uppercase form word
+	replace/all word #"-" #"_"
+	replace/all word #"?" #"Q"
+	append cv-arg-words ajoin [",^/^-W_ARG_" word]
+]
+
+foreach word type-words [
+	word: uppercase form word
+	replace/all word #"-" #"_"
+	append cv-type-words ajoin [",^/^-W_TYPE_" word]
+]
+
+append cv-arg-words "^/};"
+append cv-type-words "^/};"
+append reb-code ajoin [{
+init-words } mold/flat arg-words mold/flat type-words {
+protect/hide 'init-words
+} ext-values
+]
+
+;append reb-code {}
+
+;print reb-code
+
+;- convert Rebol code to C-string ----------------------------------------------
+init-code: copy ""
+foreach line split reb-code lf [
+	replace/all line #"^"" {\"}
+	append init-code ajoin [{\^/^-"} line {\n"}] 
+]
+
+
+;-- C file templates -----------------------------------------------------------
+header: {//
 // auto-generated file, do not modify!
 //
 
 #include "common.h"
+
+#define SERIES_TEXT(s)   ((char*)SERIES_DATA(s))
 
 #define MIN_REBOL_VER 3
 #define MIN_REBOL_REV 14
@@ -1116,37 +1192,102 @@ append out reword {//
 #define VERSION(a, b, c) (a << 16) + (b << 8) + c
 #define MIN_REBOL_VERSION VERSION(MIN_REBOL_VER, MIN_REBOL_REV, MIN_REBOL_UPD)
 
-$enum-commands
-^};
-$enum-cmd-words
-^};
-$enum-arg-words
-^};
+
+extern u32* arg_words;
+extern u32* type_words;
+
+enum ext_commands {$enu-commands
+};
 
 $cmd-declares
 
+$cv-arg-words
+$cv-type-words
+
 typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 
-#define OPENCV_EXT_INIT_CODE \} self
+#define OPENCV_EXT_INIT_CODE $init-code
 
+#ifdef  USE_TRACES
+#include <stdio.h>
+#define debug_print(fmt, ...) do { printf(fmt, __VA_ARGS__); } while (0)
+#define trace(str) puts(str)
+#else
+#define debug_print(fmt, ...)
+#define trace(str) 
+#endif
 
-foreach line split header lf [
-	replace/all line #"^"" {\"}
-	append out ajoin [{^/^-"} line {\n"\}] 
-]
-append out "^/"
-
-
-;print out
-
-write %opencv-rebol-extension.h out
-
-write %opencv-commands-table.c reword {//
+}
+;;------------------------------------------------------------------------------
+ctable: {//
 // auto-generated file, do not modify!
 //
 #include "opencv-rebol-extension.h"
 MyCommandPointer Command[] = {
 $cmd-dispatch};
-} self
+}
 
+;- output generated files ------------------------------------------------------
+write %opencv-rebol-extension.h reword :header self
+write %opencv-commands-table.c  reword :ctable self
+
+
+
+
+;; README documentation...
+doc: clear ""
+hdr: clear ""
+arg: clear ""
+cmd: desc: a: t: s: readme: r: none
+parse commands [
+	any [
+		quote init-words: skip
+		|
+		set cmd: set-word! into [
+			(clear hdr clear arg r: none)
+			(append hdr ajoin [LF LF "#### `" cmd "`"])
+			set desc: opt string!
+			any [
+				set a word!
+				set t opt block!
+				set s opt string!
+				(
+					unless r [append hdr ajoin [" `:" a "`"]]
+					append arg ajoin [LF "* `" a "`"] 
+					if t [append arg ajoin [" `" mold t "`"]]
+					if s [append arg ajoin [" " s]]
+				)
+				|
+				set r refinement!
+				set s opt string!
+				(
+					append arg ajoin [LF "* `/" r "`"] 
+					if s [append arg ajoin [" " s]]
+				)
+			]
+			(
+				append doc hdr
+				append doc LF
+				append doc any [desc ""]
+				append doc arg
+			)
+		]
+	]
+]
+;try/with [
+	readme: "## Extension commands:"
+	append readme ajoin [
+		LF doc
+		LF LF
+		LF "## Used handles and its getters / setters" 
+		handles-doc
+		LF LF
+		LF "## Other extension values:"
+		LF "```rebol"
+		trim/tail ext-values
+		LF "```"
+		LF
+	]
+	probe write %../Commands.md head readme
+;] :print
 
