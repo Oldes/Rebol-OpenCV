@@ -1580,8 +1580,6 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	// check if name was provided or use default
 	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : ARG_String(3);
 
-	printf("imshow... %p 0#%lx\n", image, image);
-
 	if (image) {
 		Size size = image->size();
 		if (size.width == 0 || size.height == 0) return RXR_FALSE;
