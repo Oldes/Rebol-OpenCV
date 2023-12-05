@@ -7,5 +7,5 @@
 !/test
 !/image
 !/Rebol-OpenCV.nest
-!/README.md
+!/*.md
 !/examples.r3
