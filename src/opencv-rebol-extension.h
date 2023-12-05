@@ -50,6 +50,7 @@ enum ext_commands {
 	CMD_OPENCV_FLIP,
 	CMD_OPENCV_INVERT,
 	CMD_OPENCV_MAX,
+	CMD_OPENCV_MEAN,
 	CMD_OPENCV_MIN,
 	CMD_OPENCV_MINMAXLOC,
 	CMD_OPENCV_MULTIPLY,
@@ -171,6 +172,7 @@ int cmd_divide(RXIFRM *frm, void *ctx);
 int cmd_flip(RXIFRM *frm, void *ctx);
 int cmd_invert(RXIFRM *frm, void *ctx);
 int cmd_max(RXIFRM *frm, void *ctx);
+int cmd_mean(RXIFRM *frm, void *ctx);
 int cmd_min(RXIFRM *frm, void *ctx);
 int cmd_minMaxLoc(RXIFRM *frm, void *ctx);
 int cmd_multiply(RXIFRM *frm, void *ctx);
@@ -250,6 +252,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"flip: command [{Flips a 2D array around vertical, horizontal, or both axes.} src [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" flipCode [integer!] {a flag to specify how to flip the array; 0 means flipping around the x-axis and positive value (for example, 1) means flipping around y-axis. Negative value (for example, -1) means flipping around both axes}]\n"\
 	"invert: command [\"Finds the inverse or pseudo-inverse of a matrix.\" src [handle!] \"Input floating-point M x N matrix.\" dst [handle! none!] {Output matrix of N x M size and the same type as src.} flags [integer!] \"Inversion method; One of DecompTypes (DECOMP_*)\"]\n"\
 	"max: command [\"Calculates per-element maximum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\"]\n"\
+	"mean: command [\"Calculates an average (mean) of array elements.\" src [handle!] \"cvMat\"]\n"\
 	"min: command [\"Calculates per-element minimum of two arrays.\" src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\"]\n"\
 	"minMaxLoc: command [\"Finds the global minimum and maximum in an array.\" src [handle!] \"input single-channel array (cvMat)\"]\n"\
 	"multiply: command [{Calculates the per-element scaled product of two arrays.} src1 [handle!] \"cvMat\" src2 [handle!] \"cvMat\" dst [handle! none!] \"cvMat\" /scale \"scalar factor\" s [number!] \"default = 1\"]\n"\

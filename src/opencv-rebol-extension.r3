@@ -417,7 +417,10 @@ commands: [
 		src2 [handle!] "cvMat"
 		dst  [handle! none!] "cvMat"
 	] 
-	;mean
+	mean: [
+		"Calculates an average (mean) of array elements."
+		src [handle!] "cvMat"
+	] 
 	;meanStdDev 
 	;merge 
 	min: [

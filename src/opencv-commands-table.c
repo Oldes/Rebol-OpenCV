@@ -42,6 +42,7 @@ MyCommandPointer Command[] = {
 	cmd_flip,
 	cmd_invert,
 	cmd_max,
+	cmd_mean,
 	cmd_min,
 	cmd_minMaxLoc,
 	cmd_multiply,

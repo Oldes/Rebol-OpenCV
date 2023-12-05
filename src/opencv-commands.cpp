@@ -133,6 +133,25 @@ static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
 	return mat;
 }
 
+static REBSER* new_Reb_Vector(REBCNT size, int depth) {
+	REBINT type; // int = 0, decimal = 1
+	REBINT sign; // 0 = signed, 1 = unsigned
+	REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
+	switch(depth) {
+		case CV_8U:  type = 0; sign = 1; bits = 8;  break;
+		case CV_8S:  type = 0; sign = 0; bits = 8;  break;
+		case CV_16U: type = 0; sign = 1; bits = 16; break;
+		case CV_16S: type = 0; sign = 0; bits = 16; break;
+		case CV_32S: type = 0; sign = 0; bits = 32; break;
+		case CV_32F: type = 1; sign = 0; bits = 32; break;
+		case CV_64F: type = 1; sign = 0; bits = 64; break;
+	}
+	
+	REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
+	SERIES_TAIL(vec) = size;
+	return vec;
+}
+
 COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 	Mat src;
     // use default camera as video source
@@ -544,23 +563,8 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 					//TODO: propper casting from binary series to vector of type used by the Matrix
 					//     (which needs modification on Rebol side)
 				} else {
-					REBINT type; // int = 0, decimal = 1
-					REBINT sign; // 0 = signed, 1 = unsigned
-					REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
-					REBINT size = mat->cols * mat->rows * mat->channels();
-					switch(mat->depth()) {
-						case CV_8U:  type = 0; sign = 1; bits = 8;  break;
-						case CV_8S:  type = 0; sign = 0; bits = 8;  break;
-						case CV_16U: type = 0; sign = 1; bits = 16; break;
-						case CV_16S: type = 0; sign = 0; bits = 16; break;
-						case CV_32S: type = 0; sign = 0; bits = 32; break;
-						case CV_32F: type = 1; sign = 0; bits = 32; break;
-						case CV_64F: type = 1; sign = 0; bits = 64; break;
-					}
-					
-					REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
+					REBSER *vec = new_Reb_Vector(mat->cols * mat->rows * mat->channels(), mat->depth());
 					mat2ser(mat, vec, &RXA_ARG(frm,1));
-					SERIES_TAIL(vec) = size;
 				}
 				RXA_TYPE  (frm, 1) = RXT_VECTOR;
 				return RXR_VALUE;
@@ -1262,6 +1266,39 @@ COMMAND cmd_max(RXIFRM *frm, void *ctx) {
 	EXCEPTION_CATCH
 
 	RXA_ARG(frm, 1) = RXA_ARG(frm, 3);
+	return RXR_VALUE;	
+}
+
+COMMAND cmd_mean(RXIFRM *frm, void *ctx) {
+	Scalar scalar;
+	REBINT channels;
+	RXIARG val;
+	REBSER *ser;
+	Mat *src = ARG_Mat(1);
+
+	if (!src) return RXR_NONE;
+
+	EXCEPTION_TRY
+	scalar = mean(*src);
+	EXCEPTION_CATCH
+
+	channels = src->channels();
+	if (channels == 1) {
+		RXA_TYPE(frm, 1) = RXT_DECIMAL;
+		RXA_DEC64(frm, 1) = scalar[0];
+	} else {
+		ser = (REBSER*)RL_MAKE_BLOCK(channels);
+		if(!ser) return RXR_NONE;
+
+		for(int i=0; i < channels; i++) {
+			val.dec64 = scalar[i];
+			RL_SET_VALUE(ser, i, val, RXT_DECIMAL);
+		}
+		RXA_TYPE(frm, 1) = RXT_BLOCK;
+		RXA_SERIES(frm, 1) = ser;
+		RXA_INDEX(frm, 1) = 0;
+		SERIES_TAIL(ser) = channels;
+	}
 	return RXR_VALUE;	
 }
 
