@@ -3,14 +3,16 @@
 ;-  (/uOu\)  https://github.com/Siskin-framework/Builder/                       
 ;-===="="=======================================================================
 
+github: opencv/opencv
 
 compiler: clang
-version: 4.6.0
+version: 4.9.0
 
 define: USE_TRACES
 
 ;- options common for all Rebol extensions ----------------------
 #if Windows? [
+	define: TO_WINDOWS
 	define: _CRT_SECURE_NO_WARNINGS
 ]
 #if macOS?   [
@@ -22,6 +24,7 @@ define: USE_TRACES
 ]
 
 define: ENDIAN_LITTLE
+define: REB_EXT
 
 target-x86: [
 	arch: x86
@@ -49,14 +52,6 @@ target-arm64: [
 ]
 ;----------------------------------------------------------------
 
-
-source: %src/
-files: [
-	%opencv-rebol-extension.c
-	%opencv-commands.cpp
-	%opencv-commands-table.c
-]
-
 cflags:  [-fpermissive]
 flags:   [-O2 shared]
 
@@ -77,40 +72,98 @@ flags:   [-O2 shared]
 	library: %opencv_imgproc
 	library: %opencv_videoio
 ]
-#if Windows?  [
-	compiler: clang
-	include: %/c/SDKs/OpenCV_v4.6/build/include/
-	library: %/c/SDKs/OpenCV_v4.6/build/x64/vc15/lib/opencv_world460
+
+include-all-modules: [
+	include: %opencv/modules/core/include/
+	include: %opencv/modules/calib3d/include/
+	include: %opencv/modules/features2d/include/
+	include: %opencv/modules/flann/include/
+	include: %opencv/modules/dnn/include/
+	include: %opencv/modules/highgui/include/
+	include: %opencv/modules/imgcodecs/include/
+	include: %opencv/modules/videoio/include/
+	include: %opencv/modules/imgproc/include/
+	include: %opencv/modules/ml/include/
+	include: %opencv/modules/objdetect/include/
+	include: %opencv/modules/photo/include/
+	include: %opencv/modules/stitching/include/
+	include: %opencv/modules/video/include/
 ]
 
-;- generate main extension header --------------------------------
-do %src/opencv-rebol-extension.r3 
+#if Windows?  [
+	compiler: clang
+	include: %opencv/include/
+	include: %include/
+	library: %lib/
+	library: %opencv_core490
+	library: %opencv_features2d490
+	library: %opencv_highgui490
+	library: %opencv_imgcodecs490
+	library: %opencv_imgproc490
+	library: %opencv_videoio490
+	:include-all-modules
+	upx: on
+]
+
+make-extension: [
+	files: [
+		%src/opencv-rebol-extension.c
+		%src/opencv-commands.cpp
+		%src/opencv-commands-table.c
+	]
+	;- generate main extension header --------------------------------
+	do %src/opencv-rebol-extension.r3 
+]
+
+
 
 
 eggs: only [
 	#if Windows? [
+		"Build OpenCV libraries (cmake) x86" [
+			name: %opencv-libraries-x86
+			cmd %tmp/x86/ "cmake ../../opencv/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
+			cmd %tmp/x86/ "cmake --build . --config release"
+			cmd %tmp/x86/ "xcopy /Y bin\release\*dll ..\..\build-x86\"
+			cmd %tmp/x86/ "xcopy /Y lib\release\ ..\..\lib-x86\"
+			cmd %tmp/x86/ "xcopy /Y opencv2\* ..\..\include\opencv2\"
+		]
+		"Build OpenCV libraries (cmake) x64" [
+			name: %opencv-libraries-x64
+			cmd %tmp/x64/ "cmake ../../opencv/ -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
+			cmd %tmp/x64/ "cmake --build . --config release"
+			cmd %tmp/x64/ "xcopy /Y bin\release\*dll ..\..\build\"
+			cmd %tmp/x64/ "xcopy /Y lib\release\ ..\..\lib\"
+			cmd %tmp/x64/ "xcopy /Y opencv2\* ..\..\include\opencv2\"
+		]
+
 		"Rebol openCV extension: windows_x64" [
 			name: %opencv-windows-x64
+			:make-extension
 			:target-x64
 		]
 	]
 	#if macOS? [
 		"Rebol openCV extension: macos_x64" [
 			name: %opencv-macos-x64
+			:make-extension
 			:target-x64
 		]
 		"Rebol openCV extension: macos_arm64" [
 			name: %opencv-macos-arm64
+			:make-extension
 			:target-arm64
 		]
 	]
 	#if Linux? [
 		"Rebol openCV extension: linux_x86" [
 			name: %opencv-linux-x86
+			:make-extension
 			:target-x86
 		]
 		"Rebol openCV extension: linux_x64" [
 			name: %opencv-linux-x64
+			:make-extension
 			:target-x64
 		]
 	]
