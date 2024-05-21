@@ -26,7 +26,7 @@ jobs:
       run: ./siskin Rebol-OpenCV.nest opencv-libraries-x64
 
     - name: Build 64bit Rebol OpenCV extension
-      run: ./siskin Rebol-OpenCV.nest --msvc -o ./OpenCV-windows-x64.rebx OpenCV-windows-x64
+      run: ./siskin Rebol-OpenCV.nest --msvc -o ./build/OpenCV-windows-x64.rebx OpenCV-windows-x64
 
     - name: Install Rebol for extension test
       uses: oldes/install-rebol@v3.16.0
@@ -39,9 +39,5 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: Rebol-OpenCV-CI-${{github.run_id}}
-        path: ./OpenCV-windows-x64.rebx
-    - uses: actions/upload-artifact@v3
-      with:
-        name: Rebol-OpenCV-CI-${{github.run_id}}-libraries
-        path: ./build/*.dll
+        path: ./build/*
 
