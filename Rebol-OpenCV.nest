@@ -138,7 +138,7 @@ eggs: only [
 		]
 
 		"Rebol openCV extension: windows_x64" [
-			name: %opencv-windows-x64
+			name: %opencv-windows-x64.rebx
 			:make-extension
 			:target-x64
 		]

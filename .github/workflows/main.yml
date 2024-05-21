@@ -26,10 +26,10 @@ jobs:
       run: ./siskin Rebol-OpenCV.nest opencv-libraries-x64
 
     - name: Build 64bit Rebol OpenCV extension
-      run: ./siskin Rebol-OpenCV.nest --msvc -o ./build/OpenCV-windows-x64.rebx OpenCV-windows-x64
+      run: ./siskin Rebol-OpenCV.nest OpenCV-windows-x64.rebx
 
     - name: Install Rebol for extension test
-      uses: oldes/install-rebol@v3.16.0
+      uses: oldes/install-rebol@v3.17.0
 
     - name: Test extension
       run:  ./rebol3.exe test.r3
