@@ -60,19 +60,6 @@ flags:   [-O2 shared]
 	;libraries: [%pthread]
 ]
 
-#if posix? [
-	cppflag: "-std=c++11"
-	lflag:   "-lstdc++"
-	include: %/usr/local/include/
-	library: %/usr/local/lib/opencv/
-	library: %opencv_core
-	library: %opencv_features2d
-	library: %opencv_highgui
-	library: %opencv_imgcodecs
-	library: %opencv_imgproc
-	library: %opencv_videoio
-]
-
 include-all-modules: [
 	include: %opencv/modules/core/include/
 	include: %opencv/modules/calib3d/include/
@@ -88,6 +75,19 @@ include-all-modules: [
 	include: %opencv/modules/photo/include/
 	include: %opencv/modules/stitching/include/
 	include: %opencv/modules/video/include/
+]
+
+#if posix? [
+	cppflag: "-std=c++11"
+	lflag:   "-lstdc++"
+	include: %/usr/local/include/
+	library: %/usr/local/lib/opencv/
+	library: %opencv_core
+	library: %opencv_features2d
+	library: %opencv_highgui
+	library: %opencv_imgcodecs
+	library: %opencv_imgproc
+	library: %opencv_videoio
 ]
 
 #if Windows?  [
@@ -119,6 +119,13 @@ make-extension: [
 
 
 eggs: only [
+	#if (find [Linux OpenBSD FreeBSD NetBSD DragonflyBSD] system/platform) [
+		"Build OpenCV libraries (cmake)" [
+			name: %opencv-libraries
+			cmd %tmp/linux/ "cmake -G ^"Unix Makefiles^" ../../opencv/ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
+			cmd %tmp/linux/ "sudo make install"
+		]
+	] 
 	#if Windows? [
 		"Build OpenCV libraries (cmake) x86" [
 			name: %opencv-libraries-x86
