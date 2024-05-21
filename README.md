@@ -1,3 +1,5 @@
+[![Rebol-OpenCV CI](https://github.com/Oldes/Rebol-OpenCV/actions/workflows/main.yml/badge.svg)](https://github.com/Oldes/Rebol-OpenCV/actions/workflows/main.yml)
+[![Gitter](https://badges.gitter.im/rebol3/community.svg)](https://app.gitter.im/#/room/#Rebol3:gitter.im)
 
 # Rebol/OpenCV
 
