@@ -6,6 +6,7 @@ on:
     paths:
       - src/**
       - test.r3
+      - *.nest
 
   pull_request:
     branches: [ master ]

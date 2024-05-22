@@ -21,6 +21,7 @@ define: USE_TRACES
 ]
 #if Linux? [
 	define: TO_LINUX
+	compiler: gcc
 ]
 
 define: ENDIAN_LITTLE
@@ -80,8 +81,8 @@ include-all-modules: [
 #if posix? [
 	cppflag: "-std=c++11"
 	lflag:   "-lstdc++"
-	include: %/usr/local/include/
-	library: %/usr/local/lib/opencv/
+	include: %/usr/local/include/opencv4/
+	library: %/usr/local/lib/
 	library: %opencv_core
 	library: %opencv_features2d
 	library: %opencv_highgui
@@ -121,16 +122,17 @@ make-extension: [
 eggs: only [
 	#if (find [Linux OpenBSD FreeBSD NetBSD DragonflyBSD] system/platform) [
 		"Build OpenCV libraries (cmake)" [
+			;@@ https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html
 			name: %opencv-libraries
 			cmd %tmp/linux/ "cmake -G ^"Unix Makefiles^" ../../opencv/ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/linux/ "sudo make install"
+			cmd %tmp/linux/ "sudo make install -j4"
 		]
 	] 
 	#if Windows? [
 		"Build OpenCV libraries (cmake) x86" [
 			name: %opencv-libraries-x86
 			cmd %tmp/x86/ "cmake ../../opencv/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x86/ "cmake --build . --config release"
+			cmd %tmp/x86/ "cmake --build . --config release -j 4"
 			cmd %tmp/x86/ "xcopy /Y bin\release\*dll ..\..\build-x86\"
 			cmd %tmp/x86/ "xcopy /Y lib\release\ ..\..\lib-x86\"
 			cmd %tmp/x86/ "xcopy /Y opencv2\* ..\..\include\opencv2\"
@@ -138,7 +140,7 @@ eggs: only [
 		"Build OpenCV libraries (cmake) x64" [
 			name: %opencv-libraries-x64
 			cmd %tmp/x64/ "cmake ../../opencv/ -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x64/ "cmake --build . --config release"
+			cmd %tmp/x64/ "cmake --build . --config release -j 4"
 			cmd %tmp/x64/ "xcopy /Y bin\release\*dll ..\..\build\"
 			cmd %tmp/x64/ "xcopy /Y lib\release\ ..\..\lib\"
 			cmd %tmp/x64/ "xcopy /Y opencv2\* ..\..\include\opencv2\"
