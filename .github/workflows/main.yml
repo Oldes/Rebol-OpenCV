@@ -6,7 +6,7 @@ on:
     paths:
       - src/**
       - test.r3
-      - **.nest
+      - Rebol-OpenCV.nest
 
   pull_request:
     branches: [ master ]
