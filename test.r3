@@ -2,11 +2,23 @@ Rebol [
 	title: "Basic OpenCV extension test"
 ]
 
-CI?: "true" = get-env "CI"
+system/options/quiet: false
+system/options/log/rebol: 4
+
+CI?: any [
+	"true" = get-env "CI"
+	"true" = get-env "GITHUB_ACTIONS"
+	"true" = get-env "TRAVIS"
+	"true" = get-env "CIRCLECI"
+	"true" = get-env "GITLAB_CI"
+]
 
 if CI? [
 	;; for the CI test the module is the build directory 
 	system/options/modules: to-real-file %build/
+	print ["Using modified modules location:" as-green system/options/modules]
+	ls (system/options/modules)
+
 	if system/platform = 'Windows [
 		;; include a directory with OpenCV dlls in the PATH environment variable
 		set-env "PATH" ajoin [
