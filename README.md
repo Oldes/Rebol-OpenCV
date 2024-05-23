@@ -1,3 +1,4 @@
+
 [![Rebol-OpenCV CI](https://github.com/Oldes/Rebol-OpenCV/actions/workflows/main.yml/badge.svg)](https://github.com/Oldes/Rebol-OpenCV/actions/workflows/main.yml)
 [![Gitter](https://badges.gitter.im/rebol3/community.svg)](https://app.gitter.im/#/room/#Rebol3:gitter.im)
 
@@ -409,6 +410,23 @@ with cv [
         destroyAllWindows
     ]
     free :cam  ;; release VideoCapture
+]
+```
+
+### Encode and decode QR codes
+
+```rebol
+with cv [
+    mat: qrcode-encode "Hello Rebol, hello OpenCV!"
+    mat: resize/with :mat 600% INTER_NEAREST
+    ;; display the result...
+    imshow :mat
+    waitKey 0
+    destroyAllWindows
+    ;; save as PNG image...
+    imwrite %tmp/test-qrcode.png :mat
+    ;; decode QRCode from file:
+    probe qrcode-decode %tmp/test-qrcode.png
 ]
 ```
 

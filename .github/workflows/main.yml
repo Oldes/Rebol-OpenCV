@@ -35,6 +35,8 @@ jobs:
 
     - name: Install Rebol for extension test
       uses: oldes/install-rebol@v3.17.0
+      with:
+        product: Bulk # used `resize` in tests
 
     - name: Test extension
       run:  ./rebol3.exe test.r3
@@ -72,6 +74,8 @@ jobs:
 
     - name: Install Rebol for extension test
       uses: oldes/install-rebol@v3.17.0
+      with:
+        product: Bulk # used `resize` in tests
 
     - name: Test extension
       run:  ./rebol3 test.r3

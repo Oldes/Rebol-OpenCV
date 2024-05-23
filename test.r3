@@ -60,5 +60,4 @@ prin "From image: "
 probe cv/qrcode-decode img
 
 prin "From file:  "
-
 probe cv/qrcode-decode %tmp/qrcode.png
