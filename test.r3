@@ -15,14 +15,14 @@ CI?: any [
 
 if CI? [
 	;; for the CI test the module is the build directory 
-	system/options/modules: to-real-file %build/
+	system/options/modules: dirize to-real-file %build/ ;@@ to-real-file on linux does not include the tailing slash!
 	print ["Using modified modules location:" as-green system/options/modules]
 	ls (system/options/modules)
 
 	if system/platform = 'Windows [
 		;; include a directory with OpenCV dlls in the PATH environment variable
 		set-env "PATH" ajoin [
-			probe to-local-file to-real-file rejoin [%build/ system/build/arch %/vc17/bin/]
+			to-local-file to-real-file rejoin [%build/ system/build/arch %/vc17/bin/]
 			#";" get-env "PATH"
 		]
 	]
