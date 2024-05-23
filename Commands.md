@@ -444,6 +444,16 @@ Returns the status of optimized code usage.
 Enables or disables the optimized code.
 * `onoff` `[logic!]`
 
+#### `qrcode-encode` `:text`
+Encode string to an image.
+* `text` `[any-string!]`
+* `/version` Symbol version of QR Code range
+* `v` `[integer!]` 1 - 40
+* `/mode` Encoding mode
+* `m` `[integer!]`
+* `/correction` Approximate error correction level (low, medium, quartile, high)
+* `level` `[integer!]` 0 - 3 (default is 0)
+
 
 ## Used handles and its getters / setters
 

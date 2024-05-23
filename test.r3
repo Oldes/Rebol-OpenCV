@@ -23,3 +23,9 @@ cv: import opencv
 ? cv
 print cv/getVersionString
 print cv/getBuildInformation
+
+print as-green "Encode QRcode..."
+mat: cv/qrcode-encode https://github.com/Oldes/Rebol-OpenCV/
+probe mat
+probe mat/vector
+save %build/qrcode.png mat/image

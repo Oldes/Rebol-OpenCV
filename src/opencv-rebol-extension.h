@@ -92,6 +92,7 @@ enum ext_commands {
 	CMD_OPENCV_GETBUILDINFORMATION,
 	CMD_OPENCV_USEOPTIMIZED,
 	CMD_OPENCV_SETUSEOPTIMIZED,
+	CMD_OPENCV_QRCODE_ENCODE,
 };
 
 
@@ -170,6 +171,7 @@ int cmd_getVersionString(RXIFRM *frm, void *ctx);
 int cmd_getBuildInformation(RXIFRM *frm, void *ctx);
 int cmd_useOptimized(RXIFRM *frm, void *ctx);
 int cmd_setUseOptimized(RXIFRM *frm, void *ctx);
+int cmd_qrcode_encode(RXIFRM *frm, void *ctx);
 
 enum cv_arg_words {W_ARG_0,
 	W_ARG_SIZE,
@@ -313,6 +315,7 @@ typedef int (*MyCommandPointer)(RXIFRM *frm, void *ctx);
 	"getBuildInformation: command [\"Returns full configuration time cmake output.\"]\n"\
 	"useOptimized: command [\"Returns the status of optimized code usage.\"]\n"\
 	"setUseOptimized: command [\"Enables or disables the optimized code.\" onoff [logic!]]\n"\
+	"qrcode-encode: command [\"Encode string to an image.\" text [any-string!] /version \"Symbol version of QR Code range\" v [integer!] \"1 - 40\" /mode \"Encoding mode\" m [integer!] /correction {Approximate error correction level (low, medium, quartile, high)} level [integer!] \"0 - 3 (default is 0)\"]\n"\
 	"init-words [size type depth channels binary image vector total is-submatrix width height pos-ms pos-frame pos-ratio fps fourcc frames format][CV_8U CV_8S CV_16U CV_16S CV_32S CV_32F CV_64F CV_16F CV_8UC1 CV_8SC1 CV_16UC1 CV_16SC1 CV_32SC1 CV_32FC1 CV_64FC1 CV_16FC1 CV_8UC2 CV_8SC2 CV_16UC2 CV_16SC2 CV_32SC2 CV_32FC2 CV_64FC2 CV_16FC2 CV_8UC3 CV_8SC3 CV_16UC3 CV_16SC3 CV_32SC3 CV_32FC3 CV_64FC3 CV_16FC3 CV_8UC4 CV_8SC4 CV_16UC4 CV_16SC4 CV_32SC4 CV_32FC4 CV_64FC4 CV_16FC4]\n"\
 	"protect/hide 'init-words\n"\
 	"\n"\

@@ -594,6 +594,20 @@ commands: [
 	getBuildInformation: ["Returns full configuration time cmake output."]
 	useOptimized: ["Returns the status of optimized code usage."]
 	setUseOptimized: ["Enables or disables the optimized code." onoff [logic!]]
+
+	;-----------------------------------------------------------------------------------------------
+	;- Other                                                                                        
+	;-----------------------------------------------------------------------------------------------
+	qrcode-encode: [
+		"Encode string to an image."
+		text [any-string!]
+		/version "Symbol version of QR Code range"
+		v [integer!] "1 - 40"
+		/mode    "Encoding mode"
+		m [integer!] 
+		/correction "Approximate error correction level (low, medium, quartile, high)"
+		level [integer!] "0 - 3 (default is 0)"
+	]
 ]
 
 ext-values: {

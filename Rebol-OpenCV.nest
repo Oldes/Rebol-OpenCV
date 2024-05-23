@@ -3,12 +3,12 @@
 ;-  (/uOu\)  https://github.com/Siskin-framework/Builder/                       
 ;-===="="=======================================================================
 
-github: opencv/opencv
+github: @opencv
 
 compiler: clang
 version: 4.9.0
 
-define: USE_TRACES
+;define: USE_TRACES
 
 ;- options common for all Rebol extensions ----------------------
 #if Windows? [
@@ -61,23 +61,6 @@ flags:   [-O2 shared]
 	;libraries: [%pthread]
 ]
 
-include-all-modules: [
-	include: %opencv/modules/core/include/
-	include: %opencv/modules/calib3d/include/
-	include: %opencv/modules/features2d/include/
-	include: %opencv/modules/flann/include/
-	include: %opencv/modules/dnn/include/
-	include: %opencv/modules/highgui/include/
-	include: %opencv/modules/imgcodecs/include/
-	include: %opencv/modules/videoio/include/
-	include: %opencv/modules/imgproc/include/
-	include: %opencv/modules/ml/include/
-	include: %opencv/modules/objdetect/include/
-	include: %opencv/modules/photo/include/
-	include: %opencv/modules/stitching/include/
-	include: %opencv/modules/video/include/
-]
-
 #if posix? [
 	cppflag: "-std=c++11"
 	lflag:   "-lstdc++"
@@ -89,20 +72,19 @@ include-all-modules: [
 	library: %opencv_imgcodecs
 	library: %opencv_imgproc
 	library: %opencv_videoio
+	library: %opencv_objdetect
 ]
 
 #if Windows?  [
 	compiler: clang
-	include: %opencv/include/
-	include: %include/
-	library: %lib/
-	library: %opencv_core490
-	library: %opencv_features2d490
-	library: %opencv_highgui490
-	library: %opencv_imgcodecs490
-	library: %opencv_imgproc490
-	library: %opencv_videoio490
-	:include-all-modules
+	include: %build/include/
+	library: %opencv_core4100
+	library: %opencv_features2d4100
+	library: %opencv_highgui4100
+	library: %opencv_imgcodecs4100
+	library: %opencv_imgproc4100
+	library: %opencv_videoio4100
+	library: %opencv_objdetect4100
 	upx: on
 ]
 
@@ -116,38 +98,38 @@ make-extension: [
 	do %src/opencv-rebol-extension.r3 
 ]
 
-
-
-
 eggs: only [
 	#if (find [Linux OpenBSD FreeBSD NetBSD DragonflyBSD] system/platform) [
 		"Build OpenCV libraries (cmake)" [
 			;@@ https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html
 			name: %opencv-libraries
 			cmd %tmp/linux/ "cmake -G ^"Unix Makefiles^" ../../opencv/ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/linux/ "sudo make install -j4"
+			cmd %tmp/linux/ "sudo make install -j8"
 		]
 	] 
 	#if Windows? [
 		"Build OpenCV libraries (cmake) x86" [
 			name: %opencv-libraries-x86
-			cmd %tmp/x86/ "cmake ../../opencv/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x86/ "cmake --build . --config release -j 4"
-			cmd %tmp/x86/ "xcopy /Y bin\release\*dll ..\..\build-x86\"
-			cmd %tmp/x86/ "xcopy /Y lib\release\ ..\..\lib-x86\"
-			cmd %tmp/x86/ "xcopy /Y opencv2\* ..\..\include\opencv2\"
+			cmd %tmp/x86/ "cmake ../../opencv/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=..\..\build\ -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
+			cmd %tmp/x86/ "cmake --build . --config release -j 8"
+			cmd %tmp/x86/ "cmake --build . --target install --config release"
 		]
 		"Build OpenCV libraries (cmake) x64" [
 			name: %opencv-libraries-x64
-			cmd %tmp/x64/ "cmake ../../opencv/ -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x64/ "cmake --build . --config release -j 4"
-			cmd %tmp/x64/ "xcopy /Y bin\release\*dll ..\..\build\"
-			cmd %tmp/x64/ "xcopy /Y lib\release\ ..\..\lib\"
-			cmd %tmp/x64/ "xcopy /Y opencv2\* ..\..\include\opencv2\"
+			cmd %tmp/x64/ "cmake ../../opencv/ -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=..\..\build\ -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
+			cmd %tmp/x64/ "cmake --build . --config release -j 8"
+			cmd %tmp/x64/ "cmake --build . --target install --config release"
 		]
 
+		"Rebol openCV extension: windows_x86" [
+			name: %opencv-windows-x86.rebx
+			library: %build/x86/vc17/lib/
+			:make-extension
+			:target-x86
+		]
 		"Rebol openCV extension: windows_x64" [
 			name: %opencv-windows-x64.rebx
+			library: %build/x64/vc17/lib/
 			:make-extension
 			:target-x64
 		]

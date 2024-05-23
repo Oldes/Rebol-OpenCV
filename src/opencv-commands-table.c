@@ -78,4 +78,5 @@ MyCommandPointer Command[] = {
 	cmd_getBuildInformation,
 	cmd_useOptimized,
 	cmd_setUseOptimized,
+	cmd_qrcode_encode,
 };

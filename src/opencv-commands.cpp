@@ -156,7 +156,7 @@ extern "C" {
 		int len;
 		if (!str) return 0;
 		SERIES_TAIL(str) = 0;
-		APPEND_STRING(str, "0#%lx", (unsigned long)hob->data);
+		APPEND_STRING(str, "0#%lx", (unsigned long)(uintptr_t)hob->data);
 		return len;
 	}
 
@@ -1836,4 +1836,25 @@ COMMAND cmd_useOptimized(RXIFRM *frm, void *ctx) {
 COMMAND cmd_setUseOptimized(RXIFRM *frm, void *ctx) {
 	setUseOptimized(RXA_LOGIC(frm, 1));
 	return RXR_VALUE;
+}
+
+
+COMMAND cmd_qrcode_encode(RXIFRM *frm, void *ctx) {
+	Mat *result;
+	String text = ARG_String(1);
+
+	result = new Mat();
+	if (RXR_VALUE != initRXHandle(frm, 1, result, Handle_cvMat, NULL))
+		return RXR_FALSE;
+	
+    QRCodeEncoder::Params params;
+    if (RXA_TYPE(frm, 3) == RXT_INTEGER) params.version = RXA_INT32(frm, 3);
+    if (RXA_TYPE(frm, 5) == RXT_INTEGER) params.mode = (QRCodeEncoder::EncodeMode)RXA_INT32(frm, 5);
+    if (RXA_TYPE(frm, 7) == RXT_INTEGER) params.correction_level = (QRCodeEncoder::CorrectionLevel)RXA_INT32(frm, 7);
+
+    EXCEPTION_TRY
+    Ptr<QRCodeEncoder> encoder = QRCodeEncoder::create(params);
+    encoder->encode(text, *result);
+    EXCEPTION_CATCH
+    return RXR_VALUE;
 }
