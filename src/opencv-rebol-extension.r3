@@ -608,6 +608,10 @@ commands: [
 		/correction "Approximate error correction level (low, medium, quartile, high)"
 		level [integer!] "0 - 3 (default is 0)"
 	]
+	qrcode-decode: [
+		"Decode string from an image with a QRcode"
+		image [image! handle! file!] "Image or cvMat handle"
+	]
 ]
 
 ext-values: {

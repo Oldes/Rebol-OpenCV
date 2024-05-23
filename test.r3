@@ -45,4 +45,20 @@ print as-green "Encode QRcode..."
 mat: cv/qrcode-encode https://github.com/Oldes/Rebol-OpenCV/
 probe mat
 probe mat/vector
-save %build/qrcode.png mat/image
+save %build/qrcode.png img: mat/image
+
+print as-green "Decode QRcode..."
+;; the original matrice is too small, so resize it first...
+mat: cv/resize/with mat 300% 0     ;; using OpenCV
+img: resize/filter img 300% 'box   ;; using Rebol
+save %tmp/qrcode.png img
+
+prin "From cvMat: "
+probe cv/qrcode-decode mat
+
+prin "From image: "
+probe cv/qrcode-decode img
+
+prin "From file:  "
+
+probe cv/qrcode-decode %tmp/qrcode.png

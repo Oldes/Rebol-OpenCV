@@ -454,6 +454,10 @@ Encode string to an image.
 * `/correction` Approximate error correction level (low, medium, quartile, high)
 * `level` `[integer!]` 0 - 3 (default is 0)
 
+#### `qrcode-decode` `:image`
+Decode string from an image with a QRcode
+* `image` `[image! handle! file!]` Image or cvMat handle
+
 
 ## Used handles and its getters / setters
 

@@ -28,6 +28,7 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Is_None(n)          (RXA_TYPE(frm,n) == RXT_NONE)
 #define ARG_Is_Not_None(n)      (RXA_TYPE(frm,n) != RXT_NONE)
 #define ARG_Is_Block(n)         (RXA_TYPE(frm,n) == RXT_BLOCK)
+#define ARG_Is_File(n)          (RXA_TYPE(frm,n) == RXT_FILE)
 #define ARG_Mat(n)              (ARG_Is_Mat(n) ? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
 #define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
 #define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
@@ -1857,4 +1858,42 @@ COMMAND cmd_qrcode_encode(RXIFRM *frm, void *ctx) {
     encoder->encode(text, *result);
     EXCEPTION_CATCH
     return RXR_VALUE;
+}
+
+COMMAND cmd_qrcode_decode(RXIFRM *frm, void *ctx) {
+	Mat *img = ARG_Mat(1);
+	String str;
+	vector<Point> corners;
+	QRCodeDetector qrcode;
+
+	EXCEPTION_TRY
+	if (img == NULL) {
+		Mat tmp;
+		if (ARG_Is_Image(1)) {
+			RXIARG arg = RXA_ARG(frm, 1);
+			tmp = Mat(arg.height, arg.width, CV_8UC4);
+			tmp.data = ((REBSER*)arg.series)->data;
+		}
+		else if (ARG_Is_File(1)) {
+			String file = ARG_String(1);
+			tmp = imread(file);
+			if (tmp.empty()) return RXR_NONE;
+		}
+		else return RXR_NONE;
+		str = qrcode.detectAndDecode(tmp, corners);	
+	} else {
+		str = qrcode.detectAndDecode(*img, corners);
+	}
+	EXCEPTION_CATCH
+	
+	int len = str.length();
+	if (len == 0) return RXR_NONE;
+
+	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
+	memcpy(ser->data, str.c_str(),  len);
+	SERIES_TAIL(ser) = len;
+	RXA_TYPE  (frm, 1) = RXT_STRING;
+	RXA_SERIES(frm, 1) = ser;
+	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
 }
