@@ -53,7 +53,6 @@ target-arm64: [
 ]
 ;----------------------------------------------------------------
 
-cflags:  [-fpermissive]
 flags:   [-O2 shared]
 
 #if Posix? [
