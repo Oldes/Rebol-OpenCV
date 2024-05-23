@@ -19,12 +19,17 @@ if CI? [
 	print ["Using modified modules location:" as-green system/options/modules]
 	ls (system/options/modules)
 
-	if system/platform = 'Windows [
+	either system/platform = 'Windows [
 		;; include a directory with OpenCV dlls in the PATH environment variable
 		set-env "PATH" ajoin [
 			to-local-file to-real-file rejoin [%build/ system/build/arch %/vc17/bin/]
 			#";" get-env "PATH"
 		]
+	][
+		;; OpenCV libraries were installed into /usr/local/lib so make sure that are found
+		set-env "LD_LIBRARY_PATH" "/usr/local/lib:/lib:/usr/lib"
+		;; In stable environment it is possible to make it permanent using `ldconfig`
+		;; @@ https://unix.stackexchange.com/a/67784
 	]
 ]
 
