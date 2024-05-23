@@ -68,7 +68,7 @@ jobs:
       uses: oldes/install-rebol@v3.17.0
 
     - name: Test extension
-      run:  ./rebol3.exe test.r3
+      run:  ./rebol3 test.r3
 
     ###############################################################################
     # Collecting build artifacts...
