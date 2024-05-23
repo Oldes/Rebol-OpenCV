@@ -7,12 +7,12 @@ CI?: "true" = get-env "CI"
 if CI? [
 	;; for the CI test the module is the build directory 
 	system/options/modules: to-real-file %build/
-	;; include the directory in PATH environment variable
-	;; (so OpenCV can find its libraries)
-	set-env "PATH" ajoin [
-		to-local-file system/options/modules
-		pick [#";" #":"] system/platform = 'Windows
-		get-env "PATH"
+	if system/platform = 'Windows [
+		;; include a directory with OpenCV dlls in the PATH environment variable
+		set-env "PATH" ajoin [
+			probe to-local-file to-real-file rejoin [%build/ system/build/arch %/vc17/bin/]
+			#";" get-env "PATH"
+		]
 	]
 ]
 
