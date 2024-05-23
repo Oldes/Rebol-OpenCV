@@ -231,6 +231,8 @@ extern "C" {
 			}
 			bin = (REBSER *)RL_MAKE_IMAGE(tmp.cols, tmp.rows);
 			mat2ser(&tmp, bin, arg);
+			// The tail in an image value is not in bytes, but in pixels!
+			SERIES_TAIL(bin) = tmp.cols * tmp.rows;
 			arg->width  = tmp.cols;
 			arg->height = tmp.rows;
 			break;
