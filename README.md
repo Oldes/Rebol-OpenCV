@@ -299,11 +299,11 @@ with cv [
     src: imread "image/taj.jpg"
     ; using a binary for the kernel, but it should be possible
     ; to use vector directly later once implemented!
-    kernel: #[float! [
+    kernel: #(float! [
         0.272 0.534 0.131
         0.349 0.686 0.168
         0.393 0.769 0.189
-    ]]
+    ])
     sepia-filter: Matrix [3x3 :kernel]
     transform src src sepia-filter
     imshow src
@@ -318,7 +318,7 @@ When constructing matrices from a Rebol's binary or vector value, the buffer may
 ```rebol
 with cv [
     ;; allocate vector for a grayscale image of size 320x200
-    data: #[uint8! 64000]
+    data: #(uint8! 64000)
     ;; make an OpenCV metrix using the shared data
     img: Matrix [320x200 :data]
     ;; do some animation...
