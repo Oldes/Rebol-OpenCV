@@ -1,12 +1,13 @@
-;-    .-.                                                                       
-;-   /'v'\   SISKIN-Builder 3.9.0 project file                                  
-;-  (/uOu\)  https://github.com/Siskin-framework/Builder/                       
+;-    .-.
+;-   /'v'\   SISKIN-Builder project file
+;-  (/uOu\)  https://github.com/Siskin-framework/Builder/
 ;-===="="=======================================================================
+needs: [siskin 0.23.0]
 
-github: @opencv
+github: opencv/opencv /5.0.0
 
 compiler: clang
-version: 4.13.0
+version: 5.0.0
 
 ;define: USE_TRACES
 
@@ -25,6 +26,7 @@ version: 4.13.0
 ]
 
 define: ENDIAN_LITTLE
+;; Selects the amalgamated `rebol-extension.h` in the generated header.
 define: REB_EXT
 
 target-x86: [
@@ -54,9 +56,10 @@ target-arm64: [
 ;----------------------------------------------------------------
 
 flags:   [-O2 shared]
+include: %src/
 
 #if Posix? [
-	cflags: [-fPIC -pthread ]
+	cflags: [-fPIC -pthread -fno-common]
 	;libraries: [%pthread]
 ]
 
@@ -76,25 +79,25 @@ flags:   [-O2 shared]
 
 #if Windows?  [
 	compiler: clang
-	include: %build/include/
-	library: %opencv_core4130
-	library: %opencv_features2d4130
-	library: %opencv_highgui4130
-	library: %opencv_imgcodecs4130
-	library: %opencv_imgproc4130
-	library: %opencv_videoio4130
-	library: %opencv_objdetect4130
+	include: %$SISKIN_INSTALL/include/
+	library: %opencv_core500
+	library: %opencv_features500
+	library: %opencv_highgui500
+	library: %opencv_imgcodecs500
+	library: %opencv_imgproc500
+	library: %opencv_videoio500
+	library: %opencv_objdetect500
 	upx: on
 ]
 
 make-extension: [
+	;- generate the extension header, command table ---
+	do %make-extension.r3 [%src/opencv.reb]
 	files: [
-		%src/opencv-rebol-extension.c
+		%src/opencv.c
 		%src/opencv-commands.cpp
-		%src/opencv-commands-table.c
+		%src/gen-opencv.c
 	]
-	;- generate main extension header --------------------------------
-	do %src/opencv-rebol-extension.r3 
 ]
 
 eggs: only [
@@ -105,30 +108,58 @@ eggs: only [
 			cmd %tmp/linux/ "cmake -G ^"Unix Makefiles^" ../../opencv/ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
 			cmd %tmp/linux/ "sudo make install -j8"
 		]
-	] 
+	]
 	#if Windows? [
 		"Build OpenCV libraries (cmake) x86" [
 			name: %opencv-libraries-x86
-			cmd %tmp/x86/ "cmake ../../opencv/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=..\..\build\ -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x86/ "cmake --build . --config release -j 8"
-			cmd %tmp/x86/ "cmake --build . --target install --config release"
+			cmd [
+				"cmake -B $SISKIN_TEMP/Win32/opencv5 -S opencv"
+				"-A Win32"
+				"-DCMAKE_VERBOSE_MAKEFILE=OFF"
+				"-DCMAKE_BUILD_TYPE=Release"
+				"-DBUILD_PERF_TESTS:BOOL=OFF"
+				"-DBUILD_TESTS:BOOL=OFF"
+				"-DBUILD_DOCS:BOOL=OFF"
+				;"-DWITH_CUDA:BOOL=OFF"
+				"-DBUILD_EXAMPLES:BOOL=OFF"
+				"-DINSTALL_CREATE_DISTRIB=OFF"
+				"-DBUILD_opencv_dnn=OFF"
+				;"-DOPENCV_ENABLE_NONFREE=ON"
+				;"-DWITH_MLAS=ON"
+			]
+			cmd "cmake --build   $SISKIN_TEMP/opencv5 --config release -j 8"
+			cmd "cmake --install $SISKIN_TEMP/opencv5 --prefix $SISKIN_INSTALL"
 		]
 		"Build OpenCV libraries (cmake) x64" [
 			name: %opencv-libraries-x64
-			cmd %tmp/x64/ "cmake ../../opencv/ -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=..\..\build\ -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x64/ "cmake --build . --config release -j 8"
-			cmd %tmp/x64/ "cmake --build . --target install --config release"
+			cmd [
+				"cmake -B $SISKIN_TEMP/opencv5 -S opencv"
+				"-A x64"
+				"-DCMAKE_VERBOSE_MAKEFILE=OFF"
+				"-DCMAKE_BUILD_TYPE=Release"
+				"-DBUILD_PERF_TESTS:BOOL=OFF"
+				"-DBUILD_TESTS:BOOL=OFF"
+				"-DBUILD_DOCS:BOOL=OFF"
+				;"-DWITH_CUDA:BOOL=OFF"
+				"-DBUILD_EXAMPLES:BOOL=OFF"
+				"-DINSTALL_CREATE_DISTRIB=OFF"
+				"-DBUILD_opencv_dnn=OFF"
+				;"-DOPENCV_ENABLE_NONFREE=ON"
+				;"-DWITH_MLAS=ON"
+			]
+			cmd "cmake --build   $SISKIN_TEMP/opencv5 --config release -j 8"
+			cmd "cmake --install $SISKIN_TEMP/opencv5 --prefix $SISKIN_INSTALL"
 		]
 
 		"Rebol openCV extension: windows_x86" [
 			name: %opencv-windows-x86.rebx
-			library: %build/x86/vc17/lib/
+			library: %$SISKIN_INSTALL/x86/vc17/lib/
 			:make-extension
 			:target-x86
 		]
 		"Rebol openCV extension: windows_x64" [
 			name: %opencv-windows-x64.rebx
-			library: %build/x64/vc17/lib/
+			library: %$SISKIN_INSTALL/x64/vc17/lib/
 			:make-extension
 			:target-x64
 		]

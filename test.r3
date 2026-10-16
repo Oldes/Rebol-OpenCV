@@ -14,17 +14,17 @@ CI?: any [
 ]
 
 if CI? [
-    system/options/modules: dirize to-real-file %build/
+    system/options/modules: dirize to-real-file %./
     print ["Using modified modules location:" as-green system/options/modules]
     ls (system/options/modules)
-    either system/platform = 'Windows [
-        set-env "PATH" ajoin [
-            to-local-file to-real-file rejoin [%build/ system/build/arch %/vc17/bin/]
-            #";" get-env "PATH"
-        ]
-    ][
-        set-env "LD_LIBRARY_PATH" "/usr/local/lib:/lib:/usr/lib"
-    ]
+    ;either system/platform = 'Windows [
+    ;    set-env "PATH" ajoin [
+    ;        to-local-file to-real-file rejoin [%build/ system/build/arch %/vc17/bin/]
+    ;        #";" get-env "PATH"
+    ;    ]
+    ;][
+    ;    set-env "LD_LIBRARY_PATH" "/usr/local/lib:/lib:/usr/lib"
+    ;]
 ]
 
 try [system/modules/opencv: none]
@@ -39,7 +39,7 @@ header: func [
     title [string!] "Group title."
 ][
     print ""
-    print as-green ajoin [ "=== " title " ===" ]
+    print as-blue ajoin [ "=== " title " ===" ]
 ]
 
 ; ============================================================
@@ -81,12 +81,12 @@ assert-error: func [
     label [string!] "Test label."
     body [block!] "Code that should error."
 ][
-    if error? try body [
+    either error? try body [
         print as-green rejoin ["PASS: " label]
-        return
+    ][
+        print as-red rejoin ["FAIL: " label " — expected error but none occurred"]
+        quit/return 1
     ]
-    print as-red rejoin ["FAIL: " label " — expected error but none occurred"]
-    quit/return 1
 ]
 
 ; ============================================================
@@ -141,7 +141,7 @@ assert [m3/type = 'CV_32FC3] "Matrix type CV_32FC3"
 
 ; --- from block with vector data ---
 v: make vector! [uint8! 30000]
-m4: cv/Matrix [100x100 v]
+m4: cv/Matrix [100x100 :v]
 assert [handle? m4] "Matrix from vector data"
 assert [m4/size = 100x100] "Matrix size from vector"
 
@@ -158,9 +158,7 @@ assert [m6/size = m1/size] "Matrix copy same size"
 
 ; --- free ---
 cv/free m6
-assert-error "Access freed handle errors" [
-    probe m6/size
-]
+assert [none? m6/size] "Freed handle reads as none"
 
 ; ============================================================
 ; 3. Image I/O
@@ -259,7 +257,7 @@ kernel-data: #(float! [
    -1 5 -1
     0 -1 0
 ])
-kernel: cv/Matrix [3x3 kernel-data]
+kernel: cv/Matrix [3x3 :kernel-data]
 sharp: cv/filter2D mat none -1 kernel -1x-1 0
 assert [handle? sharp] "filter2D sharpen"
 cv/free kernel
@@ -292,12 +290,15 @@ assert [handle? thresh-trunc] "threshold trunc"
 header "Arithmetic & Bitwise Ops"
 
 ; add
-added: cv/add mat gray none
+added: cv/add mat mat none
 assert [handle? added] "add"
 assert [added/size = mat/size] "add same size"
+assert-error "add with different channel counts errors" [
+    cv/add mat gray none
+]
 
 ; subtract
-subbed: cv/subtract mat gray none
+subbed: cv/subtract mat mat none
 assert [handle? subbed] "subtract"
 
 ; multiply
@@ -309,11 +310,11 @@ divd: cv/divide mat mat none
 assert [handle? divd] "divide"
 
 ; absdiff
-diff: cv/absdiff mat gray none
+diff: cv/absdiff mat mat none
 assert [handle? diff] "absdiff"
 
 ; addWeighted
-weighted: cv/addWeighted mat 0.5 gray 0.5 0 none
+weighted: cv/addWeighted mat 0.5 mat 0.5 0 none
 assert [handle? weighted] "addWeighted"
 
 ; bitwise-and
@@ -355,7 +356,7 @@ csa: cv/convertScaleAbs gray none 1.0 0
 assert [handle? csa] "convertScaleAbs"
 
 ; convertTo
-cvt: cv/convertTo gray none CV_32F 1.0 0.0
+cvt: cv/convertTo gray none cv/CV_32F 1.0 0.0
 assert [handle? cvt] "convertTo"
 assert [cvt/type = 'CV_32FC1] "convertTo changes type"
 
@@ -442,9 +443,7 @@ assert-error "Matrix with invalid block errors" [
 ]
 
 ; imread missing file
-assert-error "imread missing file errors" [
-    cv/imread %image/nonexistent.png
-]
+assert [none? cv/imread %image/nonexistent.png] "imread missing file returns none"
 
 ; operation on freed handle
 cv/free m1
@@ -484,9 +483,28 @@ assert [gabor/type = 'CV_64FC1] "Gabor kernel type CV_64FC1"
 ; ============================================================
 header "Laplacian"
 
-lap: cv/Laplacian gray none CV_8U 3 1 0
+lap: cv/Laplacian gray none cv/CV_8U 3 1 0
 assert [handle? lap] "Laplacian"
 assert [lap/channels = 1] "Laplacian single channel"
+
+; ============================================================
+; 18. Vectors (element type travels in the value since ABI 1)
+; ============================================================
+header "Vectors"
+
+vec8: m2/vector
+assert [vector? vec8] "CV_8UC1 matrix as vector"
+assert-equal 20000 length? vec8 "CV_8UC1 vector length (100x200x1)"
+
+vecf: m3/vector
+assert [vector? vecf] "CV_32FC3 matrix as vector"
+assert-equal 7500 length? vecf "CV_32FC3 vector length (50x50x3)"
+assert [decimal? first vecf] "CV_32FC3 vector holds decimals"
+
+;; matrix made from a float vector keeps the vector's element type
+fdata: make vector! [decimal! 32 [1.0 2.0 3.0 4.0]]
+mf: cv/Matrix [2x2 :fdata]
+assert-equal 'CV_32FC1 mf/type "Matrix from float32 vector is CV_32FC1"
 
 ; ============================================================
 ; Summary
