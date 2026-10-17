@@ -29,6 +29,8 @@ if CI? [
 
 try [system/modules/opencv: none]
 
+recycle/torture
+
 cv: import opencv
 
 ; ============================================================
@@ -144,6 +146,21 @@ v: make vector! [uint8! 30000]
 m4: cv/Matrix [100x100 :v]
 assert [handle? m4] "Matrix from vector data"
 assert [m4/size = 100x100] "Matrix size from vector"
+
+; --- from literal binary (copied, not shared) ---
+spec: [2x2 CV_8UC1 #{01020304}]
+mb: cv/Matrix spec
+assert-equal #{01020304} mb/binary "Matrix from literal binary has the data"
+assert-equal #{01020304} spec/3 "Matrix leaves the source binary untouched"
+
+; --- shorter data is repeated to fill the matrix ---
+mr: cv/Matrix [2x2 CV_8UC1 #{0102}]
+assert-equal #{01020102} mr/binary "Short data is repeated"
+
+; --- shared binary honours its index ---
+b: next #{FF01020304}
+ms: cv/Matrix [2x2 CV_8UC1 :b]
+assert-equal [1 2 3 4] to block! ms/vector "Shared binary starts at its index"
 
 ; --- from image ---
 img: make image! 64x64

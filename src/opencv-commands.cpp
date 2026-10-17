@@ -505,6 +505,7 @@ COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 	Size size = Size(0,0);
 	int type = CV_8UC4;
 	int binBytes = 0, matBytes = 0;
+	REBCNT binIndex = 0; // `val` is reused by the loop, so keep the data position
 	
 	if (ARG_Is_Block(1)) {
 		blk = (REBSER *)RXA_SERIES(frm, 1);
@@ -532,6 +533,7 @@ COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 			}
 			else if (t == RXT_BINARY) {
 				bin = (REBSER*)val.series;
+				binIndex = val.index;
 				binBytes = SERIES_TAIL(bin) - val.index;
 				sharedBin = resolved; // use shared series only if argument was passed by word or path
 			}
@@ -546,6 +548,7 @@ COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 				if (vecType < 0 || vecType > VTSF64 || (type = vecType2cvType[vecType]) < 0) goto err_vect;
 
 				int depth = (bin->tail - val.index) / (size.width * size.height);
+				binIndex = val.index;
 				binBytes = (SERIES_TAIL(bin) - val.index) * (RXI_VECTOR_BITS(val.vector.info) / 8);
 				// `depth` here is the number of channels per element
 				if (depth < 1 || depth > 4) goto err_vect;
@@ -595,26 +598,28 @@ COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 			if (sharedBin) {
 				//trace("shared binary");
 				if(binBytes < matBytes) goto err_shortBin;
-				mat = new Mat(size, type, SERIES_SKIP(bin, val.index));
+				mat = new Mat(size, type, SERIES_SKIP(bin, binIndex));
 			}
 			else {
-				// Create a non shared binary data!
-				REBSER *ser = NULL;
-				if (matBytes > 0) {
-					ser = (REBSER *)RL_MAKE_STRING(matBytes, FALSE);
-					SERIES_TAIL(ser) = matBytes;
-					mat = new Mat(size, type, ser->data);
-
-					if (binBytes < matBytes) {
-						unsigned char *bp = ser->data;
-						for (;binBytes <= matBytes; bp += binBytes, matBytes--) {
-							memcpy(bp, SERIES_SKIP(bin, val.index), binBytes);
-						}
-					} else {
-						memcpy(ser->data, SERIES_SKIP(bin, val.index), matBytes);
+				// Not shared: the matrix gets its own copy of the data, kept
+				// alive by the handle. Data shorter than the matrix is repeated
+				// to fill it.
+				REBYTE *src = SERIES_SKIP(bin, binIndex);
+				REBYTE *bp;
+				int left;
+				REBSER *ser = (REBSER *)RL_MAKE_STRING(matBytes, FALSE);
+				if (!ser) RETURN_ERROR(ERR_MAT_SIZE);
+				SERIES_TAIL(ser) = matBytes;
+				bp = ser->data;
+				if (binBytes <= 0) {
+					memset(bp, 0, matBytes);
+				} else {
+					for (left = matBytes; left > 0; left -= binBytes, bp += binBytes) {
+						memcpy(bp, src, MIN(left, binBytes));
 					}
 				}
-				*bin = *ser;
+				mat = new Mat(size, type, ser->data);
+				bin = ser; // the handle keeps the copy, not the caller's series
 			}
 			goto done;
 		}
