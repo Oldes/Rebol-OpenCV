@@ -362,6 +362,13 @@ assert [handle? bw-xor] "bitwise-xor"
 bw-not: cv/bitwise-not mat none
 assert [handle? bw-not] "bitwise-not"
 
+; bitwise-not/mask only touches masked pixels
+src:  cv/Matrix [2x1 CV_8UC1 #{0000}]
+dst:  cv/Matrix [2x1 CV_8UC1 #{1111}]
+mask: cv/Matrix [2x1 CV_8UC1 #{FF00}]
+cv/bitwise-not/mask src dst mask
+assert-equal #{FF11} dst/binary "bitwise-not/mask leaves unmasked pixels"
+
 ; ============================================================
 ; 9. Matrix analysis
 ; ============================================================

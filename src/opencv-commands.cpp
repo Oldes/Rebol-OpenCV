@@ -1415,7 +1415,8 @@ COMMAND cmd_opencv_divide(RXIFRM *frm, void *ctx) {
 COMMAND cmd_opencv_bitwise_not(RXIFRM *frm, void *ctx) {
 	Mat *src  = ARG_Mat(1);
 	Mat *dst  = ARG_Mat_As(2, src);
-	Mat *mask = ARG_Mat(3);
+	// Slot 3 is the /mask refinement itself, its argument is in slot 4.
+	Mat *mask = RXA_REF(frm, 3) ? ARG_Mat(4) : NULL;
 
 	if (!src || !dst ) return RXR_NONE;
 
