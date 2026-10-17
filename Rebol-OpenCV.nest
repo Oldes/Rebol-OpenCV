@@ -117,30 +117,97 @@ include: %src/
 #if posix? [
 	cppflag: "-std=c++17" ;; OpenCV5 needs 17 (OpenCV4 was 11)
 	lflag:   "-lstdc++"
-	library: %opencv_core
-	library: %opencv_features2d
-	library: %opencv_highgui
-	library: %opencv_imgcodecs
-	library: %opencv_imgproc
-	library: %opencv_videoio
-	library: %opencv_objdetect
 ]
 
 #if Windows?  [
 	compiler: clang
-	library: %opencv_core500
-	library: %opencv_features500
-	library: %opencv_highgui500
-	library: %opencv_imgcodecs500
-	library: %opencv_imgproc500
-	library: %opencv_videoio500
-	library: %opencv_objdetect500
 	upx: on
+]
+
+;- Linking against the shared OpenCV libraries (installed in $SISKIN_INSTALL/<arch>)
+;; Only the modules the extension calls - their own dependencies are resolved
+;; by the OpenCV libraries themselves.
+opencv-dynamic: [
+	#if posix? [
+		library: %opencv_core
+		library: %opencv_highgui
+		library: %opencv_imgcodecs
+		library: %opencv_imgproc
+		library: %opencv_videoio
+		library: %opencv_objdetect
+	]
+	#if Windows? [
+		library: %opencv_core500
+		library: %opencv_highgui500
+		library: %opencv_imgcodecs500
+		library: %opencv_imgproc500
+		library: %opencv_videoio500
+		library: %opencv_objdetect500
+	]
+]
+
+;- Linking a self-contained .rebx (installed in $SISKIN_INSTALL/<arch>-static)
+;; One opencv_world library plus the bundled 3rd party libraries. Order matters
+;; for the GNU linker: world first, the libraries it depends on after it.
+;;
+;; The list follows `lib/pkgconfig/opencv5.pc` (Libs.private) of the install;
+;; on Windows compare with the `staticlib` folder. The names follow the CMake
+;; target names, so Posix gets a doubled `lib` prefix (liblibpng.a -> %libpng).
+;; quirc (QR decoding) is compiled into opencv_world, it is not a separate archive.
+;; tegra_hal (the ARM NEON HAL) exists only in arm64 builds - see the arm64 eggs.
+opencv-static: [
+	#if posix? [
+		library: %opencv_world
+		library: %libjpeg-turbo
+		library: %libwebp
+		library: %libpng
+		library: %libtiff
+		library: %libclapack
+		library: %zlib
+	]
+	#if Linux? [
+		;; GNU ld hides all symbols coming from static archives, so OpenCV and
+		;; its bundled zlib/png/... cannot clash with other extensions or the host.
+		lflag: "-Wl,--exclude-libs,ALL"
+		lflag: "-Wl,--gc-sections"
+		library: %dl
+		library: %pthread
+	]
+	#if macOS? [
+		;; Export only the extension entry points.
+		lflag: "-Wl,-exported_symbol,_RX_Init -Wl,-exported_symbol,_RX_Quit -Wl,-exported_symbol,_RX_Call -Wl,-exported_symbol,_RX_Abi"
+		lflag: "-Wl,-dead_strip"
+		framework: [
+			AppKit OpenGL AVFoundation CoreMedia CoreVideo CoreFoundation
+			Foundation QuartzCore CoreGraphics Accelerate
+		]
+	]
+	#if Windows? [
+		library: %opencv_world500
+		library: %libjpeg-turbo
+		library: %libwebp
+		library: %libpng
+		library: %libtiff
+		library: %libclapack
+		library: %zlib
+		;; system libraries used by videoio (MSMF, DirectShow)
+		library: %user32
+		library: %advapi32
+		library: %shlwapi
+		library: %ole32
+		library: %oleaut32
+		library: %uuid
+		library: %strmiids
+		library: %mfplat
+		library: %mf
+		library: %mfreadwrite
+		library: %mfuuid
+	]
 ]
 
 make-extension: [
 	;- generate the extension header, command table ---
-	do %make-extension.r3 [%src/opencv.reb]
+	do %make-extension.r3 [%src/opencv.reb "--commands"]
 	files: [
 		%src/opencv.c
 		%src/opencv-commands.cpp
@@ -205,6 +272,32 @@ cmake-spec: [
 	]
 ]
 
+cmake-static: [
+	set-env CMAKE_STATIC: [
+		"-DBUILD_SHARED_LIBS=OFF"
+		"-DCMAKE_POSITION_INDEPENDENT_CODE=ON"   ;; the archives end up inside a shared .rebx
+		"-DBUILD_opencv_world=ON"                ;; one library - no module link order to get right
+		"-DOPENCV_FORCE_3RDPARTY_BUILD=ON"       ;; bundled zlib/png/jpeg/tiff/webp, built static
+		"-DOPENCV_GENERATE_PKGCONFIG=ON"         ;; opencv5.pc lists the exact static link line
+		"-DVIDEOIO_ENABLE_PLUGINS=ON"            ;; used bellow to enable external FFMPEG
+	;- no highgui: windows are Rebol/GUI's job, and the .rebx needs no GTK/Cocoa UI
+	;- (given after CMAKE_COMMON, so this BUILD_LIST wins)
+		"-DBUILD_LIST=core,imgproc,imgcodecs,videoio,objdetect"
+		"-DBUILD_opencv_highgui=OFF"     ;; BUILD_LIST alone trips modules/world (ocv_highgui_configure_target)
+	;- fewer 3rd party archives to link (enable later and add them to opencv-static):
+		"-DWITH_IPP=OFF"                         ;; ippicv/ippiw
+		"-DWITH_OPENJPEG=OFF"                    ;; JPEG 2000 ...
+		"-DWITH_JASPER=OFF"                      ;; ... and its fallback codec
+		"-DWITH_KLEIDICV=OFF"                    ;; ARM HAL (arm64)
+	;- Windows: OpenCV's default is the static CRT (/MT), which matches what clang
+	;- uses for the extension by default. On LNK2038 "RuntimeLibrary mismatch" flip it:
+	;	"-DBUILD_WITH_STATIC_CRT=OFF"
+	;- Enable runtime video plugin
+		"-DWITH_FFMPEG=ON"
+		"-DVIDEOIO_PLUGIN_LIST=ffmpeg"
+	]
+]
+
 eggs: only [
 	"Cmake OpenCV - x86" [
 		name: %cmake-opencv-x86
@@ -228,45 +321,126 @@ eggs: only [
 		cmd "cmake --install  $SISKIN_TEMP/opencv5-arm64 --prefix $SISKIN_INSTALL/arm64"
 	]
 
+	"Cmake OpenCV static - x86" [
+		name: %cmake-opencv-static-x86
+		:target-x86 :cmake-spec :cmake-static
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x86 -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-x86 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x86 --prefix $SISKIN_INSTALL/x86-static"
+	]
+	"Cmake OpenCV static - x64" [
+		name: %cmake-opencv-static-x64
+		:target-x64 :cmake-spec :cmake-static
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x64 -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-x64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x64 --prefix $SISKIN_INSTALL/x64-static"
+	]
+	"Cmake OpenCV static - arm64" [
+		name: %cmake-opencv-static-arm64
+		:target-arm64 :cmake-spec :cmake-static
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-arm64 -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-arm64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-arm64 --prefix $SISKIN_INSTALL/arm64-static"
+	]
+
+	;- Extension linked against the shared OpenCV libraries -----------------
 	#if Windows? [
 		"Rebol openCV extension: windows_x86" [
 			name: %opencv-windows-x86.rebx
-			:make-extension
-			:target-x86
+			:make-extension :target-x86 :opencv-dynamic
 		]
 		"Rebol openCV extension: windows_x64" [
 			name: %opencv-windows-x64.rebx
-			:make-extension
-			:target-x64
+			:make-extension :target-x64 :opencv-dynamic
 		]
 		"Rebol openCV extension: windows_arm64" [
 			name: %opencv-windows-arm64.rebx
-			:make-extension
-			:target-arm64
+			:make-extension :target-arm64 :opencv-dynamic
 		]
 	]
 	#if macOS? [
 		"Rebol openCV extension: macos_x64" [
 			name: %opencv-macos-x64
-			:make-extension
-			:target-x64
+			:make-extension :target-x64 :opencv-dynamic
+		;	lflag: "-Wl,-rpath,$SISKIN_INSTALL/x64/lib"     ;; dev install
+		;	lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
 		]
 		"Rebol openCV extension: macos_arm64" [
 			name: %opencv-macos-arm64
-			:make-extension
-			:target-arm64
+			:make-extension :target-arm64 :opencv-dynamic
+			lflag: "-Wl,-install_name,@rpath/opencv-abi1-arm64.rebx"
+		;	lflag: "-Wl,-rpath,$SISKIN_INSTALL/arm64/lib"   ;; dev install
+		;	lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
 		]
 	]
 	#if Linux? [
 		"Rebol openCV extension: linux_x86" [
 			name: %opencv-linux-x86
-			:make-extension
-			:target-x86
+			:make-extension :target-x86 :opencv-dynamic
 		]
 		"Rebol openCV extension: linux_x64" [
 			name: %opencv-linux-x64
-			:make-extension
-			:target-x64
+			:make-extension :target-x64 :opencv-dynamic
+		]
+	]
+
+	;- Self-contained extension (static OpenCV) ------------------------------
+	;; The static install's headers must come first: its opencv2/opencv_modules.hpp
+	;; differs (no HAVE_OPENCV_HIGHGUI), and the target adds the shared install's
+	;; folders as well. Egg-level paths are emitted before the target's ones.
+	;; Linking is safe either way - the static names (opencv_world, zlib,
+	;; libpng...) do not exist in the shared install.
+	#if Windows? [
+		"Rebol openCV extension: windows_x86 (static)" [
+			name: %opencv-static-windows-x86.rebx
+			include: %$SISKIN_INSTALL/x86-static/include/
+			library: %$SISKIN_INSTALL/x86-static/x86/vc17/staticlib/
+			:make-extension :target-x86 :opencv-static
+		]
+		"Rebol openCV extension: windows_x64 (static)" [
+			name: %opencv-static-windows-x64.rebx
+			include: %$SISKIN_INSTALL/x64-static/include/
+			library: %$SISKIN_INSTALL/x64-static/x64/vc17/staticlib/
+			:make-extension :target-x64 :opencv-static
+		]
+		"Rebol openCV extension: windows_arm64 (static)" [
+			name: %opencv-static-windows-arm64.rebx
+			include: %$SISKIN_INSTALL/arm64-static/include/
+			library: %$SISKIN_INSTALL/arm64-static/aarch64/vc17/staticlib/
+			:make-extension :target-arm64 :opencv-static
+		]
+	]
+	#if macOS? [
+		"Rebol openCV extension: macos_x64 (static)" [
+			name: %opencv-static-macos-x64
+			include: %$SISKIN_INSTALL/x64-static/include/opencv5/
+			library: %$SISKIN_INSTALL/x64-static/lib/
+			library: %$SISKIN_INSTALL/x64-static/lib/opencv5/3rdparty/
+			:make-extension :target-x64 :opencv-static
+		]
+		"Rebol openCV extension: macos_arm64 (static)" [
+			name: %opencv-static-macos-arm64
+			include: %$SISKIN_INSTALL/arm64-static/include/opencv5/
+			library: %$SISKIN_INSTALL/arm64-static/lib/
+			library: %$SISKIN_INSTALL/arm64-static/lib/opencv5/3rdparty/
+			library: %tegra_hal ;; ARM NEON HAL (carotene)
+			:make-extension :target-arm64 :opencv-static
+		]
+	]
+	#if Linux? [
+		"Rebol openCV extension: linux_x86 (static)" [
+			name: %opencv-static-linux-x86
+			include: %$SISKIN_INSTALL/x86-static/include/opencv5/
+			library: %$SISKIN_INSTALL/x86-static/lib/
+			library: %$SISKIN_INSTALL/x86-static/lib/opencv5/3rdparty/
+			:make-extension :target-x86 :opencv-static
+		]
+		"Rebol openCV extension: linux_x64 (static)" [
+			name: %opencv-static-linux-x64
+			include: %$SISKIN_INSTALL/x64-static/include/opencv5/
+			library: %$SISKIN_INSTALL/x64-static/lib/
+			library: %$SISKIN_INSTALL/x64-static/lib/opencv5/3rdparty/
+			:make-extension :target-x64 :opencv-static
 		]
 	]
 ]

@@ -29,9 +29,11 @@ if CI? [
 
 try [system/modules/opencv: none]
 
-recycle/torture
+args: system/options/args
+static?: did find args "--static"
+if find args "--torture" [ recycle/torture ] ;; to detect GC related errors
 
-cv: import opencv
+cv: import (either static? ['opencv-static]['opencv])
 
 ; ============================================================
 ; Helper: print a test group header
@@ -569,13 +571,30 @@ cap: cv/VideoCapture %build/test-video.avi
 assert [handle? cap] "VideoCapture opens the written file"
 assert-equal 64   cap/width  "capture width"
 assert-equal 48   cap/height "capture height"
-assert-equal 24.0 cap/fps    "capture fps"
-assert-equal to decimal! to integer! reverse #{4D4A5047} cap/fourcc "capture fourcc is MJPG"
+;; backends derive fps from the AVI header (rate/scale or usec per frame),
+;; so it may come back as e.g. 23.9998 instead of 24.0
+assert [0.01 > abs (cap/fps - 24.0)] "capture fps"
+;; fourcc is backend specific: FFmpeg/MJPEG report the file's codec (MJPG),
+;; AVFoundation reports its decoded output format (BGR3)
+fourcc: to binary! to integer! cap/fourcc
+assert [find ["MJPG" "BGR3"] to string! reverse skip fourcc 4] "capture fourcc is MJPG or BGR3"
 assert-equal 5    cap/frames "capture frame count"
 assert [0.0 = cap/pos-frame] "capture starts at frame 0"
 cv/read cap
 assert [1.0 = cap/pos-frame] "pos-frame advances after read"
 cv/free cap
+
+; ============================================================
+; 20. HighGUI (not part of the static build)
+; ============================================================
+header "HighGUI"
+
+either static? [
+    assert [error? err: try [cv/destroyAllWindows]] "GUI command errors in static build"
+    assert [find form err "no highgui"] "error reports missing highgui"
+][
+    print "GUI tests need a display - skipped"
+]
 
 ; ============================================================
 ; Summary

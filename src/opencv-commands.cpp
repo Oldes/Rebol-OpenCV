@@ -432,6 +432,10 @@ extern "C" {
 
 
 COMMAND cmd_opencv_test(RXIFRM *frm, void *ctx) {
+#ifndef HAVE_OPENCV_HIGHGUI
+	// the loop below is stopped by a key press in its window
+	RETURN_ERROR("Not available in this build (no highgui)!");
+#else
 	Mat src;
     // use default camera as video source
     VideoCapture cap(0);
@@ -492,6 +496,7 @@ COMMAND cmd_opencv_test(RXIFRM *frm, void *ctx) {
 //	moveWindow("Display window", 300, 300);
 //	int k = waitKey(0); // Wait for a keystroke in the window
 	return RXR_UNSET;
+#endif
 }
 
 //;-----------------------------------------------------------------------
@@ -1677,6 +1682,12 @@ COMMAND cmd_opencv_convertTo(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/d7/dfc/group__highgui.html             
 //;-----------------------------------------------------------------------
 
+// HighGUI is optional: the self-contained (static) build leaves it out, so it
+// does not depend on GTK/Cocoa/Win32 UI code - windows belong to Rebol/GUI
+// there. The commands stay in the spec so the command table is the same for
+// every build; without HighGUI they report that instead of doing nothing.
+#ifdef HAVE_OPENCV_HIGHGUI
+
 COMMAND cmd_opencv_startWindowThread(RXIFRM *frm, void *ctx) {
 	startWindowThread();
 	return RXR_UNSET;
@@ -1944,6 +1955,36 @@ COMMAND cmd_opencv_setMouseCallback(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_HANDLE;
 	return RXR_VALUE;
 }
+
+#else // !HAVE_OPENCV_HIGHGUI
+
+static const char* ERR_NO_HIGHGUI = "Not available in this build (no highgui)!";
+#define NO_HIGHGUI(name) \
+	COMMAND cmd_opencv_##name(RXIFRM *frm, void *ctx) { RETURN_ERROR(ERR_NO_HIGHGUI); }
+
+NO_HIGHGUI(startWindowThread)
+NO_HIGHGUI(imshow)
+NO_HIGHGUI(pollKey)
+NO_HIGHGUI(waitKey)
+NO_HIGHGUI(namedWindow)
+NO_HIGHGUI(resizeWindow)
+NO_HIGHGUI(moveWindow)
+NO_HIGHGUI(getWindowImageSize)
+NO_HIGHGUI(getWindowImagePos)
+NO_HIGHGUI(getWindowProperty)
+NO_HIGHGUI(setWindowProperty)
+NO_HIGHGUI(setWindowTitle)
+NO_HIGHGUI(destroyAllWindows)
+NO_HIGHGUI(destroyWindow)
+NO_HIGHGUI(createTrackbar)
+NO_HIGHGUI(setTrackbarMax)
+NO_HIGHGUI(setTrackbarMin)
+NO_HIGHGUI(setTrackbarPos)
+NO_HIGHGUI(getTrackbarPos)
+NO_HIGHGUI(selectROI)
+NO_HIGHGUI(setMouseCallback)
+
+#endif // HAVE_OPENCV_HIGHGUI
 
 //;-----------------------------------------------------------------------
 //;- Utilities                                                            
