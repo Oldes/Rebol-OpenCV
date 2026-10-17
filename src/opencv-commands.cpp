@@ -306,34 +306,50 @@ extern "C" {
 		VideoCapture *cap = (VideoCapture*)HOB_PTR(hob);
 		if (!cap) return PE_NONE;
 
-		word = RL_FIND_WORD(Opencv_arg_words, word);
-
-		if (word == W_OPENCV_ARG_WIDTH) {
+		// Each field names its CAP_PROP_* explicitly. The word ids come from
+		// the order of the `handles:` fields in the spec (shared with cvMat),
+		// so they cannot be turned into property ids by arithmetic.
+		switch (RL_FIND_WORD(Opencv_arg_words, word)) {
+		case W_OPENCV_ARG_POS_MS:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_POS_MSEC);
+			break;
+		case W_OPENCV_ARG_POS_FRAME:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_POS_FRAMES);
+			break;
+		case W_OPENCV_ARG_POS_RATIO:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_POS_AVI_RATIO);
+			break;
+		case W_OPENCV_ARG_WIDTH:
 			*type = RXT_INTEGER;
-			arg->uint64 = cap->get(CAP_PROP_FRAME_WIDTH);
-			return PE_USE;
-		}
-		if (word == W_OPENCV_ARG_HEIGHT) {
+			arg->int64 = (i64)cap->get(CAP_PROP_FRAME_WIDTH);
+			break;
+		case W_OPENCV_ARG_HEIGHT:
 			*type = RXT_INTEGER;
-			arg->uint64 = cap->get(CAP_PROP_FRAME_HEIGHT);
-			return PE_USE;
-		}
-		if (word == W_OPENCV_ARG_FRAMES) {
+			arg->int64 = (i64)cap->get(CAP_PROP_FRAME_HEIGHT);
+			break;
+		case W_OPENCV_ARG_FPS:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_FPS);
+			break;
+		case W_OPENCV_ARG_FOURCC:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_FOURCC);
+			break;
+		case W_OPENCV_ARG_FRAMES:
 			*type = RXT_INTEGER;
-			arg->uint64 = cap->get(CAP_PROP_FRAME_COUNT);
-			return PE_USE;
-		}
-		if (word == W_OPENCV_ARG_FORMAT) {
+			arg->int64 = (i64)cap->get(CAP_PROP_FRAME_COUNT);
+			break;
+		case W_OPENCV_ARG_FORMAT:
 			arg->int64 = typeWordFromCv((int)cap->get(CAP_PROP_FORMAT));
 			*type = arg->int64 ? RXT_WORD : RXT_NONE;
-			return PE_USE;
+			break;
+		default:
+			return PE_BAD_SELECT;
 		}
-		if (word >= W_OPENCV_ARG_POS_MS && word <= W_OPENCV_ARG_FRAMES) {
-			*type = RXT_DECIMAL;
-			arg->dec64 = cap->get(word - W_OPENCV_ARG_POS_MS);
-			return PE_USE;
-		}
-		return PE_BAD_SELECT;
+		return PE_USE;
 	}
 
 	int cvVideoWriter_free(void* hndl) {

@@ -536,6 +536,29 @@ mf: cv/Matrix [2x2 :fdata]
 assert-equal 'CV_32FC1 mf/type "Matrix from float32 vector is CV_32FC1"
 
 ; ============================================================
+; 19. Video writing and capture properties
+; ============================================================
+header "Video"
+
+frame: cv/resize mat 64x48
+out: cv/VideoWriter %build/test-video.avi 0 24 64x48   ;; 0 = MJPG
+assert [handle? out] "VideoWriter opens"
+loop 5 [cv/write out frame]
+cv/free out                                            ;; flushes the file
+
+cap: cv/VideoCapture %build/test-video.avi
+assert [handle? cap] "VideoCapture opens the written file"
+assert-equal 64   cap/width  "capture width"
+assert-equal 48   cap/height "capture height"
+assert-equal 24.0 cap/fps    "capture fps"
+assert-equal to decimal! to integer! reverse #{4D4A5047} cap/fourcc "capture fourcc is MJPG"
+assert-equal 5    cap/frames "capture frame count"
+assert [0.0 = cap/pos-frame] "capture starts at frame 0"
+cv/read cap
+assert [1.0 = cap/pos-frame] "pos-frame advances after read"
+cv/free cap
+
+; ============================================================
 ; Summary
 ; ============================================================
 print ""
