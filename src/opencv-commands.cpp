@@ -57,10 +57,13 @@ static char err_buff[255]; // temporary buffer used to pass an exception message
 #define ARG_String(n)           (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data)) //TODO: only ansii yet!
 #define ARG_BorderType(n)       (RXA_TYPE(frm, n) == RXT_INTEGER ? RXA_INT32(frm, n) : BORDER_DEFAULT)
 
-// Special Mat initialization... if Mat at frame n is NULL (arg was none), than it creates a new Mat with same size and type as m at this frame
+// Destination Mat at frame n. When the argument is none, a new matrix with the
+// size and type of `m` is created and stored in that frame slot. It is zeroed:
+// masked operations write only the masked elements, so the rest of a new
+// destination would otherwise be whatever was in the allocated memory.
 #define ARG_Mat_As(n,m)         (ARG_Is_Mat(n)\
 								? (Mat*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n))\
-								: (m ? initRXHandle(frm,n,new Mat(m->size(),m->type()),Handle_cvMat, NULL),(Mat*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n)) : NULL))
+								: (m ? initRXHandle(frm,n,new Mat(m->size(),m->type(),Scalar::all(0)),Handle_cvMat, NULL),(Mat*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n)) : NULL))
 
 enum MatProperties {
 	MAT_SIZE = 1,

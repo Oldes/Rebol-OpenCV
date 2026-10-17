@@ -371,6 +371,16 @@ mask: cv/Matrix [2x1 CV_8UC1 #{FF00}]
 cv/bitwise-not/mask src dst mask
 assert-equal #{FF11} dst/binary "bitwise-not/mask leaves unmasked pixels"
 
+; masked op into a new destination: unmasked elements must be zero
+src:  cv/Matrix [64x64 CV_8UC1 #{01}]          ;; filled with 1
+mb:   append/dup copy #{} 0 4096  mb/1: 255
+mask: cv/Matrix [64x64 CV_8UC1 :mb]            ;; only the first element set
+junk: cv/add src src none                      ;; OpenCV-allocated, all 2
+cv/free junk                                   ;; leave non-zero memory behind
+res:  cv/add/mask src src none mask
+assert-equal 2 res/binary/1 "masked element computed"
+assert-equal 0 res/binary/2 "unmasked element of a new destination is zero"
+
 ; ============================================================
 ; 9. Matrix analysis
 ; ============================================================
