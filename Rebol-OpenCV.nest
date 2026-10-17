@@ -1,10 +1,11 @@
-;-    .-.
-;-   /'v'\   SISKIN-Builder project file
-;-  (/uOu\)  https://github.com/Siskin-framework/Builder/
+;-    .-.                                                                       
+;-   /'v'\   SISKIN-Builder project file                                        
+;-  (/uOu\)  https://github.com/Siskin-framework/Builder/                       
 ;-===="="=======================================================================
 needs: [siskin 0.23.0]
 
 github: opencv/opencv /5.0.0
+;github: opencv/opencv_extra
 
 compiler: clang
 version: 5.0.0
@@ -30,9 +31,19 @@ define: ENDIAN_LITTLE
 define: REB_EXT
 
 target-x86: [
+	;- On linux needs:  sudo apt install gcc-multilib g++-multilib
 	arch: x86
-	#if Windows? [ defines: [ TO_WIN32 _WIN32 ] ]
-	#if Linux?   [ defines: [ TO_LINUX_X86    ] ]
+	#if macOS?   [ fail "It is not possible to make 32bit build on macos" ]
+	#if Posix?   [
+		set CMAKE_ARCH: "-DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32"
+		include: %$SISKIN_INSTALL/x86/include/opencv5/
+		library: %$SISKIN_INSTALL/x86/lib/
+	]
+	#if Windows? [
+		flags: "-arch x86_64"
+		include: %$SISKIN_INSTALL/x86/include/
+		library: %$SISKIN_INSTALL/x86/Win32/vc17/lib/
+	]
 ]
 target-x64: [
 	arch: x64
@@ -40,18 +51,58 @@ target-x64: [
 		_FILE_OFFSET_BITS=64
 		__LP64__ ; has long (integer) 64 bits
 	]
-	#if Windows? [ defines: [ TO_WIN32_X64 _WIN32 ] ]
-	#if Linux?   [ defines: [ TO_LINUX_X64        ] ]
-	#if macOS?   [ defines: [ TO_OSX_X64          ] flags: ["-arch x86_64"] ]
+	#if Windows? [ set CMAKE_ARCH: "-A x64" ]
+	#if Posix?   [ set CMAKE_ARCH: ""]
+	#if macOS?   [
+		flags: ["-arch x86_64"] 
+		set CMAKE_ARCH: [
+			"-DCMAKE_OSX_SYSROOT=macosx"
+			"-DCMAKE_OSX_ARCHITECTURES=x86_64"
+			"-DCMAKE_APPLE_SILICON_PROCESSOR=x86_64" ;; make CMake treat the build as x86_64, not the arm64 host
+			"-DWITH_KLEIDICV=OFF"                    ;; ARM-only HAL
+			"-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+		]
+	]
+	#if Posix?   [
+		include: %$SISKIN_INSTALL/x64/include/opencv5/
+		library: %$SISKIN_INSTALL/x64/lib/
+	]
+	#if Windows? [
+		include: %$SISKIN_INSTALL/x64/include/
+		library: %$SISKIN_INSTALL/x64/x64/vc17/lib/
+	]
 ]
 target-arm64: [
 	arch: arm64
-	;flags: ["-arch arm64"]
-	flags: "-target arm64-apple-darwin"
 	define: _FILE_OFFSET_BITS=64
 	define: __LP64__ ; has long (integer) 64 bits
 	define: __arm64__
-	define: TO_OSX_X64
+	#if Posix? [
+		#either macOS? [
+			flags: "-target arm64-apple-darwin"
+			set CMAKE_ARCH: [
+				"-DCMAKE_OSX_SYSROOT=macosx"
+				"-DCMAKE_OSX_ARCHITECTURES=arm64"
+				"-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"
+				"-DACCELERATE_NEW_LAPACK:BOOL=ON"
+			]
+		][
+			;- Needs:  sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+			set CMAKE_ARCH: [
+				"-DCMAKE_SYSTEM_NAME=Linux"
+				"-DCMAKE_SYSTEM_PROCESSOR=aarch64"
+				"-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc"
+				"-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++"
+			]
+		]
+		include: %$SISKIN_INSTALL/arm64/include/opencv5/
+		library: %$SISKIN_INSTALL/arm64/lib/
+	]
+	#if Windows? [
+		set CMAKE_ARCH: "-A arm64" 
+		include: %$SISKIN_INSTALL/arm64/include/
+		library: %$SISKIN_INSTALL/arm64/aarch64/vc17/lib/
+	]
 ]
 ;----------------------------------------------------------------
 
@@ -64,10 +115,8 @@ include: %src/
 ]
 
 #if posix? [
-	cppflag: "-std=c++11"
+	cppflag: "-std=c++17" ;; OpenCV5 needs 17 (OpenCV4 was 11)
 	lflag:   "-lstdc++"
-	include: %/usr/local/include/opencv4/
-	library: %/usr/local/lib/
 	library: %opencv_core
 	library: %opencv_features2d
 	library: %opencv_highgui
@@ -79,7 +128,6 @@ include: %src/
 
 #if Windows?  [
 	compiler: clang
-	include: %$SISKIN_INSTALL/include/
 	library: %opencv_core500
 	library: %opencv_features500
 	library: %opencv_highgui500
@@ -100,68 +148,101 @@ make-extension: [
 	]
 ]
 
-eggs: only [
-	#if (find [Linux OpenBSD FreeBSD NetBSD DragonflyBSD] system/platform) [
-		"Build OpenCV libraries (cmake)" [
-			;@@ https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html
-			name: %opencv-libraries
-			cmd %tmp/linux/ "cmake -G ^"Unix Makefiles^" ../../opencv/ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/linux/ "sudo make install -j8"
-		]
+cmake-spec: [
+	set-env CMAKE_COMMON: [
+		"-DCMAKE_BUILD_TYPE=Release"
+		"-DCMAKE_VERBOSE_MAKEFILE=OFF"
+		"-DBUILD_PERF_TESTS=OFF"
+		"-DBUILD_TESTS=OFF"
+		"-DBUILD_DOCS=OFF"
+		"-DBUILD_EXAMPLES=OFF"
+		"-DINSTALL_CREATE_DISTRIB=OFF"
+	;	"-DOPENCV_ENABLE_NONFREE=ON"
+	;- Components used:
+		"-DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,objdetect"
+	;- Unused parts:
+		"-DWITH_CUDA=OFF"        ;; your Linux egg sets it ON - large, slow to build, and nothing uses it
+		"-DWITH_OPENCL=OFF"      ;; only used through UMat, the extension uses Mat
+		"-DWITH_PROTOBUF=OFF"    ;; dnn only
+		"-DWITH_ADE=OFF"         ;; G-API only
+		"-DWITH_ITT=OFF"         ;; Intel profiling hooks
+		"-DWITH_GDAL=OFF"
+		"-DWITH_OPENEXR=OFF"     ;; unless you want .exr in imread
+		"-DWITH_MLAS=OFF"
+	;- Image codecs:
+		"-DWITH_QUIRC=ON"        ;; QR decoding (qrcode-decode); without it decode returns empty
+		"-DWITH_TIFF=ON"         ;; imreadmulti test uses image/2page.tiff
+		"-DWITH_PNG=ON"
+		"-DWITH_JPEG=ON"
+		"-DWITH_WEBP=ON"
+	;- Video:
+		"-DWITH_FFMPEG=OFF"      ;; handle only MJPG/AVI, plus cameras through the OS backend.
+	;	"-DVIDEOIO_ENABLE_PLUGINS=OFF" ;; to build the backends into the library
+	;- Camera beckends (keep defaults)
+	;	"-DWITH_AVFOUNDATION=OFF"   ;; macOS
+	;	"-DWITH_MSMF=OFF"           ;; Windows
+	;	"-DWITH_V4L=OFF"            ;; Linux
+	;- HighGUI
+	;	"-DWITH_GTK=OFF"
+	;	"-DWITH_QT=OFF"
+	;- Python bindings are not used:
+		"-DBUILD_opencv_python3=OFF"
+		"-DBUILD_opencv_python2=OFF"         ;; OpenCV 4 only, 5.x has no Python 2
+		"-DBUILD_opencv_python_bindings_generator=OFF"
+		"-DBUILD_opencv_python_tests=OFF"
+		"-DOPENCV_PYTHON_SKIP_DETECTION=ON"  ;; don't even look for Python interpreters
+	;- Java bindings are not used:
+		"-DBUILD_JAVA=OFF"
+		"-DBUILD_opencv_java_bindings_generator=OFF"
+		"-DBUILD_opencv_js_bindings_generator=OFF"
+		"-DBUILD_opencv_objc_bindings_generator=OFF"
+	;- For a redistributable .rebx:
+	;	"-DOPENCV_FORCE_3RDPARTY_BUILD=ON"      ;; bundled zlib/png/jpeg/tiff/webp instead of whatever the build machine has
+	;	"-DCPU_BASELINE=SSE3"                   ;; default on x64; don't set it to AVX2 or "native", or the .rebx
+	;	"-DCPU_DISPATCH=SSE4_1;AVX2;AVX512_SKX" ;; won't load on older CPUs - dispatch still uses AVX2 at run time
+	;- Above defined based on target
+		"$CMAKE_ARCH"
 	]
-	#if Windows? [
-		"Build OpenCV libraries (cmake) x86" [
-			name: %opencv-libraries-x86
-			cmd [
-				"cmake -B $SISKIN_TEMP/Win32/opencv5 -S opencv"
-				"-A Win32"
-				"-DCMAKE_VERBOSE_MAKEFILE=OFF"
-				"-DCMAKE_BUILD_TYPE=Release"
-				"-DBUILD_PERF_TESTS:BOOL=OFF"
-				"-DBUILD_TESTS:BOOL=OFF"
-				"-DBUILD_DOCS:BOOL=OFF"
-				;"-DWITH_CUDA:BOOL=OFF"
-				"-DBUILD_EXAMPLES:BOOL=OFF"
-				"-DINSTALL_CREATE_DISTRIB=OFF"
-				"-DBUILD_opencv_dnn=OFF"
-				;"-DOPENCV_ENABLE_NONFREE=ON"
-				;"-DWITH_MLAS=ON"
-			]
-			cmd "cmake --build   $SISKIN_TEMP/opencv5 --config release -j 8"
-			cmd "cmake --install $SISKIN_TEMP/opencv5 --prefix $SISKIN_INSTALL"
-		]
-		"Build OpenCV libraries (cmake) x64" [
-			name: %opencv-libraries-x64
-			cmd [
-				"cmake -B $SISKIN_TEMP/opencv5 -S opencv"
-				"-A x64"
-				"-DCMAKE_VERBOSE_MAKEFILE=OFF"
-				"-DCMAKE_BUILD_TYPE=Release"
-				"-DBUILD_PERF_TESTS:BOOL=OFF"
-				"-DBUILD_TESTS:BOOL=OFF"
-				"-DBUILD_DOCS:BOOL=OFF"
-				;"-DWITH_CUDA:BOOL=OFF"
-				"-DBUILD_EXAMPLES:BOOL=OFF"
-				"-DINSTALL_CREATE_DISTRIB=OFF"
-				"-DBUILD_opencv_dnn=OFF"
-				;"-DOPENCV_ENABLE_NONFREE=ON"
-				;"-DWITH_MLAS=ON"
-			]
-			cmd "cmake --build   $SISKIN_TEMP/opencv5 --config release -j 8"
-			cmd "cmake --install $SISKIN_TEMP/opencv5 --prefix $SISKIN_INSTALL"
-		]
+]
 
+eggs: only [
+	"Cmake OpenCV - x86" [
+		name: %cmake-opencv-x86
+		:target-x86 :cmake-spec
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-x86 -S opencv/ $CMAKE_COMMON"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-x86 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-x86 --prefix $SISKIN_INSTALL/x86"
+	]
+	"Cmake OpenCV - x64" [
+		name: %cmake-opencv-x64
+		:target-x64 :cmake-spec
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-x64 -S opencv/ $CMAKE_COMMON"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-x64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-x64 --prefix $SISKIN_INSTALL/x64"
+	]
+	"Cmake OpenCV - arm64" [
+		name: %cmake-opencv-arm64
+		:target-arm64 :cmake-spec
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-arm64 -S opencv/ $CMAKE_COMMON"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-arm64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-arm64 --prefix $SISKIN_INSTALL/arm64"
+	]
+
+	#if Windows? [
 		"Rebol openCV extension: windows_x86" [
 			name: %opencv-windows-x86.rebx
-			library: %$SISKIN_INSTALL/x86/vc17/lib/
 			:make-extension
 			:target-x86
 		]
 		"Rebol openCV extension: windows_x64" [
 			name: %opencv-windows-x64.rebx
-			library: %$SISKIN_INSTALL/x64/vc17/lib/
 			:make-extension
 			:target-x64
+		]
+		"Rebol openCV extension: windows_arm64" [
+			name: %opencv-windows-arm64.rebx
+			:make-extension
+			:target-arm64
 		]
 	]
 	#if macOS? [
