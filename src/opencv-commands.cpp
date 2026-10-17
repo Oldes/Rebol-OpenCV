@@ -569,7 +569,8 @@ COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 					trace("Invalid matrix argument.");
 					goto err_spec;
 				}
-				t = RL_GET_VALUE(blk, n++, &val);
+				// the rectangle block follows the handle
+				t = RL_GET_VALUE(blk, ++n, &val);
 				if (t == RXT_GET_WORD || t == RXT_GET_PATH) {
 					t = RL_GET_VALUE_RESOLVED(blk, n, &val);
 				}

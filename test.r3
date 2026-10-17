@@ -173,6 +173,18 @@ m6: cv/Matrix m1
 assert [handle? m6] "Matrix copy from handle"
 assert [m6/size = m1/size] "Matrix copy same size"
 
+; --- submatrix (region of interest) ---
+sub: cv/Matrix [:m1 [10x20 30x40]]
+assert [handle? sub] "Submatrix from get-word handle and rectangle"
+assert [sub/size = 30x40] "Submatrix has the rectangle's size"
+assert [sub/is-submatrix] "Submatrix reports is-submatrix"
+
+sub2: cv/Matrix reduce [m1 [10x20 30x40]]
+assert [handle? sub2] "Submatrix from reduced spec (handle value, not get-word)"
+assert [sub2/size = 30x40] "Reduced submatrix has the rectangle's size"
+
+assert-error "Submatrix without rectangle errors" [cv/Matrix [:m1]]
+
 ; --- free ---
 cv/free m6
 assert [none? m6/size] "Freed handle reads as none"
