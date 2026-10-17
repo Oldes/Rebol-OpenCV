@@ -183,7 +183,9 @@ sub2: cv/Matrix reduce [m1 [10x20 30x40]]
 assert [handle? sub2] "Submatrix from reduced spec (handle value, not get-word)"
 assert [sub2/size = 30x40] "Reduced submatrix has the rectangle's size"
 
-assert-error "Submatrix without rectangle errors" [cv/Matrix [:m1]]
+assert-error "Submatrix without rectangle errors"  [cv/Matrix [:m1]]
+assert-error "Submatrix outside the source errors" [cv/Matrix [:m1 [300x200 100x100]]]
+assert-error "Submatrix with negative size errors" [cv/Matrix [:m1 [0x0 -1x10]]]
 
 ; --- free ---
 cv/free m6

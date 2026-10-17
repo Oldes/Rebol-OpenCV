@@ -599,7 +599,11 @@ COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 					trace("Expected block with 2 pairs!");
 					goto err_spec;
 				}
+				// A rectangle outside the source throws - report it as an error
+				// rather than let the exception escape the extension.
+				EXCEPTION_TRY
 				mat = new Mat(*src, Rect(pos.pair.x,pos.pair.y,sz.pair.x,sz.pair.y));
+				EXCEPTION_CATCH
 				goto done;
 			}
 			else goto err_spec;
