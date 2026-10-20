@@ -43,6 +43,8 @@ args: system/options/args
 static?: did find args "--static"
 if find args "--torture" [recycle/torture] ;; to detect GC related errors
 
+;; `import` takes its name literally (`import opencv`), so an expression
+;; must be in parentheses
 cv: import (either static? ['opencv-static]['opencv])
 
 make-dir %build/
@@ -159,7 +161,7 @@ m1: cv/Matrix 320x240
 --test-- "Matrix size from pair"           [is? m1/size 320x240]
 --test-- "Matrix width"                    [is? m1/width 320]
 --test-- "Matrix height"                   [is? m1/height 240]
---test-- "Matrix channels (default BGR)"   [is? m1/channels 3]
+--test-- "Matrix channels (default BGRA)"  [is? m1/channels 4]
 --test-- "Matrix depth CV_8U"              [m1/depth = 'CV_8U]
 --test-- "Matrix is not submatrix"         [not m1/is-submatrix]
 --test-- "Matrix total elements (320*240)" [is? m1/total 76800]
@@ -238,7 +240,7 @@ mat: cv/imread %image/lena.jpeg
 
 --test-- "imwrite saves file" [
 	cv/imwrite %build/test-save.png mat
-	exists? %build/test-save.png
+	did exists? %build/test-save.png
 ]
 --test-- "imread round-trip same size" [
 	mat-loaded: cv/imread %build/test-save.png
@@ -424,7 +426,9 @@ group "get-property constants"
 
 --test-- "get-property MAT_SIZE"     [is? cv/get-property mat cv/MAT_SIZE mat/size]
 --test-- "get-property MAT_CHANNELS" [is? cv/get-property mat cv/MAT_CHANNELS mat/channels]
+--test-- "get-property MAT_TYPE"     [(cv/get-property mat cv/MAT_TYPE) = mat/type]
 --test-- "get-property MAT_DEPTH"    [(cv/get-property mat cv/MAT_DEPTH) = mat/depth]
+--test-- "get-property MAT_DEPTH is a word" [word? cv/get-property mat cv/MAT_DEPTH]
 --test-- "get-property MAT_BINARY"   [binary? cv/get-property mat cv/MAT_BINARY]
 --test-- "get-property MAT_IMAGE"    [image?  cv/get-property mat cv/MAT_IMAGE]
 --test-- "get-property MAT_VECTOR"   [vector? cv/get-property mat cv/MAT_VECTOR]

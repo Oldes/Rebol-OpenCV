@@ -840,8 +840,10 @@ COMMAND cmd_opencv_get_property(RXIFRM *frm, void *ctx) {
 				return RXR_VALUE;
 			}
 			case MAT_DEPTH: {
-				RXA_TYPE(frm,1) = RXT_INTEGER;
-				RXA_ARG(frm,1).int64 = mat->depth();
+				// a word, like MAT_TYPE and the mat/depth accessor
+				RXA_ARG(frm,1).int64 = depthWordFromCv(mat->depth());
+				if (!RXA_ARG(frm,1).int64) return RXR_NONE;
+				RXA_TYPE(frm,1) = RXT_WORD;
 				return RXR_VALUE;
 			}
 			case MAT_CHANNELS: {
