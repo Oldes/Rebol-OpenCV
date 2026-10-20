@@ -22,31 +22,24 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Install Siskin Builder
-      uses: oldes/install-siskin@v0.17.0
+      uses: oldes/install-siskin@v0.23.1
 
-    - name: Build OpenCV libraries
-      run: ./siskin Rebol-OpenCV.nest opencv-libraries-x64
+    - name: Build OpenCV static libraries
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-static-x64
 
     - name: Build 64bit Rebol OpenCV extension
-      run: ./siskin Rebol-OpenCV.nest -o ./build/opencv-windows-x64.rebx --msvc opencv-windows-x64.rebx
-
-    - name: Install Rebol for extension test
-      uses: oldes/install-rebol@v3.17.0
-      with:
-        product: Bulk # used `resize` in tests
+      run: ./siskin Rebol-OpenCV.nest -o ./build/opencv-static-abi1-x64.rebx --msvc opencv-static-windows-x64
 
     - name: Test extension
-      run:  ./rebol3.exe test.r3
+      run:  ./siskin --script test.r3 --static
 
-    ###############################################################################
-    # Collecting build artifacts...
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: Rebol-OpenCV-Windows-${{github.run_id}}
-        path: ./build/*
+        path: ./build/*.rebx
 
   linux:
     strategy:
@@ -55,38 +48,70 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Install Siskin Builder
-      uses: oldes/install-siskin@v0.17.0
+      uses: oldes/install-siskin@v0.23.1
 
-    - name: Build and install OpenCV libraries
-      run: ./siskin Rebol-OpenCV.nest opencv-libraries
+    - name: Build OpenCV static libraries
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-static-x64
 
     - name: Build 64bit Rebol OpenCV extension
-      run: ./siskin Rebol-OpenCV.nest -o ./build/opencv-linux-x64.rebx opencv-linux-x64
+      run: ./siskin Rebol-OpenCV.nest --gzip -o ./build/opencv-static-abi1-x64.rebx opencv-static-linux-x64
 
     - name: Setup library location
       run: |
         sudo ldconfig /usr/local/lib
         sudo ldconfig -v
-        ldd -v ./build/opencv-linux-x64.rebx
-
-    - name: Install Rebol for extension test
-      uses: oldes/install-rebol@v3.17.0
-      with:
-        product: Bulk # used `resize` in tests
+        ldd -v ./build/opencv-abi1-x64.rebx
 
     - name: Test extension
-      run:  ./rebol3 test.r3
+      run:  ./siskin --script test.r3 --static
 
-    ###############################################################################
-    # Collecting build artifacts...
-
-    - name: Compress Rebol/OpenCV extension
-      run:  gzip -9 ./build/opencv-linux-x64.rebx
-
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: Rebol-OpenCV-Linux-${{github.run_id}}
-        path: ./build/*
+        path: ./build/*.rebx.gz
+
+  macos-intel:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: Install Siskin Builder
+      uses: oldes/install-siskin@v0.23.1
+
+    - name: Build OpenCV static libraries
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-x64
+
+    - name: Build 64bit Rebol OpenCV extension
+      run: ./siskin Rebol-OpenCV.nest --gzip -o ./build/opencv-static-abi1-x64.rebx opencv-static-macos-x64
+
+    - name: Test extension
+      run:  ./siskin --script test.r3 --static
+
+    - uses: actions/upload-artifact@v6
+      with:
+        name: Rebol-OpenCV-macos-intel-${{github.run_id}}
+        path: ./build/*.rebx.gz
+
+  macos-arm:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: Install Siskin Builder
+      uses: oldes/install-siskin@v0.23.1
+
+    - name: Build OpenCV static libraries
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-arm64
+
+    - name: Build 64bit Rebol OpenCV extension
+      run: ./siskin Rebol-OpenCV.nest --gzip -o ./build/opencv-static-abi1-arm64.rebx opencv-static-macos-arm64
+
+    - uses: actions/upload-artifact@v6
+      with:
+        name: Rebol-OpenCV-macos-arm-${{github.run_id}}
+        path: ./build/*.rebx.gz

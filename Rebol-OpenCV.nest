@@ -352,15 +352,15 @@ eggs: only [
 	;- Extension linked against the shared OpenCV libraries -----------------
 	#if Windows? [
 		"Rebol openCV extension: windows_x86" [
-			name: %opencv-windows-x86.rebx
+			name: %opencv-windows-x86
 			:make-extension :target-x86 :opencv-dynamic
 		]
 		"Rebol openCV extension: windows_x64" [
-			name: %opencv-windows-x64.rebx
+			name: %opencv-windows-x64
 			:make-extension :target-x64 :opencv-dynamic
 		]
 		"Rebol openCV extension: windows_arm64" [
-			name: %opencv-windows-arm64.rebx
+			name: %opencv-windows-arm64
 			:make-extension :target-arm64 :opencv-dynamic
 		]
 	]
@@ -368,15 +368,16 @@ eggs: only [
 		"Rebol openCV extension: macos_x64" [
 			name: %opencv-macos-x64
 			:make-extension :target-x64 :opencv-dynamic
+			lflag: "-Wl,-install_name,@rpath/opencv-abi1-x64.rebx"
 		;	lflag: "-Wl,-rpath,$SISKIN_INSTALL/x64/lib"     ;; dev install
-		;	lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
+			lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
 		]
 		"Rebol openCV extension: macos_arm64" [
 			name: %opencv-macos-arm64
 			:make-extension :target-arm64 :opencv-dynamic
 			lflag: "-Wl,-install_name,@rpath/opencv-abi1-arm64.rebx"
 		;	lflag: "-Wl,-rpath,$SISKIN_INSTALL/arm64/lib"   ;; dev install
-		;	lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
+			lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
 		]
 	]
 	#if Linux? [
@@ -398,19 +399,19 @@ eggs: only [
 	;; libpng...) do not exist in the shared install.
 	#if Windows? [
 		"Rebol openCV extension: windows_x86 (static)" [
-			name: %opencv-static-windows-x86.rebx
+			name: %opencv-static-windows-x86
 			include: %$SISKIN_INSTALL/x86-static/include/
 			library: %$SISKIN_INSTALL/x86-static/x86/vc17/staticlib/
 			:make-extension :target-x86 :opencv-static
 		]
 		"Rebol openCV extension: windows_x64 (static)" [
-			name: %opencv-static-windows-x64.rebx
+			name: %opencv-static-windows-x64
 			include: %$SISKIN_INSTALL/x64-static/include/
 			library: %$SISKIN_INSTALL/x64-static/x64/vc17/staticlib/
 			:make-extension :target-x64 :opencv-static
 		]
 		"Rebol openCV extension: windows_arm64 (static)" [
-			name: %opencv-static-windows-arm64.rebx
+			name: %opencv-static-windows-arm64
 			include: %$SISKIN_INSTALL/arm64-static/include/
 			library: %$SISKIN_INSTALL/arm64-static/aarch64/vc17/staticlib/
 			:make-extension :target-arm64 :opencv-static
