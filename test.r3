@@ -30,6 +30,7 @@ CI?: any [
 
 if modules-dir: get-env 'REBOL_MODULES_DIR [
     system/options/modules: dirize to-rebol-file modules-dir
+    ls (system/options/modules)
 ]
 
 ;; make sure that we load a fresh extension - the module directory may hold a
