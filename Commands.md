@@ -459,6 +459,9 @@ Returns library version string.
 #### `version`
 Returns the version of the OpenCV library in use as a tuple.
 
+#### `info`
+Returns information about the OpenCV library in use: version, CPUs and features, threading and the available video backends.
+
 #### `getBuildInformation`
 Returns full configuration time cmake output.
 

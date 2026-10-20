@@ -9,6 +9,7 @@
 //
 
 #include "opencv2/opencv.hpp"
+#include "opencv2/videoio/registry.hpp"
 #include "opencv.h"
 
 static const char* ERR_MAT_TYPE   = "Invalid matrix type!";
@@ -2138,6 +2139,99 @@ COMMAND cmd_opencv_version(RXIFRM *frm, void *ctx) {
 	RXA_TUPLE_LEN(frm, 1) = 3;
 	return RXR_VALUE;
 }
+//-- info helpers ---------------------------------------------------------
+
+static REBSER* make_string(const std::string &str) {
+	REBLEN len = (REBLEN)str.length();
+	REBSER *ser = (REBSER *)RL_MAKE_STRING(len, FALSE);
+	memcpy(ser->data, str.c_str(), len);
+	SERIES_TAIL(ser) = len;
+	return ser;
+}
+
+// Appends `key: value` to the block.
+static void info_put(REBSER *blk, const char *key, RXIARG val, REBCNT type) {
+	RXIARG word;
+	word.int64  = 0;
+	word.int32a = RL_MAP_WORD((REBYTE*)key);
+	RL_SET_VALUE(blk, SERIES_TAIL(blk), word, RXT_SET_WORD);
+	RL_SET_VALUE(blk, SERIES_TAIL(blk), val, type);
+}
+static void info_put_int(REBSER *blk, const char *key, i64 num) {
+	RXIARG val;
+	val.int64 = num;
+	info_put(blk, key, val, RXT_INTEGER);
+}
+static void info_put_series(REBSER *blk, const char *key, REBSER *ser, REBCNT type) {
+	RXIARG val;
+	val.series = ser;
+	val.index  = 0;
+	info_put(blk, key, val, type);
+}
+
+// Video backend names as a block of words (FFMPEG, AVFOUNDATION, CV_MJPEG...).
+static REBSER* backends_block(const std::vector<VideoCaptureAPIs> &apis) {
+	REBSER *blk = (REBSER*)RL_MAKE_BLOCK((u32)apis.size());
+	RXIARG val;
+	for (size_t i = 0; i < apis.size(); i++) {
+		String name = videoio_registry::getBackendName(apis[i]);
+		val.int64  = 0;
+		val.int32a = RL_MAP_WORD((REBYTE*)name.c_str());
+		RL_SET_VALUE(blk, SERIES_TAIL(blk), val, RXT_WORD);
+	}
+	return blk;
+}
+
+// The threading backend is not public API; the build information names it
+// on its "Parallel framework:" line.
+static std::string parallel_framework() {
+	std::string info = getBuildInformation();
+	const char *label = "Parallel framework:";
+	size_t p = info.find(label);
+	if (p == std::string::npos) return "";
+	p = info.find_first_not_of(" \t", p + strlen(label));
+	if (p == std::string::npos) return "";
+	size_t e = info.find_first_of("\r\n", p);
+	std::string str = info.substr(p, e == std::string::npos ? std::string::npos : e - p);
+	size_t last = str.find_last_not_of(" \t");
+	return (last == std::string::npos) ? "" : str.substr(0, last + 1);
+}
+
+COMMAND cmd_opencv_info(RXIFRM *frm, void *ctx) {
+	REBSER *blk;
+	RXIARG val;
+
+	EXCEPTION_TRY
+	blk = (REBSER*)RL_MAKE_BLOCK(20);
+
+	val.int64 = 0;
+	val.tuple_len = 3;
+	val.tuple_bytes[0] = (REBYTE)getVersionMajor();
+	val.tuple_bytes[1] = (REBYTE)getVersionMinor();
+	val.tuple_bytes[2] = (REBYTE)getVersionRevision();
+	info_put(blk, "version", val, RXT_TUPLE);
+
+	info_put_int(blk, "cpus", getNumberOfCPUs());
+	info_put_int(blk, "threads", getNumThreads());
+
+	val.int64  = 0;
+	val.int32a = useOptimized() ? 1 : 0;
+	info_put(blk, "optimized", val, RXT_LOGIC);
+
+	info_put_series(blk, "parallel",       make_string(parallel_framework()), RXT_STRING);
+	info_put_series(blk, "cpu-features",   make_string(getCPUFeaturesLine()), RXT_STRING);
+	info_put_series(blk, "video-backends", backends_block(videoio_registry::getBackends()),       RXT_BLOCK);
+	info_put_series(blk, "video-cameras",  backends_block(videoio_registry::getCameraBackends()), RXT_BLOCK);
+	info_put_series(blk, "video-streams",  backends_block(videoio_registry::getStreamBackends()), RXT_BLOCK);
+	info_put_series(blk, "video-writers",  backends_block(videoio_registry::getWriterBackends()), RXT_BLOCK);
+	EXCEPTION_CATCH
+
+	RXA_TYPE  (frm, 1) = RXT_BLOCK;
+	RXA_SERIES(frm, 1) = blk;
+	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
+}
+
 COMMAND cmd_opencv_getBuildInformation(RXIFRM *frm, void *ctx) {
 	String str = getBuildInformation();
 	int len = str.length();

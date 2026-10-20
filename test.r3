@@ -145,6 +145,22 @@ group "Basic info & utilities"
 	]
 ]
 --test-- "getBuildInformation returns string" [string? cv/getBuildInformation]
+
+inf: cv/info
+print ["OpenCV info:" mold inf]
+--test-- "info returns block"                  [block? inf]
+--test-- "info/version matches version"        [is? inf/version cv/version]
+--test-- "info/cpus is positive"               [all [integer? inf/cpus  inf/cpus > 0]]
+--test-- "info/threads matches getNumThreads"  [is? inf/threads cv/getNumThreads]
+--test-- "info/optimized matches useOptimized" [is? inf/optimized cv/useOptimized]
+--test-- "info/parallel is a string"           [string? inf/parallel]
+--test-- "info/cpu-features is a string"       [string? inf/cpu-features]
+foreach key [video-backends video-cameras video-streams video-writers][
+	--test-- ajoin ["info/" key " is a block of words"] compose [
+		all [block? b: select inf (to lit-word! key)  parse b [any word!]]
+	]
+]
+--test-- "the built-in MJPEG writer is listed" [did find inf/video-writers 'CV_MJPEG]
 --test-- "getTickCount returns integer"    [integer? cv/getTickCount]
 --test-- "getTickFrequency returns decimal" [decimal? cv/getTickFrequency]
 --test-- "getNumThreads returns integer"   [integer? cv/getNumThreads]

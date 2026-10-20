@@ -1,7 +1,7 @@
 REBOL [
 	Title:   "Rebol OpenCV Extension"
 	Name:    opencv
-	Version: 5.0.0
+	Version: 0.3.0
 	Needs:   3.22.10
 	Author:  @Oldes
 	License: MIT
@@ -706,6 +706,9 @@ commands: [
 	getNumThreads: ["Returns the number of threads used by OpenCV for parallel regions."]
 	getVersionString: ["Returns library version string."]
 	version: ["Returns the version of the OpenCV library in use as a tuple."]
+	info: [
+		{Returns information about the OpenCV library in use: version, CPUs and features, threading and the available video backends.}
+	]
 	getBuildInformation: ["Returns full configuration time cmake output."]
 	useOptimized: ["Returns the status of optimized code usage."]
 	setUseOptimized: ["Enables or disables the optimized code." onoff [logic!]]
