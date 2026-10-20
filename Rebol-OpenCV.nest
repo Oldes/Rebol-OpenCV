@@ -16,14 +16,17 @@ version: 5.0.0
 #if Windows? [
 	define: TO_WINDOWS
 	define: _CRT_SECURE_NO_WARNINGS
+	set-env CMAKE_GEN: {-G "Visual Studio 17 2022"}
 ]
 #if macOS?   [
 	define: TO_OSX
 	define: HAS_BOOL
+	set-env CMAKE_GEN: ""
 ]
 #if Linux? [
 	define: TO_LINUX
 	compiler: gcc
+	set-env CMAKE_GEN: ""
 ]
 
 define: ENDIAN_LITTLE
@@ -43,6 +46,7 @@ target-x86: [
 		flags: "-arch x86_64"
 		include: %$SISKIN_INSTALL/x86/include/
 		library: %$SISKIN_INSTALL/x86/Win32/vc17/lib/
+		set CMAKE_ARCH: "-A Win32 -DCMAKE_ASM_COMPILER=CMAKE_ASM_COMPILER-NOTFOUND"
 	]
 ]
 target-x64: [
@@ -51,7 +55,7 @@ target-x64: [
 		_FILE_OFFSET_BITS=64
 		__LP64__ ; has long (integer) 64 bits
 	]
-	#if Windows? [ set CMAKE_ARCH: "-A x64" ]
+	#if Windows? [ set CMAKE_ARCH: "-A x64 -DCMAKE_ASM_COMPILER=CMAKE_ASM_COMPILER-NOTFOUND" ]
 	#if Posix?   [ set CMAKE_ARCH: ""]
 	#if macOS?   [
 		flags: ["-arch x86_64"] 
@@ -224,7 +228,9 @@ cmake-spec: [
 		"-DBUILD_DOCS=OFF"
 		"-DBUILD_EXAMPLES=OFF"
 		"-DINSTALL_CREATE_DISTRIB=OFF"
+		"-DOPENCV_GENERATE_PKGCONFIG=OFF"
 	;	"-DOPENCV_ENABLE_NONFREE=ON"
+		"-DOPENCV_FORCE_3RDPARTY_BUILD=ON"       ;; bundled zlib/png/jpeg/tiff/webp, built static
 	;- Components used:
 		"-DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,objdetect"
 	;- Unused parts:
@@ -278,7 +284,7 @@ cmake-static: [
 		"-DCMAKE_POSITION_INDEPENDENT_CODE=ON"   ;; the archives end up inside a shared .rebx
 		"-DBUILD_opencv_world=ON"                ;; one library - no module link order to get right
 		"-DOPENCV_FORCE_3RDPARTY_BUILD=ON"       ;; bundled zlib/png/jpeg/tiff/webp, built static
-		"-DOPENCV_GENERATE_PKGCONFIG=ON"         ;; opencv5.pc lists the exact static link line
+		"-DOPENCV_GENERATE_PKGCONFIG=OFF"        ;; opencv5.pc lists the exact static link line
 		"-DVIDEOIO_ENABLE_PLUGINS=ON"            ;; used bellow to enable external FFMPEG
 	;- no highgui: windows are Rebol/GUI's job, and the .rebx needs no GTK/Cocoa UI
 	;- (given after CMAKE_COMMON, so this BUILD_LIST wins)
@@ -289,9 +295,9 @@ cmake-static: [
 		"-DWITH_OPENJPEG=OFF"                    ;; JPEG 2000 ...
 		"-DWITH_JASPER=OFF"                      ;; ... and its fallback codec
 		"-DWITH_KLEIDICV=OFF"                    ;; ARM HAL (arm64)
-	;- Windows: OpenCV's default is the static CRT (/MT), which matches what clang
-	;- uses for the extension by default. On LNK2038 "RuntimeLibrary mismatch" flip it:
-	;	"-DBUILD_WITH_STATIC_CRT=OFF"
+	;- Windows: the extension is built with the DLL CRT (/MD), OpenCV defaults to the
+	;- static one (/MT) - they must match or the link fails with LNK2038.
+		"-DBUILD_WITH_STATIC_CRT=OFF"
 	;- Enable runtime video plugin
 		"-DWITH_FFMPEG=ON"
 		"-DVIDEOIO_PLUGIN_LIST=ffmpeg"
@@ -304,43 +310,43 @@ eggs: only [
 		:target-x86 :cmake-spec
 		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-x86 -S opencv/ $CMAKE_COMMON"
 		cmd "cmake --build    $SISKIN_TEMP/opencv5-x86 --config release -j 8"
-		cmd "cmake --install  $SISKIN_TEMP/opencv5-x86 --prefix $SISKIN_INSTALL/x86"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-x86 --config release --prefix $SISKIN_INSTALL/x86"
 	]
 	"Cmake OpenCV - x64" [
 		name: %cmake-opencv-x64
 		:target-x64 :cmake-spec
 		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-x64 -S opencv/ $CMAKE_COMMON"
 		cmd "cmake --build    $SISKIN_TEMP/opencv5-x64 --config release -j 8"
-		cmd "cmake --install  $SISKIN_TEMP/opencv5-x64 --prefix $SISKIN_INSTALL/x64"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-x64 --config release --prefix $SISKIN_INSTALL/x64"
 	]
 	"Cmake OpenCV - arm64" [
 		name: %cmake-opencv-arm64
 		:target-arm64 :cmake-spec
 		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-arm64 -S opencv/ $CMAKE_COMMON"
 		cmd "cmake --build    $SISKIN_TEMP/opencv5-arm64 --config release -j 8"
-		cmd "cmake --install  $SISKIN_TEMP/opencv5-arm64 --prefix $SISKIN_INSTALL/arm64"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-arm64 --config release --prefix $SISKIN_INSTALL/arm64"
 	]
 
 	"Cmake OpenCV static - x86" [
 		name: %cmake-opencv-static-x86
 		:target-x86 :cmake-spec :cmake-static
-		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x86 -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x86 $CMAKE_GEN -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
 		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-x86 --config release -j 8"
-		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x86 --prefix $SISKIN_INSTALL/x86-static"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x86 --config release --prefix $SISKIN_INSTALL/x86-static"
 	]
 	"Cmake OpenCV static - x64" [
 		name: %cmake-opencv-static-x64
 		:target-x64 :cmake-spec :cmake-static
-		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x64 -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x64 $CMAKE_GEN -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
 		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-x64 --config release -j 8"
-		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x64 --prefix $SISKIN_INSTALL/x64-static"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x64 --config release --prefix $SISKIN_INSTALL/x64-static"
 	]
 	"Cmake OpenCV static - arm64" [
 		name: %cmake-opencv-static-arm64
 		:target-arm64 :cmake-spec :cmake-static
-		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-arm64 -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-arm64 $CMAKE_GEN -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
 		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-arm64 --config release -j 8"
-		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-arm64 --prefix $SISKIN_INSTALL/arm64-static"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-arm64 --config release --prefix $SISKIN_INSTALL/arm64-static"
 	]
 
 	;- Extension linked against the shared OpenCV libraries -----------------
