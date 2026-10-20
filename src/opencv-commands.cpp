@@ -275,8 +275,8 @@ extern "C" {
 		case W_OPENCV_ARG_SIZE:
 			*type = RXT_PAIR;
 			size = mat->size();
-			arg->dec32a = size.width;
-			arg->dec32b = size.height;
+			arg->dec32a = (REBD32)size.width;
+			arg->dec32b = (REBD32)size.height;
 			break;
 		case W_OPENCV_ARG_WIDTH:
 		case W_OPENCV_ARG_HEIGHT:
@@ -302,7 +302,7 @@ extern "C" {
 				arg->series = ser;
 				arg->index = 0;
 			} else {
-				bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
+				bin = (REBSER *)RL_MAKE_STRING((u32)(mat->elemSize() * mat->cols * mat->rows), FALSE);
 				mat2ser(mat, bin, arg);
 			}
 			break;
@@ -666,7 +666,7 @@ COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 				// A rectangle outside the source throws - report it as an error
 				// rather than let the exception escape the extension.
 				EXCEPTION_TRY
-				mat = new Mat(*src, Rect(pos.pair.x,pos.pair.y,sz.pair.x,sz.pair.y));
+				mat = new Mat(*src, Rect((int)pos.pair.x, (int)pos.pair.y, (int)sz.pair.x, (int)sz.pair.y));
 				EXCEPTION_CATCH
 				goto done;
 			}
@@ -743,7 +743,6 @@ err_vect:
 
 COMMAND cmd_opencv_VideoCapture(RXIFRM *frm, void *ctx) {
 	VideoCapture *cap;
-	int deviceID;
 
 	EXCEPTION_TRY
 
@@ -832,8 +831,8 @@ COMMAND cmd_opencv_get_property(RXIFRM *frm, void *ctx) {
 			case MAT_SIZE: {
 				Size size = mat->size();
 				RXA_TYPE(frm,1) = RXT_PAIR;
-				RXA_PAIR(frm,1).x = size.width;
-				RXA_PAIR(frm,1).y = size.height;
+				RXA_PAIR(frm,1).x = (float)size.width;
+				RXA_PAIR(frm,1).y = (float)size.height;
 				return RXR_VALUE;
 			}
 			case MAT_TYPE: {
@@ -859,7 +858,7 @@ COMMAND cmd_opencv_get_property(RXIFRM *frm, void *ctx) {
 					RXA_SERIES(frm, 1) = ser;
 					RXA_INDEX(frm, 1) = 0;
 				} else {
-					REBSER *bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
+					REBSER *bin = (REBSER *)RL_MAKE_STRING((u32)(mat->elemSize() * mat->cols * mat->rows), FALSE);
 					mat2ser(mat, bin, &RXA_ARG(frm,1));
 				}
 				RXA_TYPE  (frm, 1) = RXT_BINARY;
@@ -1019,7 +1018,7 @@ COMMAND cmd_opencv_imreadmulti(RXIFRM *frm, void *ctx) {
 	EXCEPTION_CATCH
 
 	int n;
-	int num = images.size();
+	int num = (int)images.size();
 	REBSER *blk = (REBSER*)RL_MAKE_BLOCK(num);
 	RXIARG val;
 
@@ -1172,8 +1171,8 @@ COMMAND cmd_opencv_resize(RXIFRM *frm, void *ctx) {
 	} else {
 		double scale = RXA_DEC64(frm, 2);
 		size = src->size();
-		size.width *= scale;
-		size.height *= scale;
+		size.width  = (int)(size.width  * scale);
+		size.height = (int)(size.height * scale);
 	}
 
 	if (ARG_Is_Integer(6)) {
@@ -1862,16 +1861,16 @@ COMMAND cmd_opencv_moveWindow(RXIFRM *frm, void *ctx) {
 COMMAND cmd_opencv_getWindowImageSize(RXIFRM *frm, void *ctx) {
 	Rect rect = getWindowImageRect(ARG_String(1));
 	RXA_TYPE(frm, 1) = RXT_PAIR;
-	RXA_PAIR(frm,1).x = rect.width;
-	RXA_PAIR(frm,1).y = rect.height;
+	RXA_PAIR(frm,1).x = (float)rect.width;
+	RXA_PAIR(frm,1).y = (float)rect.height;
 	return RXR_VALUE;
 }
 
 COMMAND cmd_opencv_getWindowImagePos(RXIFRM *frm, void *ctx) {
 	Rect rect = getWindowImageRect(ARG_String(1));
 	RXA_TYPE(frm, 1) = RXT_PAIR;
-	RXA_PAIR(frm,1).x = rect.x;
-	RXA_PAIR(frm,1).y = rect.y;
+	RXA_PAIR(frm,1).x = (float)rect.x;
+	RXA_PAIR(frm,1).y = (float)rect.y;
 	return RXR_VALUE;
 }
 
@@ -2131,7 +2130,7 @@ COMMAND cmd_opencv_setNumThreads(RXIFRM *frm, void *ctx) {
 }
 COMMAND cmd_opencv_getVersionString(RXIFRM *frm, void *ctx) {
 	String version = getVersionString();
-	int len = version.length();
+	int len = (int)version.length();
 	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
 	memcpy(ser->data, version.c_str(),  len);
 	SERIES_TAIL(ser) = len;
@@ -2260,7 +2259,7 @@ COMMAND cmd_opencv_getLogLevel(RXIFRM *frm, void *ctx) {
 
 COMMAND cmd_opencv_getBuildInformation(RXIFRM *frm, void *ctx) {
 	String str = getBuildInformation();
-	int len = str.length();
+	int len = (int)str.length();
 	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
 	memcpy(ser->data, str.c_str(),  len);
 	SERIES_TAIL(ser) = len;
@@ -2326,7 +2325,7 @@ COMMAND cmd_opencv_qrcode_decode(RXIFRM *frm, void *ctx) {
 	}
 	EXCEPTION_CATCH
 	
-	int len = str.length();
+	int len = (int)str.length();
 	if (len == 0) return RXR_NONE;
 
 	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
