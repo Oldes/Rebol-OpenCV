@@ -642,7 +642,44 @@ assert [none? m/size] "released handle stays released after recycle"
 assert-equal 8x8 n/size "new handle survives recycle"
 
 ; ============================================================
-; 21. HighGUI (not part of the static build)
+; 21. Rebol codecs
+; ============================================================
+header "Rebol codecs"
+
+foreach name [cv-png cv-jpeg cv-bmp cv-tiff cv-webp] [
+	assert [object? select system/codecs name] join "codec registered: " name
+]
+assert [not find system/catalog/file-types 'cv-png] "cv-* codecs take no suffixes"
+assert [not function? try [:system/codecs/cv-png/identify]] "cv-* codecs do not identify"
+
+bin: encode 'cv-png mat/image
+assert-equal #{89504E47} copy/part bin 4 "encode 'cv-png"
+assert-equal mat/image decode 'cv-png bin "decode 'cv-png round trip"
+assert-equal #{89504E47} copy/part encode 'cv-png mat 4 "encode 'cv-png from cvMat"
+
+jpg-lo: encode/as 'cv-jpeg mat/image 10
+jpg-hi: encode/as 'cv-jpeg mat/image 95
+assert [(length? jpg-lo) < length? jpg-hi] "encode/as integer sets the quality"
+jpg-blk: encode/as 'cv-jpeg mat/image reduce [cv/IMWRITE_JPEG_QUALITY 10]
+assert-equal length? jpg-lo length? jpg-blk "encode/as block passes parameters"
+
+assert-error "decode of invalid data errors" [decode 'cv-png #{00010203}]
+
+;; plain names are registered only where the core has no codec
+foreach name [png jpeg bmp tiff webp] [
+	codec: select system/codecs name
+	if all [codec  string? codec/title  find codec/title "(OpenCV)"] [
+		print ["Core has no" name "codec - using OpenCV"]
+		file: join %build/test-codec. name
+		save file mat/image
+		assert-equal name encoding? read file join "encoding? identifies " name
+		img: load file
+		assert-equal mat/size img/size join "save/load via suffix: " name
+	]
+]
+
+; ============================================================
+; 22. HighGUI (not part of the static build)
 ; ============================================================
 header "HighGUI"
 

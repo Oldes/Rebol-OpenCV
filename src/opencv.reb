@@ -1207,4 +1207,60 @@ mezzanine: [
 	EVENT_MBUTTONDBLCLK: 9
 	EVENT_MOUSEWHEEL:    10
 	EVENT_MOUSEHWHEEL:   11
+
+	;; Rebol codecs backed by OpenCV's imgcodecs.
+	;;
+	;; Each format this build can write is registered as `cv-<name>` - with
+	;; no suffixes and no identify, so it never takes over `load`, `save` or
+	;; `encoding?` from a core codec. It is meant for explicit use, e.g. to
+	;; compare with the core codec: `encode 'cv-png img`.
+	;;
+	;; The plain name (with suffixes and identify) is registered as well, but
+	;; only when the core has no codec of that name.
+	;;
+	;; `encode/as` takes an integer for the format's main parameter (the
+	;; quality or compression in the last column), or a block of IMWRITE_*
+	;; integer pairs.
+	cv-codecs: [
+		;name title                       suffixes       identify rule                              main parameter
+		png   "Portable Network Graphics" [%.png]        [#{89504E470D0A1A0A} to end]               16  ;IMWRITE_PNG_COMPRESSION
+		jpeg  "JPEG"                      [%.jpg %.jpeg] [#{FFD8FF} to end]                         1   ;IMWRITE_JPEG_QUALITY
+		bmp   "Windows Bitmap"            [%.bmp]        [#{424D} to end]                           #(none)
+		tiff  "Tagged Image File Format"  [%.tif %.tiff] [[#{49492A00} | #{4D4D002A}] to end]       259 ;IMWRITE_TIFF_COMPRESSION
+		webp  "WebP"                      [%.webp]       [#{52494646} 4 skip #{57454250} to end]    64  ;IMWRITE_WEBP_QUALITY
+	]
+	use [spec] [
+		foreach [name title suffixes rule param] cv-codecs [
+			;; formats missing in this build (e.g. no WebP) are skipped
+			if binary? attempt [imencode name make image! 1x1] [
+				spec: compose/deep/only [
+					type:   'image
+					title:  (join title " (OpenCV)")
+					decode: func [data [binary!]] [
+						any [
+							imdecode/image data
+							do make error! "OpenCV could not decode the data"
+						]
+					]
+					encode: func [data [image! handle!] /as options [integer! block!]] [
+						imencode/with (to lit-word! name) data any [
+							all [block? options options]
+							all [integer? options (param) reduce [(param) options]]
+							[]
+						]
+					]
+				]
+				register-codec append copy/deep spec compose [
+					name: (to lit-word! join "cv-" name)
+				]
+				unless select system/codecs name [
+					register-codec append copy/deep spec compose/deep/only [
+						name:     (to lit-word! name)
+						suffixes: (suffixes)
+						identify: func [data [binary!]] [parse data (rule)]
+					]
+				]
+			]
+		]
+	]
 ]
