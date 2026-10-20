@@ -465,6 +465,13 @@ Returns information about the OpenCV library in use: version, CPUs and features,
 #### `getBuildInformation`
 Returns full configuration time cmake output.
 
+#### `setLogLevel` `:level`
+Sets the level of OpenCV's log messages. Returns the previous level.
+* `level` `[integer!]` One of LOG_LEVEL_* (0 = silent ... 6 = verbose)
+
+#### `getLogLevel`
+Returns the level of OpenCV's log messages.
+
 #### `useOptimized`
 Returns the status of optimized code usage.
 
@@ -901,6 +908,15 @@ WINDOW_FREERATIO: 256 ;0x00000100
 WINDOW_KEEPRATIO: 0
 WINDOW_GUI_EXPANDED: 0
 WINDOW_GUI_NORMAL: 16
+
+; LogLevel (setLogLevel)
+LOG_LEVEL_SILENT:  0
+LOG_LEVEL_FATAL:   1
+LOG_LEVEL_ERROR:   2
+LOG_LEVEL_WARNING: 3
+LOG_LEVEL_INFO:    4
+LOG_LEVEL_DEBUG:   5  ;; disabled in Release builds of OpenCV
+LOG_LEVEL_VERBOSE: 6  ;; disabled in Release builds of OpenCV
 
 ; MatProperties
 MAT_SIZE: 1

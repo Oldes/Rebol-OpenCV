@@ -161,6 +161,20 @@ foreach key [video-backends video-cameras video-streams video-writers][
 	]
 ]
 --test-- "the built-in MJPEG writer is listed" [did find inf/video-writers 'CV_MJPEG]
+
+original-log: cv/getLogLevel
+--test-- "getLogLevel returns integer"     [integer? original-log]
+--test-- "setLogLevel returns the previous level" [
+	is? cv/setLogLevel cv/LOG_LEVEL_ERROR original-log
+]
+--test-- "getLogLevel reads the new level" [is? cv/getLogLevel cv/LOG_LEVEL_ERROR]
+--test-- "setLogLevel restores the level" [
+	cv/setLogLevel original-log
+	is? cv/getLogLevel original-log
+]
+--rejects-- "setLogLevel above verbose" [cv/setLogLevel 7]
+--rejects-- "setLogLevel below silent"  [cv/setLogLevel -1]
+--test-- "a rejected level leaves the level alone" [is? cv/getLogLevel original-log]
 --test-- "getTickCount returns integer"    [integer? cv/getTickCount]
 --test-- "getTickFrequency returns decimal" [decimal? cv/getTickFrequency]
 --test-- "getNumThreads returns integer"   [integer? cv/getNumThreads]

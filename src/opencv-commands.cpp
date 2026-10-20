@@ -10,6 +10,7 @@
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/videoio/registry.hpp"
+#include "opencv2/core/utils/logger.hpp"
 #include "opencv.h"
 
 static const char* ERR_MAT_TYPE   = "Invalid matrix type!";
@@ -19,6 +20,7 @@ static const char* ERR_MAT_VECTOR = "Vector does not match the matrix size or ty
 static const char* ERR_MAT_SHORT  = "Data series is too short for the matrix!";
 static const char* ERR_INVALID_MAT = "Invalid or released cvMat handle!";
 static const char* ERR_NO_EXT     = "Missing image format extension!";
+static const char* ERR_LOG_LEVEL  = "Log level must be in range 0 (LOG_LEVEL_SILENT) - 6 (LOG_LEVEL_VERBOSE)!";
 
 static char err_buff[255]; // temporary buffer used to pass an exception messages to Rebol side
 
@@ -2229,6 +2231,21 @@ COMMAND cmd_opencv_info(RXIFRM *frm, void *ctx) {
 	RXA_TYPE  (frm, 1) = RXT_BLOCK;
 	RXA_SERIES(frm, 1) = blk;
 	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
+}
+
+COMMAND cmd_opencv_setLogLevel(RXIFRM *frm, void *ctx) {
+	int level = RXA_INT32(frm, 1);
+	if (level < utils::logging::LOG_LEVEL_SILENT || level > utils::logging::LOG_LEVEL_VERBOSE)
+		RETURN_ERROR(ERR_LOG_LEVEL);
+	// Returns the previous level, so it can be restored.
+	RXA_INT64(frm, 1) = (i64)utils::logging::setLogLevel((utils::logging::LogLevel)level);
+	RXA_TYPE (frm, 1) = RXT_INTEGER;
+	return RXR_VALUE;
+}
+COMMAND cmd_opencv_getLogLevel(RXIFRM *frm, void *ctx) {
+	RXA_INT64(frm, 1) = (i64)utils::logging::getLogLevel();
+	RXA_TYPE (frm, 1) = RXT_INTEGER;
 	return RXR_VALUE;
 }
 
