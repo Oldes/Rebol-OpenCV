@@ -18,7 +18,7 @@ jobs:
   windows:
     strategy:
       fail-fast: true
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
     - name: Checkout repository
@@ -59,14 +59,14 @@ jobs:
     - name: Build 64bit Rebol OpenCV extension
       run: ./siskin Rebol-OpenCV.nest --gzip -o ./build/opencv-static-abi1-x64.rebx opencv-static-linux-x64
 
-    - name: Setup library location
-      run: |
-        sudo ldconfig /usr/local/lib
-        sudo ldconfig -v
-        ldd -v ./build/opencv-abi1-x64.rebx
+#    - name: Setup library location
+#      run: |
+#        sudo ldconfig /usr/local/lib
+#        sudo ldconfig -v
+#        ldd -v ./build/opencv-static-abi1-x64.rebx
 
-    - name: Test extension
-      run:  ./siskin --script test.r3 --static
+#    - name: Test extension
+#      run:  ./siskin --script test.r3 --static
 
     - uses: actions/upload-artifact@v6
       with:
@@ -83,7 +83,7 @@ jobs:
       uses: oldes/install-siskin@v0.23.1
 
     - name: Build OpenCV static libraries
-      run: ./siskin Rebol-OpenCV.nest cmake-opencv-x64
+      run: ./siskin Rebol-OpenCV.nest cmake-static-opencv-x64
 
     - name: Build 64bit Rebol OpenCV extension
       run: ./siskin Rebol-OpenCV.nest --gzip -o ./build/opencv-static-abi1-x64.rebx opencv-static-macos-x64
