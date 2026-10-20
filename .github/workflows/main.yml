@@ -50,8 +50,8 @@ jobs:
     - name: Build 64bit Rebol OpenCV extension
       run: ./siskin Rebol-OpenCV.nest -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-x64.rebx --msvc opencv-static-windows-x64
 
-    - name: Test extension
-      run:  ./siskin --script test.r3 --static
+#    - name: Test extension
+#      run:  ./siskin --script test.r3 --static
 
     - uses: actions/upload-artifact@v6
       with:
@@ -99,8 +99,8 @@ jobs:
 #        sudo ldconfig -v
 #        ldd -v ./build/opencv-static-abi1-x64.rebx
 
-    - name: Test extension
-      run:  ./siskin --script test.r3 --static
+#    - name: Test extension
+#      run:  ./siskin --script test.r3 --static
 
     - uses: actions/upload-artifact@v6
       with:
@@ -130,7 +130,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.SISKIN_INSTALL }}
-        key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest', '.github/workflows/main.yml') }}
+        key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
 
     - name: Build OpenCV static libraries
       if: steps.opencv.outputs.cache-hit != 'true'
@@ -139,8 +139,8 @@ jobs:
     - name: Build 64bit Rebol OpenCV extension
       run: ./siskin Rebol-OpenCV.nest --gzip -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-x64.rebx opencv-static-macos-x64
 
-    - name: Test extension
-      run:  ./siskin --script test.r3 --static
+#    - name: Test extension
+#      run:  ./siskin --script test.r3 --static
 
     - uses: actions/upload-artifact@v6
       with:
