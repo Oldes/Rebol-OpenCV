@@ -28,10 +28,8 @@ CI?: any [
 	"true" = get-env "GITLAB_CI"
 ]
 
-if CI? [
-	system/options/modules: dirize to-real-file %./
-	print ["Using modified modules location:" as-green system/options/modules]
-	ls (system/options/modules)
+if modules-dir: get-env 'REBOL_MODULES_DIR [
+    system/options/modules: dirize to-rebol-file modules-dir
 ]
 
 ;; make sure that we load a fresh extension - the module directory may hold a
