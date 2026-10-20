@@ -87,6 +87,9 @@ target-arm64: [
 			set CMAKE_ARCH: [
 				"-DCMAKE_OSX_SYSROOT=macosx"
 				"-DCMAKE_OSX_ARCHITECTURES=arm64"
+				"-DCMAKE_SYSTEM_NAME=Darwin"        ;; cross-compiling: CMAKE_SYSTEM_PROCESSOR is used only then
+				"-DCMAKE_SYSTEM_PROCESSOR=arm64"    ;; NEON etc. instead of the host's SSE/AVX
+				"-DWITH_IPP=OFF"                    ;; Intel-only
 				"-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"
 				"-DACCELERATE_NEW_LAPACK:BOOL=ON"
 			]
