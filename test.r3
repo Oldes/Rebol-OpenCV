@@ -136,6 +136,14 @@ group "Basic info & utilities"
 
 --test-- "module imported"                [module? cv]
 --test-- "getVersionString returns string" [string? cv/getVersionString]
+--test-- "version returns tuple"           [tuple? cv/version]
+--test-- "version has 3 parts"             [is? length? cv/version 3]
+--test-- "version matches getVersionString" [
+	any [
+		did find/match cv/getVersionString form cv/version
+		reform ["version" cv/version "string" mold cv/getVersionString]
+	]
+]
 --test-- "getBuildInformation returns string" [string? cv/getBuildInformation]
 --test-- "getTickCount returns integer"    [integer? cv/getTickCount]
 --test-- "getTickFrequency returns decimal" [decimal? cv/getTickFrequency]

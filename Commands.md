@@ -456,6 +456,9 @@ Returns the number of threads used by OpenCV for parallel regions.
 #### `getVersionString`
 Returns library version string.
 
+#### `version`
+Returns the version of the OpenCV library in use as a tuple.
+
 #### `getBuildInformation`
 Returns full configuration time cmake output.
 

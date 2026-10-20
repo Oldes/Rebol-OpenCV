@@ -2128,6 +2128,16 @@ COMMAND cmd_opencv_getVersionString(RXIFRM *frm, void *ctx) {
 	RXA_INDEX (frm, 1) = 0;
 	return RXR_VALUE;
 }
+COMMAND cmd_opencv_version(RXIFRM *frm, void *ctx) {
+	// Asked at run time, so a shared build reports the library actually
+	// loaded, not the headers the extension was compiled with.
+	RXA_TYPE(frm, 1) = RXT_TUPLE;
+	RXA_TUPLE(frm, 1)[0] = (REBYTE)getVersionMajor();
+	RXA_TUPLE(frm, 1)[1] = (REBYTE)getVersionMinor();
+	RXA_TUPLE(frm, 1)[2] = (REBYTE)getVersionRevision();
+	RXA_TUPLE_LEN(frm, 1) = 3;
+	return RXR_VALUE;
+}
 COMMAND cmd_opencv_getBuildInformation(RXIFRM *frm, void *ctx) {
 	String str = getBuildInformation();
 	int len = str.length();
