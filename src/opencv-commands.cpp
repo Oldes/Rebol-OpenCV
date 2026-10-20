@@ -17,6 +17,7 @@ static const char* ERR_MAT_SIZE   = "Invalid or missing matrix size!";
 static const char* ERR_MAT_VECTOR = "Vector does not match the matrix size or type!";
 static const char* ERR_MAT_SHORT  = "Data series is too short for the matrix!";
 static const char* ERR_INVALID_MAT = "Invalid or released cvMat handle!";
+static const char* ERR_NO_EXT     = "Missing image format extension!";
 
 static char err_buff[255]; // temporary buffer used to pass an exception messages to Rebol side
 
@@ -178,6 +179,58 @@ static REBOOL mat2vector(Mat *mat, RXIARG *arg) {
 	if (!RL_MAKE_VECTOR(arg, vt, (REBINT)(mat->total() * mat->channels()), 1)) return FALSE;
 	copy_mat_data(mat, ((REBSER*)arg->vector.series)->data);
 	return TRUE;
+}
+
+// Makes a new Rebol image! (8-bit BGRA) from a matrix of any depth with 1, 3
+// or 4 channels. 16-bit values are scaled to 8 bits, floating point ones are
+// expected in 0.0-1.0. Returns FALSE for other channel counts.
+static REBOOL mat2image(const Mat &src, RXIARG *arg) {
+	Mat tmp, bgra;
+	const Mat *m = &src;
+
+	if (src.depth() != CV_8U) {
+		double scale = 1.0;
+		switch (src.depth()) {
+			case CV_16U: scale = 1.0 / 257.0; break; // 65535 -> 255
+			case CV_16F:
+			case CV_32F:
+			case CV_64F: scale = 255.0; break;
+			default: break;                          // signed ints saturate
+		}
+		src.convertTo(tmp, CV_8U, scale);
+		m = &tmp;
+	}
+	switch (m->channels()) {
+		case 1:  cvtColor(*m, bgra, COLOR_GRAY2BGRA); break;
+		case 3:  cvtColor(*m, bgra, COLOR_BGR2BGRA);  break;
+		case 4:  bgra = *m; break;
+		default: return FALSE;
+	}
+	REBSER *img = (REBSER *)RL_MAKE_IMAGE(bgra.cols, bgra.rows);
+	if (!img) return FALSE;
+	copy_mat_data(&bgra, img->data);
+	// The tail in an image value is not in bytes, but in pixels!
+	SERIES_TAIL(img) = bgra.cols * bgra.rows;
+	arg->width       = bgra.cols;
+	arg->height      = bgra.rows;
+	arg->image       = img;
+	arg->image_index = 0;
+	return TRUE;
+}
+
+// Collects IMWRITE_* parameters from a block of integer pairs at frame n.
+// Words are resolved; collecting stops at the first non-integer.
+static void params_from_block(RXIFRM *frm, int n, vector<int> &params) {
+	if (RXA_TYPE(frm, n) != RXT_BLOCK) return;
+	REBSER *blk  = (REBSER*)RXA_SERIES(frm, n);
+	REBCNT index = RXA_INDEX(frm, n);
+	RXIARG a, b;
+	while (index + 1 < blk->tail
+		&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(blk, index++, &a)
+		&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(blk, index++, &b)) {
+		params.push_back(a.int32a);
+		params.push_back(b.int32a);
+	}
 }
 
 extern "C" {
@@ -997,20 +1050,7 @@ COMMAND cmd_opencv_imwrite(RXIFRM *frm, void *ctx) {
 	vector<int> params = vector<int>();
 
 	EXCEPTION_TRY
-	// Prepare optional parameters
-	if (RXA_TYPE(frm, 4) == RXT_BLOCK) {
-		REBSER *cmds;
-		REBCNT index, type;
-		RXIARG arg1,arg2;
-		cmds = (REBSER*)RXA_SERIES(frm, 4);
-		index = RXA_INDEX(frm, 4);
-		while (index+1 < cmds->tail
-			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg1)
-			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg2)) {
-			params.push_back(arg1.int32a);
-			params.push_back(arg2.int32a);
-		}
-	}
+	params_from_block(frm, 4, params);
 
 	if (ARG_Is_Mat(2)) {
 		if (!ARG_Mat(2)) return RXR_FALSE;
@@ -1025,6 +1065,76 @@ COMMAND cmd_opencv_imwrite(RXIFRM *frm, void *ctx) {
 	EXCEPTION_CATCH
 
 	return result ? RXR_VALUE : RXR_FALSE;
+}
+
+COMMAND cmd_opencv_imdecode(RXIFRM *frm, void *ctx) {
+	REBSER *bin  = (REBSER*)RXA_SERIES(frm, 1);
+	REBCNT index = RXA_INDEX(frm, 1);
+	int flags = (ARG_Is_Integer(4) ? RXA_INT32(frm,4) : IMREAD_UNCHANGED);
+	Mat image;
+
+	if (index >= SERIES_TAIL(bin)) return RXR_NONE;
+
+	EXCEPTION_TRY
+	// Wraps the binary from its index - no copy.
+	Mat buf(1, (int)(SERIES_TAIL(bin) - index), CV_8UC1, SERIES_SKIP(bin, index));
+	image = imdecode(buf, flags);
+	if (image.empty()) return RXR_NONE;
+	if (ARG_Is_None(2)) {
+		if (RXR_VALUE != initRXHandle(frm, 1, new Mat(image), Handle_cvMat, NULL))
+			return RXR_FALSE;
+	}
+	else {
+		if (!mat2image(image, &RXA_ARG(frm, 1))) return RXR_NONE;
+		RXA_TYPE(frm, 1) = RXT_IMAGE;
+	}
+	EXCEPTION_CATCH
+
+	return RXR_VALUE;
+}
+
+COMMAND cmd_opencv_imencode(RXIFRM *frm, void *ctx) {
+	String ext;
+	vector<int> params;
+	vector<uchar> out;
+	bool ok = false;
+
+	if (RXA_TYPE(frm, 1) == RXT_WORD) {
+		// 'png -> ".png", as `encode 'png` names the codec
+		REBYTE *name = RL_WORD_STRING(RXA_WORD(frm, 1)); // allocates a copy
+		if (name) {
+			ext = String((const char*)name);
+			free(name);
+		}
+	}
+	else ext = ARG_String(1);
+
+	if (ext.empty()) RETURN_ERROR(ERR_NO_EXT);
+	if (ext[0] != '.') ext = "." + ext; // accept "png" as well as %.png
+
+	EXCEPTION_TRY
+	params_from_block(frm, 4, params);
+
+	if (ARG_Is_Mat(2)) {
+		ok = imencode(ext, *ARG_Mat(2), out, params);
+	}
+	else if (ARG_Is_Image(2)) { // Rebol image is BGRA, as OpenCV expects
+		RXIARG arg = RXA_ARG(frm, 2);
+		Mat image(arg.height, arg.width, CV_8UC4, ((REBSER*)arg.series)->data);
+		ok = imencode(ext, image, out, params);
+	}
+	else RETURN_ERROR(ERR_INVALID_MAT);
+	EXCEPTION_CATCH
+
+	if (!ok || out.empty()) return RXR_NONE;
+
+	REBSER *ser = (REBSER *)RL_MAKE_STRING((REBLEN)out.size(), FALSE);
+	memcpy(ser->data, out.data(), out.size());
+	SERIES_TAIL(ser) = (REBLEN)out.size();
+	RXA_TYPE  (frm, 1) = RXT_BINARY;
+	RXA_SERIES(frm, 1) = ser;
+	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
 }
 
 //;-----------------------------------------------------------------------

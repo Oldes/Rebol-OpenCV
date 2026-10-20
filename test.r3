@@ -585,7 +585,64 @@ assert [1.0 = cap/pos-frame] "pos-frame advances after read"
 cv/free cap
 
 ; ============================================================
-; 20. HighGUI (not part of the static build)
+; 20. Encoding and decoding in memory
+; ============================================================
+header "imencode / imdecode"
+
+png: cv/imencode %.png mat
+assert [binary? png] "imencode returns binary"
+assert-equal #{89504E47} copy/part png 4 "imencode %.png writes PNG"
+assert-equal #{89504E47} copy/part cv/imencode "png" mat 4 "imencode accepts extension without dot"
+assert-equal #{89504E47} copy/part cv/imencode 'png mat 4 "imencode accepts codec word"
+assert-equal #{FFD8} copy/part cv/imencode 'jpeg mat 2 "imencode 'jpeg writes JPEG"
+assert-equal #{49492A00} copy/part cv/imencode 'tiff mat 4 "imencode 'tiff writes TIFF"
+assert-error "imencode with unknown codec word errors" [cv/imencode 'xyz mat]
+
+m: cv/imdecode png
+assert [handle? m] "imdecode returns cvMat"
+assert-equal mat/size m/size "imdecode keeps the size"
+assert-equal mat/binary m/binary "PNG round trip is lossless"
+
+img: cv/imdecode/image png
+assert [image? img] "imdecode/image returns image"
+assert-equal mat/image img "imdecode/image equals mat/image"
+
+m: cv/imdecode next join #{00} png
+assert-equal mat/size m/size "imdecode honours the binary index"
+
+m: cv/imdecode cv/imencode %.png mat/image
+assert-equal mat/size m/size "imencode from image!"
+
+jpg-lo: cv/imencode/with %.jpg mat reduce [cv/IMWRITE_JPEG_QUALITY 10]
+jpg-hi: cv/imencode/with %.jpg mat reduce [cv/IMWRITE_JPEG_QUALITY 95]
+assert [(length? jpg-lo) < length? jpg-hi] "imencode uses the quality parameter"
+assert-equal #{FFD8} copy/part jpg-hi 2 "imencode %.jpg writes JPEG"
+
+assert-equal #{49492A00} copy/part cv/imencode %.tiff mat 4 "imencode %.tiff writes TIFF"
+assert-equal #{52494646} copy/part cv/imencode %.webp mat 4 "imencode %.webp writes WebP"
+
+m16: cv/Matrix [4x4 CV_16UC1 #{FFFF}]
+img: cv/imdecode/image cv/imencode %.png m16
+assert-equal 255 first img/1 "16-bit image is scaled to 8 bits"
+
+assert [none? cv/imdecode #{00010203}] "imdecode of garbage returns none"
+assert [none? cv/imdecode #{}] "imdecode of empty binary returns none"
+assert-error "imencode with unknown format errors" [cv/imencode %.xyz mat]
+assert-error "imencode with released handle errors" [cv/imencode %.png m6]
+
+;; a released handle must not come back as a newly allocated one
+m: cv/Matrix 4x4
+cv/free m
+n: cv/Matrix 8x8   ;; used to get the same HOB as `m`
+assert [none? m/size] "released handle stays released after a new allocation"
+assert-equal 8x8 n/size "new handle is not affected"
+assert-error "released handle errors after a new allocation" [cv/imencode %.png m]
+recycle
+assert [none? m/size] "released handle stays released after recycle"
+assert-equal 8x8 n/size "new handle survives recycle"
+
+; ============================================================
+; 21. HighGUI (not part of the static build)
 ; ============================================================
 header "HighGUI"
 

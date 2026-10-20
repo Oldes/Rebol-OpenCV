@@ -218,6 +218,20 @@ commands: [
 		/with "Format-specific parameters encoded as pairs"
 		params [block!] "integer pairs (words are resolved)"
 	]
+	imdecode: [
+		"Reads an image from a buffer in memory."
+		data [binary!] "Encoded image (any format imread understands)"
+		/image "As Rebol image instead of default cvMat"
+		/with "Flag that can take values IMREAD_*"
+		flags [integer!] "Default is IMREAD_UNCHANGED"
+	]
+	imencode: [
+		"Encodes an image into a memory buffer."
+		type  [word! any-string!] "Output format as a codec name ('png, 'jpeg, 'webp...) or a file extension (%.png)"
+		image [image! handle!] "Image or cvMat handle"
+		/with "Format-specific parameters encoded as pairs"
+		params [block!] "integer pairs (words are resolved)"
+	]
 
 	;-----------------------------------------------------------------------------------------------
 	;- Geometric Image Transformations                                                              
