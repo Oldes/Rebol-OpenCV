@@ -1,7 +1,7 @@
 REBOL [
 	Title:   "Rebol OpenCV Extension"
 	Name:    opencv
-	Version: 0.3.0
+	Version: 5.0.0
 	Needs:   3.22.10
 	Author:  @Oldes
 	License: MIT
@@ -704,6 +704,10 @@ commands: [
 	getTickCount: ["Returns the number of ticks."]
 	getTickFrequency: ["Returns the number of ticks per second."]
 	getNumThreads: ["Returns the number of threads used by OpenCV for parallel regions."]
+	setNumThreads: [
+		"Sets the number of threads used by OpenCV for parallel regions. Returns the previous count."
+		threads [integer!] "0 disables threading, a negative value resets to the default"
+	]
 	getVersionString: ["Returns library version string."]
 	version: ["Returns the version of the OpenCV library in use as a tuple."]
 	info: [

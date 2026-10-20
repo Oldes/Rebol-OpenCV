@@ -175,6 +175,25 @@ original-log: cv/getLogLevel
 --rejects-- "setLogLevel above verbose" [cv/setLogLevel 7]
 --rejects-- "setLogLevel below silent"  [cv/setLogLevel -1]
 --test-- "a rejected level leaves the level alone" [is? cv/getLogLevel original-log]
+
+original-threads: cv/getNumThreads
+--test-- "setNumThreads returns the previous count" [is? cv/setNumThreads 0 original-threads]
+;; NOTE: what getNumThreads reports after `setNumThreads 0` depends on the
+;; parallel backend (1 with pthreads, the TBB arena size with TBB), so it is
+;; not tested here.
+--test-- "a negative count resets to the default" [
+	cv/setNumThreads -1
+	is? cv/getNumThreads original-threads
+]
+--test-- "results do not depend on the thread count" [
+	big: cv/resize cv/imread %image/lena.jpeg 1000x1000  ;; runs before `mat` is loaded
+	cv/setNumThreads 0
+	a: cv/GaussianBlur big none 9x9 3.0 3.0
+	cv/setNumThreads -1
+	b: cv/GaussianBlur big none 9x9 3.0 3.0
+	a/binary = b/binary
+]
+cv/setNumThreads original-threads
 --test-- "getTickCount returns integer"    [integer? cv/getTickCount]
 --test-- "getTickFrequency returns decimal" [decimal? cv/getTickFrequency]
 --test-- "getNumThreads returns integer"   [integer? cv/getNumThreads]

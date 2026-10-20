@@ -453,6 +453,10 @@ Returns the number of ticks per second.
 #### `getNumThreads`
 Returns the number of threads used by OpenCV for parallel regions.
 
+#### `setNumThreads` `:threads`
+Sets the number of threads used by OpenCV for parallel regions. Returns the previous count.
+* `threads` `[integer!]` 0 disables threading, a negative value resets to the default
+
 #### `getVersionString`
 Returns library version string.
 

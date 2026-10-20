@@ -2120,6 +2120,15 @@ COMMAND cmd_opencv_getNumThreads(RXIFRM *frm, void *ctx) {
 	RXA_INT64(frm, 1) = getNumThreads();
 	return RXR_VALUE;
 }
+COMMAND cmd_opencv_setNumThreads(RXIFRM *frm, void *ctx) {
+	int previous = getNumThreads();
+	EXCEPTION_TRY
+	setNumThreads(RXA_INT32(frm, 1)); // <0 resets to the default, 0 disables threading
+	EXCEPTION_CATCH
+	RXA_INT64(frm, 1) = previous;
+	RXA_TYPE (frm, 1) = RXT_INTEGER;
+	return RXR_VALUE;
+}
 COMMAND cmd_opencv_getVersionString(RXIFRM *frm, void *ctx) {
 	String version = getVersionString();
 	int len = version.length();
