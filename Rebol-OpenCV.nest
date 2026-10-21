@@ -64,7 +64,7 @@ target-x64: [
 			"-DCMAKE_OSX_ARCHITECTURES=x86_64"
 			"-DCMAKE_APPLE_SILICON_PROCESSOR=x86_64" ;; make CMake treat the build as x86_64, not the arm64 host
 			"-DWITH_KLEIDICV=OFF"                    ;; ARM-only HAL
-			"-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
+			"-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"    ;; AVVideoCodecTypeH264 needs at least 10.13
 		]
 	]
 	#if Posix?   [
