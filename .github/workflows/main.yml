@@ -38,7 +38,7 @@ jobs:
 
     - name: Cache OpenCV install
       id: opencv
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.SISKIN_INSTALL }}
         key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
@@ -81,7 +81,7 @@ jobs:
 
     - name: Cache OpenCV install
       id: opencv
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.SISKIN_INSTALL }}
         key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
@@ -107,14 +107,22 @@ jobs:
         name: Rebol-OpenCV-Linux-${{github.run_id}}
         path: ${{ env.REBOL_MODULES_DIR }}/*.rebx.gz
 
-  macos-intel:
-    runs-on: macos-15-intel
+  macos-x64:
+    runs-on: macos-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5
 
-    - name: Install Siskin Builder
+    - name: Install Siskin Builder (arm)
       uses: oldes/install-siskin@v0.23.1
+      with:
+        arch: aarch64
+
+    - name: Install Siskin Builder (x64)
+      uses: oldes/install-siskin@v0.23.1
+      with:
+        arch: x86_64
+        name: siskin-x64
 
     - name: Set Siskin locations
       shell: bash
@@ -127,7 +135,7 @@ jobs:
 
     - name: Cache OpenCV install
       id: opencv
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.SISKIN_INSTALL }}
         key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
@@ -139,8 +147,8 @@ jobs:
     - name: Build 64bit Rebol OpenCV extension
       run: ./siskin Rebol-OpenCV.nest --gzip -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-x64.rebx opencv-static-macos-x64
 
-#    - name: Test extension
-#      run:  ./siskin --script test.r3 --static
+    - name: Test extension
+      run:  ./siskin-x64 --script test.r3 --static
 
     - uses: actions/upload-artifact@v6
       with:
@@ -169,7 +177,7 @@ jobs:
 
     - name: Cache OpenCV install
       id: opencv
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.SISKIN_INSTALL }}
         key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
