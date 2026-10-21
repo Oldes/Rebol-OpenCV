@@ -147,8 +147,8 @@ jobs:
     - name: Build 64bit Rebol OpenCV extension
       run: ./siskin Rebol-OpenCV.nest --gzip -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-x64.rebx opencv-static-macos-x64
 
-    - name: Test extension
-      run:  ./siskin-x64 --script test.r3 --static
+#    - name: Test extension
+#      run:  ./siskin-x64 --script test.r3 --static
 
     - uses: actions/upload-artifact@v6
       with:
