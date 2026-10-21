@@ -1,27 +1,44 @@
+//
+// Project: Rebol/OpenCV extension
+// SPDX-License-Identifier: MIT
+// =============================================================================
+// Command implementations and handle callbacks.
+//
+// One function per command; the enum, the declarations, the dispatch table
+// and the `_init` handler are all generated from opencv.reb.
+//
+
 #include "opencv2/opencv.hpp"
+#include "opencv2/videoio/registry.hpp"
+#include "opencv2/core/utils/logger.hpp"
+#include "opencv.h"
 
-extern "C" {
-	#include "opencv-rebol-extension.h"
-}
+static const char* ERR_MAT_TYPE   = "Invalid matrix type!";
+static const char* ERR_MAT_SPEC   = "Invalid matrix specification!";
+static const char* ERR_MAT_SIZE   = "Invalid or missing matrix size!";
+static const char* ERR_MAT_VECTOR = "Vector does not match the matrix size or type!";
+static const char* ERR_MAT_SHORT  = "Data series is too short for the matrix!";
+static const char* ERR_INVALID_MAT = "Invalid or released cvMat handle!";
+static const char* ERR_NO_EXT     = "Missing image format extension!";
+static const char* ERR_LOG_LEVEL  = "Log level must be in range 0 (LOG_LEVEL_SILENT) - 6 (LOG_LEVEL_VERBOSE)!";
 
-static char* err_buff[255]; // temporary buffer used to pass an exception messages to Rebol side
+static char err_buff[255]; // temporary buffer used to pass an exception messages to Rebol side
 
 #define EXCEPTION_TRY   try {
 #define EXCEPTION_CATCH } catch( cv::Exception& e ) {\
-	snprintf((char*)err_buff, 254,"%s", e.err.c_str());\
-	RXA_SERIES(frm, 1) = (void*)err_buff;\
-	return RXR_ERROR;}
+	snprintf(err_buff, sizeof(err_buff), "%s", e.err.c_str());\
+	RETURN_ERROR(err_buff);}
 	// must use the temporary buffer above, because the error String could be freed before used on the Rebol side
 
-#define COMMAND           extern "C" int
+#define HOB_LIVE(hob) ((hob) && IS_USED_HOB(hob) && (hob)->data)
+
 #define PAIR_X(frm, n)    (int)RXA_PAIR(frm,n).x
 #define PAIR_Y(frm, n)    (int)RXA_PAIR(frm,n).y
 
-#define FRM_IS_HANDLE(n, t)     (RXA_TYPE(frm,n) == RXT_HANDLE && RXA_HANDLE_TYPE(frm, n) == t && IS_USED_HOB(RXA_HANDLE_CONTEXT(frm, n)))
-#define ARG_Is_Mat(n)           FRM_IS_HANDLE(n, Handle_cvMat)
-#define ARG_Is_VideoCapture(n)  FRM_IS_HANDLE(n, Handle_cvVideoCapture)
-#define ARG_Is_VideoWriter(n)   FRM_IS_HANDLE(n, Handle_cvVideoWriter)
-#define ARG_Is_Trackbar(n)      FRM_IS_HANDLE(n, Handle_cvTrackbar)
+#define ARG_Is_Mat(n)           ARG_Is_Live_Handle(n, Handle_cvMat)
+#define ARG_Is_VideoCapture(n)  ARG_Is_Live_Handle(n, Handle_cvVideoCapture)
+#define ARG_Is_VideoWriter(n)   ARG_Is_Live_Handle(n, Handle_cvVideoWriter)
+#define ARG_Is_Trackbar(n)      ARG_Is_Live_Handle(n, Handle_cvTrackbar)
 #define ARG_Is_Image(n)         (RXA_TYPE(frm,n) == RXT_IMAGE)
 #define ARG_Is_Pair(n)          (RXA_TYPE(frm,n) == RXT_PAIR)
 #define ARG_Is_Integer(n)       (RXA_TYPE(frm,n) == RXT_INTEGER)
@@ -29,37 +46,28 @@ static char* err_buff[255]; // temporary buffer used to pass an exception messag
 #define ARG_Is_Not_None(n)      (RXA_TYPE(frm,n) != RXT_NONE)
 #define ARG_Is_Block(n)         (RXA_TYPE(frm,n) == RXT_BLOCK)
 #define ARG_Is_File(n)          (RXA_TYPE(frm,n) == RXT_FILE)
-#define ARG_Mat(n)              (ARG_Is_Mat(n) ? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
-#define ARG_VideoCapture(n)     (VideoCapture*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
-#define ARG_VideoWriter(n)      (VideoWriter*)(RXA_HANDLE_CONTEXT(frm, n)->handle)
-#define ARG_Trackbar(n)         (ARG_Is_Trackbar(n) ? (CTX_TRACKBAR*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL)
-#define ARG_MatType(n)          (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : RL_FIND_WORD(type_words, RXA_INT32(frm,n))-W_TYPE_CV_8UC1)
+#define ARG_Mat(n)              (ARG_Is_Mat(n) ? (Mat*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n)) : NULL)
+#define ARG_VideoCapture(n)     ((VideoCapture*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n)))
+#define ARG_VideoWriter(n)      ((VideoWriter*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n)))
+#define ARG_Trackbar(n)         (ARG_Is_Trackbar(n) ? (CTX_TRACKBAR*)(RXA_HANDLE_CONTEXT(frm, n)->data) : NULL)
+#define ARG_MatType(n)          (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : cvTypeFromWord(RXA_WORD(frm,n)))
+// reb-ext-common.h's ARG_Double reads a decimal only; this one also takes
+// an integer!, as the `number!` arguments in the specs allow.
+#undef  ARG_Double
 #define ARG_Double(n)           (RXA_TYPE(frm,n) == RXT_DECIMAL ? RXA_DEC64(frm,n) : (double)RXA_INT64(frm,n))
 #define ARG_Int(n)              (RXA_TYPE(frm,n) == RXT_INTEGER ? RXA_INT32(frm,n) : (int)RXA_DEC64(frm,n))
-#define ARG_Size(n)             (RXA_TYPE(frm,n) == RXT_PAIR ? Size(PAIR_X(frm,n), PAIR_Y(frm,n)) : Size(RXA_INT32(frm,n), RXA_INT32(frm,n)));
-#define ARG_Point(n)            (RXA_TYPE(frm,n) == RXT_PAIR ? Point(PAIR_X(frm,n), PAIR_Y(frm,n)) : Point(RXA_INT32(frm,n), RXA_INT32(frm,n)));
+#define ARG_Size(n)             (RXA_TYPE(frm,n) == RXT_PAIR ? Size(PAIR_X(frm,n), PAIR_Y(frm,n)) : Size(RXA_INT32(frm,n), RXA_INT32(frm,n)))
+#define ARG_Point(n)            (RXA_TYPE(frm,n) == RXT_PAIR ? Point(PAIR_X(frm,n), PAIR_Y(frm,n)) : Point(RXA_INT32(frm,n), RXA_INT32(frm,n)))
 #define ARG_String(n)           (String((const char*)((REBSER*)RXA_ARG(frm, n).series)->data)) //TODO: only ansii yet!
 #define ARG_BorderType(n)       (RXA_TYPE(frm, n) == RXT_INTEGER ? RXA_INT32(frm, n) : BORDER_DEFAULT)
 
-// Special Mat initialization... if Mat at frame n is NULL (arg was none), than it creates a new Mat with same size and type as m at this frame
+// Destination Mat at frame n. When the argument is none, a new matrix with the
+// size and type of `m` is created and stored in that frame slot. It is zeroed:
+// masked operations write only the masked elements, so the rest of a new
+// destination would otherwise be whatever was in the allocated memory.
 #define ARG_Mat_As(n,m)         (ARG_Is_Mat(n)\
-								? (Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle)\
-								: (m ? initRXHandle(frm,n,new Mat(m->size(),m->type()),Handle_cvMat, NULL),(Mat*)(RXA_HANDLE_CONTEXT(frm, n)->handle) : NULL))
-
-
-#define APPEND_STRING(str, ...) \
-	len = snprintf(NULL,0,__VA_ARGS__);\
-	if (len > SERIES_REST(str)-SERIES_LEN(str)) {\
-		RL_EXPAND_SERIES(str, SERIES_TAIL(str), len);\
-		SERIES_TAIL(str) -= len;\
-	}\
-	len = snprintf( \
-		SERIES_TEXT(str)+SERIES_TAIL(str),\
-		SERIES_REST(str)-SERIES_TAIL(str),\
-		__VA_ARGS__\
-	);\
-	SERIES_TAIL(str) += len;
-
+								? (Mat*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n))\
+								: (m ? initRXHandle(frm,n,new Mat(m->size(),m->type(),Scalar::all(0)),Handle_cvMat, NULL),(Mat*)HOB_PTR(RXA_HANDLE_CONTEXT(frm, n)) : NULL))
 
 enum MatProperties {
 	MAT_SIZE = 1,
@@ -71,154 +79,234 @@ enum MatProperties {
 	MAT_VECTOR,
 };
 
-static unsigned char elementSizeByType[32] = {
-	1, 1, 2, 2,  4,  4,  8, 2, //CV_8UC1, CV_8SC1, CV_16UC1, CV_16SC1, CV_32SC1, CV_32FC1, CV_64FC1, CV_16FC1
-	2, 2, 4, 4,  8,  8, 16, 4, //CV_8UC2, CV_8SC2, CV_16UC2, CV_16SC2, CV_32SC2, CV_32FC2, CV_64FC2, CV_16FC2
-	3, 3, 6, 6, 12, 12, 24, 6, //CV_8UC3, CV_8SC3, CV_16UC3, CV_16SC3, CV_32SC3, CV_32FC3, CV_64FC3, CV_16FC3
-	4, 4, 8, 8, 16, 16, 32, 8, //CV_8UC4, CV_8SC4, CV_16UC4, CV_16SC4, CV_32SC4, CV_32FC4, CV_64FC4, CV_16FC4
-};
+// The `type` word list in opencv.reb holds 8 depths x 4 channel counts, in
+// the order `depth + (channels - 1) * 8` - which is the OpenCV 4 type id.
+// OpenCV 5 widened the channel shift from 3 to 5 bits (CV_CN_SHIFT), so a
+// type id is NOT that index any more: always convert through these helpers.
+#define TYPE_WORD_DEPTHS 8   // CV_8U .. CV_16F
+
+// Word -> CV type, or -1 when the word is not a type word.
+static int cvTypeFromWord(REBCNT word) {
+	int idx = (int)RL_FIND_WORD(Opencv_type_words, word) - W_OPENCV_TYPE_CV_8UC1;
+	if (idx < 0 || idx >= 4 * TYPE_WORD_DEPTHS) return -1;
+	return CV_MAKETYPE(idx % TYPE_WORD_DEPTHS, idx / TYPE_WORD_DEPTHS + 1);
+}
+
+// CV type -> word id, or 0 for a type the word list cannot name.
+static REBCNT typeWordFromCv(int type) {
+	int depth = CV_MAT_DEPTH(type);
+	int cn    = CV_MAT_CN(type);
+	if (depth >= TYPE_WORD_DEPTHS || cn < 1 || cn > 4) return 0;
+	return Opencv_type_words[W_OPENCV_TYPE_CV_8UC1 + depth + (cn - 1) * TYPE_WORD_DEPTHS];
+}
+
+// CV depth -> word id, or 0.
+static REBCNT depthWordFromCv(int depth) {
+	if (depth < 0 || depth >= TYPE_WORD_DEPTHS) return 0;
+	return Opencv_type_words[W_OPENCV_TYPE_CV_8U + depth];
+}
+
+// TRUE for a type the extension can build a matrix of.
+#define IS_KNOWN_CV_TYPE(t) ((t) >= 0 && CV_MAT_DEPTH(t) < TYPE_WORD_DEPTHS && CV_MAT_CN(t) <= 4)
 
 using namespace cv;
 using namespace std;
 
+// Creates a context handle of the given type holding `handle` and stores it
+// in `val`. The pointer goes INTO the data block allocated by Rebol.
+static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type, REBSER* ser) {
+	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(type);
+	if (hob == NULL) return RXR_FALSE;
+	debug_print("new hob: %p handle: %p\n", (void*)hob, handle);
+	HOB_PTR(hob) = handle;
+	hob->series = ser;
+	val->handle.ptr   = hob;
+	val->handle.type  = type;
+	val->handle.flags = hob->flags;
+	return RXR_VALUE;
+}
+
+static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type, REBSER* ser) {
+	RXA_TYPE(frm, index) = RXT_HANDLE;
+	return initRXHandleArg(&RXA_ARG(frm, index), handle, type, ser);
+}
+
+static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
+	RXIARG arg = RXA_ARG(frm, index);
+	Mat *mat = new Mat(arg.height, arg.width, CV_8UC4);
+	mat->data = ((REBSER*)arg.series)->data;
+	return mat;
+}
+
+// Copies the matrix elements, row by row when not continuous.
+static size_t copy_mat_data(Mat *mat, REBYTE *dst) {
+	size_t elemSize = mat->elemSize();
+	size_t bytes = elemSize * mat->cols * mat->rows;
+
+	if (mat->isContinuous()) {
+		memcpy(dst, mat->data, bytes);
+	} else {
+		unsigned char *bp = mat->data;
+		size_t wb = elemSize * mat->cols;
+		size_t st = mat->step;
+		for (int j = 0; j < mat->rows; j++) {
+			memcpy(dst, bp, wb);
+			bp  += st;
+			dst += wb;
+		}
+	}
+	return bytes;
+}
+
+// For byte series (binary and image), whose tail the caller adjusts.
+static void mat2ser(Mat *mat, REBSER *bin, RXIARG *arg) {
+	SERIES_TAIL(bin) = (REBLEN)copy_mat_data(mat, bin->data);
+	arg->series = bin;
+	arg->index = 0;
+}
+
+// Makes a new Rebol vector! with a copy of the matrix elements.
+// Returns FALSE for a depth without a vector equivalent (CV_16F).
+static REBOOL mat2vector(Mat *mat, RXIARG *arg) {
+	REBCNT vt;
+	switch (mat->depth()) {
+		case CV_8U:  vt = VTUI08; break;
+		case CV_8S:  vt = VTSI08; break;
+		case CV_16U: vt = VTUI16; break;
+		case CV_16S: vt = VTSI16; break;
+		case CV_32S: vt = VTSI32; break;
+		case CV_32F: vt = VTSF32; break;
+		case CV_64F: vt = VTSF64; break;
+		default: return FALSE;
+	}
+	if (!RL_MAKE_VECTOR(arg, vt, (REBINT)(mat->total() * mat->channels()), 1)) return FALSE;
+	copy_mat_data(mat, ((REBSER*)arg->vector.series)->data);
+	return TRUE;
+}
+
+// Makes a new Rebol image! (8-bit BGRA) from a matrix of any depth with 1, 3
+// or 4 channels. 16-bit values are scaled to 8 bits, floating point ones are
+// expected in 0.0-1.0. Returns FALSE for other channel counts.
+static REBOOL mat2image(const Mat &src, RXIARG *arg) {
+	Mat tmp, bgra;
+	const Mat *m = &src;
+
+	if (src.depth() != CV_8U) {
+		double scale = 1.0;
+		switch (src.depth()) {
+			case CV_16U: scale = 1.0 / 257.0; break; // 65535 -> 255
+			case CV_16F:
+			case CV_32F:
+			case CV_64F: scale = 255.0; break;
+			default: break;                          // signed ints saturate
+		}
+		src.convertTo(tmp, CV_8U, scale);
+		m = &tmp;
+	}
+	switch (m->channels()) {
+		case 1:  cvtColor(*m, bgra, COLOR_GRAY2BGRA); break;
+		case 3:  cvtColor(*m, bgra, COLOR_BGR2BGRA);  break;
+		case 4:  bgra = *m; break;
+		default: return FALSE;
+	}
+	REBSER *img = (REBSER *)RL_MAKE_IMAGE(bgra.cols, bgra.rows);
+	if (!img) return FALSE;
+	copy_mat_data(&bgra, img->data);
+	// The tail in an image value is not in bytes, but in pixels!
+	SERIES_TAIL(img) = bgra.cols * bgra.rows;
+	arg->width       = bgra.cols;
+	arg->height      = bgra.rows;
+	arg->image       = img;
+	arg->image_index = 0;
+	return TRUE;
+}
+
+// Collects IMWRITE_* parameters from a block of integer pairs at frame n.
+// Words are resolved; collecting stops at the first non-integer.
+static void params_from_block(RXIFRM *frm, int n, vector<int> &params) {
+	if (RXA_TYPE(frm, n) != RXT_BLOCK) return;
+	REBSER *blk  = (REBSER*)RXA_SERIES(frm, n);
+	REBCNT index = RXA_INDEX(frm, n);
+	RXIARG a, b;
+	while (index + 1 < blk->tail
+		&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(blk, index++, &a)
+		&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(blk, index++, &b)) {
+		params.push_back(a.int32a);
+		params.push_back(b.int32a);
+	}
+}
+
 extern "C" {
-	extern REBCNT Handle_cvVideoCapture;
-	extern REBCNT Handle_cvVideoWriter;
-	extern REBCNT Handle_cvMat;
-	extern REBCNT Handle_cvTrackbar;
-	extern REBCNT Handle_cvMouseCallback;
-
-
-	static int initRXHandleArg(RXIARG* val, void* handle, REBCNT type, REBSER* ser) {
-		REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(type);
-		debug_print("new hob: %p handle: %p\n", hob, handle);
-		if (hob == NULL) return RXR_FALSE;
-		hob->handle = handle;
-		hob->series = ser;
-		val->handle.ptr = hob;
-		val->handle.type = type;
-		val->handle.flags = hob->flags;
-		return RXR_VALUE;
-	}
-
-	static int initRXHandle(RXIFRM *frm, int index, void* handle, REBCNT type, REBSER* ser) {
-		RXA_TYPE(frm, index) = RXT_HANDLE;
-		return initRXHandleArg(&RXA_ARG(frm, index), handle, type, ser);
-	}
-
-	static Mat* new_Mat_From_Image_Arg(RXIFRM *frm, int index) {
-		RXIARG arg = RXA_ARG(frm, index);
-		Mat *mat = new Mat(arg.height, arg.width, CV_8UC4);
-		mat->data = ((REBSER*)arg.series)->data;
-		return mat;
-	}
-
-	static REBSER* new_Reb_Vector(REBCNT size, int depth) {
-		REBINT type; // int = 0, decimal = 1
-		REBINT sign; // 0 = signed, 1 = unsigned
-		REBINT bits, dims = 1; // TODO: could be dims used to store number of rows?
-		switch(depth) {
-			case CV_8U:  type = 0; sign = 1; bits = 8;  break;
-			case CV_8S:  type = 0; sign = 0; bits = 8;  break;
-			case CV_16U: type = 0; sign = 1; bits = 16; break;
-			case CV_16S: type = 0; sign = 0; bits = 16; break;
-			case CV_32S: type = 0; sign = 0; bits = 32; break;
-			case CV_32F: type = 1; sign = 0; bits = 32; break;
-			case CV_64F: type = 1; sign = 0; bits = 64; break;
-		}
-		
-		REBSER *vec = (REBSER *)RL_MAKE_VECTOR(type, sign, dims, bits, size);
-		SERIES_TAIL(vec) = size;
-		return vec;
-	}
-
-	static void mat2ser(Mat *mat, REBSER *bin, RXIARG *arg) {
-		size_t elemSize = mat->elemSize();
-		size_t bytes = elemSize * mat->cols * mat->rows;
-
-		if (mat->isContinuous()) {
-			memcpy(bin->data, mat->data,  bytes);
-		} else {
-			unsigned char *bp = mat->data;
-			unsigned char *dp = bin->data;
-			size_t wb = elemSize * mat->cols;
-			size_t st = mat->step;
-			for( int j = 0; j < mat->rows; j++ ) {
-				memcpy(dp, bp, wb);
-				bp += st;
-				dp += wb;
-			}
-		}
-		SERIES_TAIL(bin) = bytes;
-		arg->series = bin;
-		arg->index = 0;
-	}
 
 	int Common_mold(REBHOB *hob, REBSER *str) {
 		int len;
 		if (!str) return 0;
 		SERIES_TAIL(str) = 0;
-		APPEND_STRING(str, "0#%lx", (unsigned long)(uintptr_t)hob->data);
+		APPEND_STRING(str, "0#%lx", (unsigned long)(uintptr_t)(HOB_LIVE(hob) ? HOB_PTR(hob) : NULL));
 		return len;
 	}
 
-	void* cvMat_free(void* cls) {
-		debug_print("GC Mat class %p\n", cls);
-		if (cls != NULL) {
-			Mat *mat = (Mat*)cls;
-			mat->release();
+	int cvMat_free(void* hndl) {
+		REBHOB *hob = (REBHOB*)hndl;
+		if (!hob || !hob->data) return 0;
+		Mat *mat = (Mat*)HOB_PTR(hob);
+		debug_print("GC Mat class %p\n", (void*)mat);
+		if (mat) {
+			delete mat;
+			HOB_PTR(hob) = NULL;
 		}
-		return NULL;
+		UNMARK_HOB(hob);
+		return 0;
 	}
 
 	int cvMat_get_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg) {
 		Size size;
 		Mat tmp;
-		Mat *mat = (Mat*)hob->handle;
-		if (!mat) return RXR_NONE;
+		if (!HOB_LIVE(hob)) return PE_NONE;
+		Mat *mat = (Mat*)HOB_PTR(hob);
+		if (!mat) return PE_NONE;
 		REBSER* ser = hob->series;
 		REBSER* bin;
 		int channels;
-		
 
-		word = RL_FIND_WORD(arg_words, word);
+		word = RL_FIND_WORD(Opencv_arg_words, word);
 
 		switch(word){
-		case W_ARG_SIZE:
+		case W_OPENCV_ARG_SIZE:
 			*type = RXT_PAIR;
 			size = mat->size();
-			arg->dec32a = size.width;
-			arg->dec32b = size.height;
+			arg->dec32a = (REBD32)size.width;
+			arg->dec32b = (REBD32)size.height;
 			break;
-		case W_ARG_WIDTH:
-		case W_ARG_HEIGHT:
+		case W_OPENCV_ARG_WIDTH:
+		case W_OPENCV_ARG_HEIGHT:
 			*type = RXT_INTEGER;
 			size = mat->size();
-			arg->uint64 = (word == W_ARG_WIDTH) ? size.width : size.height;
+			arg->uint64 = (word == W_OPENCV_ARG_WIDTH) ? size.width : size.height;
 			break;
-		case W_ARG_TYPE:
-			*type = RXT_WORD;
-			arg->int64 = type_words[mat->type() + W_TYPE_CV_8UC1];
+		case W_OPENCV_ARG_TYPE:
+			arg->int64 = typeWordFromCv(mat->type());
+			*type = arg->int64 ? RXT_WORD : RXT_NONE;
 			break;
-		case W_ARG_DEPTH:
-			*type = RXT_WORD;
-			arg->int64 = type_words[mat->depth() + W_TYPE_CV_8U];
+		case W_OPENCV_ARG_DEPTH:
+			arg->int64 = depthWordFromCv(mat->depth());
+			*type = arg->int64 ? RXT_WORD : RXT_NONE;
 			break;
-		case W_ARG_CHANNELS: 
+		case W_OPENCV_ARG_CHANNELS:
 			*type = RXT_INTEGER;
 			arg->uint64 = mat->channels();
 			break;
-		case W_ARG_BINARY:
+		case W_OPENCV_ARG_BINARY:
 			*type = RXT_BINARY;
 			if (ser) {
 				arg->series = ser;
 				arg->index = 0;
 			} else {
-				bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
+				bin = (REBSER *)RL_MAKE_STRING((u32)(mat->elemSize() * mat->cols * mat->rows), FALSE);
 				mat2ser(mat, bin, arg);
 			}
 			break;
-		case W_ARG_IMAGE:
+		case W_OPENCV_ARG_IMAGE:
 			*type = RXT_IMAGE;
 			channels = mat->channels();
 			if (channels == 1) {
@@ -237,149 +325,173 @@ extern "C" {
 			SERIES_TAIL(bin) = tmp.cols * tmp.rows;
 			arg->width  = tmp.cols;
 			arg->height = tmp.rows;
+			arg->image_index = 0;
 			break;
-		case W_ARG_VECTOR:
-			*type = RXT_VECTOR;
-			if (ser) {
-				arg->series = ser;
-				arg->index = 0;
-				//TODO: propper casting from binary series to vector of type used by the Matrix
-				//     (which needs modification on Rebol side)
-			} else {
-				REBSER *vec = new_Reb_Vector(mat->cols * mat->rows * mat->channels(), mat->depth());
-				mat2ser(mat, vec, arg);
-			}
+		case W_OPENCV_ARG_VECTOR:
+			// Always a copy: a shared buffer is a byte series with no
+			// element type, which is not a vector.
+			*type = mat2vector(mat, arg) ? RXT_VECTOR : RXT_NONE;
 			break;
-		case W_ARG_TOTAL: 
+		case W_OPENCV_ARG_TOTAL:
 			*type = RXT_INTEGER;
 			arg->uint64 = mat->total();
 			break;
-		case W_ARG_IS_SUBMATRIX: 
+		case W_OPENCV_ARG_IS_SUBMATRIX:
 			*type = RXT_LOGIC;
 			arg->int32a = mat->isSubmatrix();
 			break;
 		default:
-			return PE_BAD_SELECT;	
+			return PE_BAD_SELECT;
 		}
 		return PE_USE;
 	}
 
-	void* cvVideoCapture_free(void* cls) {
-		debug_print("GC VideoCapture class %p\n", cls);
-		if (cls != NULL) {
-			VideoCapture *cap = (VideoCapture*)cls;
+	int cvVideoCapture_free(void* hndl) {
+		REBHOB *hob = (REBHOB*)hndl;
+		if (!hob || !hob->data) return 0;
+		VideoCapture *cap = (VideoCapture*)HOB_PTR(hob);
+		debug_print("GC VideoCapture class %p\n", (void*)cap);
+		if (cap) {
 			cap->release();
+			delete cap;
+			HOB_PTR(hob) = NULL;
 		}
-		return NULL;
+		UNMARK_HOB(hob);
+		return 0;
 	}
 
 	int cvVideoCapture_get_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg) {
-		VideoCapture *cap= (VideoCapture*)hob->handle;
-		if (!cap) return RXR_NONE;
+		if (!HOB_LIVE(hob)) return PE_NONE;
+		VideoCapture *cap = (VideoCapture*)HOB_PTR(hob);
+		if (!cap) return PE_NONE;
 
-		word = RL_FIND_WORD(arg_words, word);
-
-		if (word == W_ARG_WIDTH) {
-			*type = RXT_INTEGER;
-			arg->uint64 = cap->get(CAP_PROP_FRAME_WIDTH);
-			return PE_USE;
-		}
-		if (word == W_ARG_HEIGHT) {
-			*type = RXT_INTEGER;
-			arg->uint64 = cap->get(CAP_PROP_FRAME_HEIGHT);
-			return PE_USE;
-		}
-		if (word == W_ARG_FRAMES) {
-			*type = RXT_INTEGER;
-			arg->uint64 = cap->get(CAP_PROP_FRAME_COUNT);
-			return PE_USE;
-		}
-		if (word == W_ARG_FORMAT) {
-			*type = RXT_WORD;
-			arg->int64 = type_words[(int)cap->get(CAP_PROP_FORMAT) + W_TYPE_CV_8UC1];
-			return PE_USE;
-		}
-		if (word >= W_ARG_POS_MS && word <= W_ARG_FRAMES) {
+		// Each field names its CAP_PROP_* explicitly. The word ids come from
+		// the order of the `handles:` fields in the spec (shared with cvMat),
+		// so they cannot be turned into property ids by arithmetic.
+		switch (RL_FIND_WORD(Opencv_arg_words, word)) {
+		case W_OPENCV_ARG_POS_MS:
 			*type = RXT_DECIMAL;
-			arg->dec64 = cap->get(word - W_ARG_POS_MS);
-			return PE_USE;
+			arg->dec64 = cap->get(CAP_PROP_POS_MSEC);
+			break;
+		case W_OPENCV_ARG_POS_FRAME:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_POS_FRAMES);
+			break;
+		case W_OPENCV_ARG_POS_RATIO:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_POS_AVI_RATIO);
+			break;
+		case W_OPENCV_ARG_WIDTH:
+			*type = RXT_INTEGER;
+			arg->int64 = (i64)cap->get(CAP_PROP_FRAME_WIDTH);
+			break;
+		case W_OPENCV_ARG_HEIGHT:
+			*type = RXT_INTEGER;
+			arg->int64 = (i64)cap->get(CAP_PROP_FRAME_HEIGHT);
+			break;
+		case W_OPENCV_ARG_FPS:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_FPS);
+			break;
+		case W_OPENCV_ARG_FOURCC:
+			*type = RXT_DECIMAL;
+			arg->dec64 = cap->get(CAP_PROP_FOURCC);
+			break;
+		case W_OPENCV_ARG_FRAMES:
+			*type = RXT_INTEGER;
+			arg->int64 = (i64)cap->get(CAP_PROP_FRAME_COUNT);
+			break;
+		case W_OPENCV_ARG_FORMAT:
+			arg->int64 = typeWordFromCv((int)cap->get(CAP_PROP_FORMAT));
+			*type = arg->int64 ? RXT_WORD : RXT_NONE;
+			break;
+		default:
+			return PE_BAD_SELECT;
 		}
-		return PE_BAD_SELECT;	
+		return PE_USE;
 	}
 
-	void* cvMouseCallback_free(void* cls) {
-		debug_print("GC MouseCallback class %p\n", cls);
-		if (cls != NULL) {
-			CTX_MOUSECALLBACK *mcb = (CTX_MOUSECALLBACK*)cls;
-			if (mcb->window != NULL) {
-				// It's not possible to remove the callback,
-				// because it could remove another one, which is already used.
-				// OpenCV api does not provide any API to get existing callback for a test.
-				//if (getWindowProperty(*mcb->window, WND_PROP_VISIBLE))
-				//	setMouseCallback(*mcb->window, NULL, NULL);
-				delete mcb->window;
-			}
-			if(mcb->cbi)  FREE_MEM(mcb->cbi);
-			if(mcb->args) FREE_MEM(mcb->args);
+	int cvVideoWriter_free(void* hndl) {
+		REBHOB *hob = (REBHOB*)hndl;
+		if (!hob || !hob->data) return 0;
+		VideoWriter *writer = (VideoWriter*)HOB_PTR(hob);
+		debug_print("GC VideoWriter class %p\n", (void*)writer);
+		if (writer) {
+			writer->release();
+			delete writer;
+			HOB_PTR(hob) = NULL;
 		}
-		return NULL;
+		UNMARK_HOB(hob);
+		return 0;
+	}
+
+	int cvTrackbar_free(void* hndl) {
+		REBHOB *hob = (REBHOB*)hndl;
+		if (!hob || !hob->data) return 0;
+		CTX_TRACKBAR *bar = (CTX_TRACKBAR*)hob->data;
+		debug_print("GC cvTrackbar %p\n", (void*)bar);
+		delete bar->name;
+		delete bar->window;
+		if (bar->cbi)  FREE_MEM(bar->cbi);
+		if (bar->args) FREE_MEM(bar->args);
+		CLEARS(bar);
+		UNMARK_HOB(hob);
+		return 0;
+	}
+
+	int cvMouseCallback_free(void* hndl) {
+		REBHOB *hob = (REBHOB*)hndl;
+		if (!hob || !hob->data) return 0;
+		CTX_MOUSECALLBACK *mcb = (CTX_MOUSECALLBACK*)hob->data;
+		debug_print("GC MouseCallback class %p\n", (void*)mcb);
+		// It's not possible to remove the callback,
+		// because it could remove another one, which is already used.
+		// OpenCV api does not provide any API to get existing callback for a test.
+		delete mcb->window;
+		if (mcb->cbi)  FREE_MEM(mcb->cbi);
+		if (mcb->args) FREE_MEM(mcb->args);
+		CLEARS(mcb);
+		UNMARK_HOB(hob);
+		return 0;
 	}
 
 	int cvMouseCallback_get_path(REBHOB *hob, REBCNT word, REBCNT *type, RXIARG *arg) {
-		CTX_MOUSECALLBACK *mcb = (CTX_MOUSECALLBACK*)hob->handle;
-		if (!mcb) return RXR_NONE;
+		if (!HOB_LIVE(hob)) return PE_NONE;
+		CTX_MOUSECALLBACK *mcb = (CTX_MOUSECALLBACK*)hob->data;
+		if (!mcb) return PE_NONE;
 
-		word = RL_FIND_WORD(arg_words, word);
-		if (word == W_ARG_X) {
+		word = RL_FIND_WORD(Opencv_arg_words, word);
+		switch (word) {
+		case W_OPENCV_ARG_X:
 			*type = RXT_INTEGER;
 			arg->int64 = mcb->x;
-			return PE_USE;
-		}
-		if (word == W_ARG_Y) {
+			break;
+		case W_OPENCV_ARG_Y:
 			*type = RXT_INTEGER;
 			arg->int64 = mcb->y;
-			return PE_USE;
-		}
-		if (word == W_ARG_POS) {
+			break;
+		case W_OPENCV_ARG_POS:
 			*type = RXT_PAIR;
 			arg->dec32a = (float)mcb->x;
 			arg->dec32b = (float)mcb->y;
-			return PE_USE;
-		}
-		if (word == W_ARG_FLAGS) {
+			break;
+		case W_OPENCV_ARG_FLAGS:
 			*type = RXT_INTEGER;
 			arg->int64 = mcb->flags;
-			return PE_USE;
+			break;
+		default:
+			return PE_BAD_SELECT;
 		}
-		return PE_BAD_SELECT;	
-	}
-
-
-	void* releaseVideoWriter(void* cls) {
-		debug_print("GC VideoWriter class %p\n", cls);
-		if (cls != NULL) {
-			VideoWriter *cap = (VideoWriter*)cls;
-			cap->release();
-		}
-		return NULL;
-	}
-
-	void* releaseTrackbar(void* cls) {
-		debug_print("GC cvTrackbar %p\n", cls);
-		if (cls != NULL) {
-			CTX_TRACKBAR *bar = (CTX_TRACKBAR*)cls;
-			delete bar->name;
-			delete bar->window;
-			if(bar->cbi)  FREE_MEM(bar->cbi);
-			if(bar->args) FREE_MEM(bar->args);
-		}
-		return NULL;
+		return PE_USE;
 	}
 }
 
 
-
-COMMAND cmd_test(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_test(RXIFRM *frm, void *ctx) {
+#ifndef HAVE_OPENCV_HIGHGUI
+	// the loop below is stopped by a key press in its window
+	RETURN_ERROR("Not available in this build (no highgui)!");
+#else
 	Mat src;
     // use default camera as video source
     VideoCapture cap(0);
@@ -440,6 +552,7 @@ COMMAND cmd_test(RXIFRM *frm, void *ctx) {
 //	moveWindow("Display window", 300, 300);
 //	int k = waitKey(0); // Wait for a keystroke in the window
 	return RXR_UNSET;
+#endif
 }
 
 //;-----------------------------------------------------------------------
@@ -461,7 +574,7 @@ static int vecType2cvType[12] = {
 	CV_64F  //	VTSF64
 };
 
-COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_Matrix(RXIFRM *frm, void *ctx) {
 	Mat *mat = NULL;
 	REBSER *bin = NULL;
 	REBSER *blk;
@@ -472,6 +585,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 	Size size = Size(0,0);
 	int type = CV_8UC4;
 	int binBytes = 0, matBytes = 0;
+	REBCNT binIndex = 0; // `val` is reused by the loop, so keep the data position
 	
 	if (ARG_Is_Block(1)) {
 		blk = (REBSER *)RXA_SERIES(frm, 1);
@@ -488,9 +602,8 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				size = Size((int)val.pair.x, (int)val.pair.y);
 			}
 			else if (t == RXT_WORD) {
-				type = RL_FIND_WORD(type_words, val.int32a);
-				if (type < W_TYPE_CV_8UC1 || type > W_TYPE_CV_16FC4) return RXR_FALSE;
-				type -= W_TYPE_CV_8UC1;
+				type = cvTypeFromWord(val.int32a);
+				if (type < 0) goto err_type;
 			}
 			else if (t == RXT_TUPLE) {
 				if (RXT_END != RL_GET_VALUE(blk, ++n, &val)) goto err_spec;
@@ -500,6 +613,7 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 			}
 			else if (t == RXT_BINARY) {
 				bin = (REBSER*)val.series;
+				binIndex = val.index;
 				binBytes = SERIES_TAIL(bin) - val.index;
 				sharedBin = resolved; // use shared series only if argument was passed by word or path
 			}
@@ -509,16 +623,16 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				// The CV type is computed from the vector type and sizes.
 				bin = (REBSER*)val.series;
 				if (size.width <= 0 || size.height <= 0) goto err_size;
-				int vecType = VECT_TYPE(bin);
-				if (vecType < 0 || vecType > 11 || (type = vecType2cvType[vecType]) < 0 ) {
-					trace("Invalid vector type.");
-					return RXR_FALSE;
-				}
+				// The element type travels in the value's info since ABI 1.
+				int vecType = (int)RXI_VECTOR_TYPE(val.vector.info);
+				if (vecType < 0 || vecType > VTSF64 || (type = vecType2cvType[vecType]) < 0) goto err_vect;
 
 				int depth = (bin->tail - val.index) / (size.width * size.height);
-				binBytes = (SERIES_TAIL(bin) - val.index) * VECT_BYTE_SIZE(vecType);
+				binIndex = val.index;
+				binBytes = (SERIES_TAIL(bin) - val.index) * (RXI_VECTOR_BITS(val.vector.info) / 8);
+				// `depth` here is the number of channels per element
+				if (depth < 1 || depth > 4) goto err_vect;
 				type = CV_MAKETYPE(type, depth);
-				if (type < 0 || type > CV_16FC4) goto err_vect;
 				sharedBin = resolved; // use shared series only if argument was passed by word or path
 			}
 			else if (t == RXT_HANDLE) {
@@ -526,16 +640,17 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 				REBSER *rect;
 				RXIARG pos, sz;
 
-				if (val.handle.type != Handle_cvMat) {
+				if (val.handle.type != Handle_cvMat || !IS_USED_HOB(val.handle.hob)) {
 					trace("Expected cvMat handle.");
 					goto err_spec;
 				}
-				src = (Mat*)val.handle.hob->data;
+				src = (Mat*)HOB_PTR(val.handle.hob);
 				if (!src) {
 					trace("Invalid matrix argument.");
 					goto err_spec;
 				}
-				t = RL_GET_VALUE(blk, n++, &val);
+				// the rectangle block follows the handle
+				t = RL_GET_VALUE(blk, ++n, &val);
 				if (t == RXT_GET_WORD || t == RXT_GET_PATH) {
 					t = RL_GET_VALUE_RESOLVED(blk, n, &val);
 				}
@@ -548,42 +663,48 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 					trace("Expected block with 2 pairs!");
 					goto err_spec;
 				}
-				mat = new Mat(*src, Rect(pos.pair.x,pos.pair.y,sz.pair.x,sz.pair.y));
+				// A rectangle outside the source throws - report it as an error
+				// rather than let the exception escape the extension.
+				EXCEPTION_TRY
+				mat = new Mat(*src, Rect((int)pos.pair.x, (int)pos.pair.y, (int)sz.pair.x, (int)sz.pair.y));
+				EXCEPTION_CATCH
 				goto done;
 			}
 			else goto err_spec;
 		}
 		if (bin) {
 			if (size.width <= 0 || size.height <= 0) goto err_size;
-			if (type < 0 || type > CV_16FC4) goto err_type;
+			if (!IS_KNOWN_CV_TYPE(type)) goto err_type;
 			// It is possible to create a matrix, which is using directly the Rebol binary data.
 			// https://docs.opencv.org/3.4/d3/d63/classcv_1_1Mat.html#a9fa74fb14362d87cb183453d2441948f
 
-			matBytes =  size.width * size.height * elementSizeByType[type];
+			matBytes =  size.width * size.height * (int)CV_ELEM_SIZE(type);
 
 			if (sharedBin) {
 				//trace("shared binary");
-				if(binBytes < matBytes) goto err_size;
-				mat = new Mat(size, type, SERIES_SKIP(bin, val.index));
+				if(binBytes < matBytes) goto err_shortBin;
+				mat = new Mat(size, type, SERIES_SKIP(bin, binIndex));
 			}
 			else {
-				// Create a non shared binary data!
-				REBSER *ser = NULL;
-				if (matBytes > 0) {
-					ser = (REBSER *)RL_MAKE_STRING(matBytes, FALSE);
-					SERIES_TAIL(ser) = matBytes;
-					mat = new Mat(size, type, ser->data);
-
-					if (binBytes < matBytes) {
-						unsigned char *bp = ser->data;
-						for (;binBytes <= matBytes; bp += binBytes, matBytes--) {
-							memcpy(bp, SERIES_SKIP(bin, val.index), binBytes);
-						}
-					} else {
-						memcpy(ser->data, SERIES_SKIP(bin, val.index), matBytes);
+				// Not shared: the matrix gets its own copy of the data, kept
+				// alive by the handle. Data shorter than the matrix is repeated
+				// to fill it.
+				REBYTE *src = SERIES_SKIP(bin, binIndex);
+				REBYTE *bp;
+				int left;
+				REBSER *ser = (REBSER *)RL_MAKE_STRING(matBytes, FALSE);
+				if (!ser) RETURN_ERROR(ERR_MAT_SIZE);
+				SERIES_TAIL(ser) = matBytes;
+				bp = ser->data;
+				if (binBytes <= 0) {
+					memset(bp, 0, matBytes);
+				} else {
+					for (left = matBytes; left > 0; left -= binBytes, bp += binBytes) {
+						memcpy(bp, src, MIN(left, binBytes));
 					}
 				}
-				*bin = *ser;
+				mat = new Mat(size, type, ser->data);
+				bin = ser; // the handle keeps the copy, not the caller's series
 			}
 			goto done;
 		}
@@ -609,25 +730,19 @@ COMMAND cmd_Matrix(RXIFRM *frm, void *ctx) {
 done:
 	return initRXHandle(frm, 1, mat, Handle_cvMat, bin);
 err_size:
-	trace("Invalid or missing size specification!");
-	return RXR_FALSE;
+	RETURN_ERROR(ERR_MAT_SIZE);
 err_spec:
-	debug_print("Invalid matrix spec at index... %u\n", n);
-	return RXR_FALSE;
+	RETURN_ERROR(ERR_MAT_SPEC);
 err_shortBin:
-	debug_print("Insufficient series size! Requited %i, but got only %i bytes.", matBytes, binBytes);
-	return RXR_FALSE;
+	RETURN_ERROR(ERR_MAT_SHORT);
 err_type:
-	debug_print("Invalid matrix type %i!\n", type);
-	return RXR_FALSE;
+	RETURN_ERROR(ERR_MAT_TYPE);
 err_vect:
-	trace("Vector size does not match with the given matrix size!");
-	return RXR_FALSE;
+	RETURN_ERROR(ERR_MAT_VECTOR);
 }
 
-COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_VideoCapture(RXIFRM *frm, void *ctx) {
 	VideoCapture *cap;
-	int deviceID;
 
 	EXCEPTION_TRY
 
@@ -650,7 +765,7 @@ COMMAND cmd_VideoCapture(RXIFRM *frm, void *ctx) {
 	return initRXHandle(frm, 1, cap, Handle_cvVideoCapture, NULL);
 }
 
-COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_VideoWriter(RXIFRM *frm, void *ctx) {
 	VideoWriter *writer;
 
 	String name  = ARG_String(1);
@@ -676,7 +791,7 @@ COMMAND cmd_VideoWriter(RXIFRM *frm, void *ctx) {
 	return initRXHandle(frm, 1, writer, Handle_cvVideoWriter, NULL);
 }
 
-COMMAND cmd_free(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_free(RXIFRM *frm, void *ctx) {
 	REBCNT type = RXA_HANDLE_TYPE(frm, 1);
 	if (type) {
 		// calling Rebol's release function, which will call appropriate
@@ -694,7 +809,7 @@ COMMAND cmd_free(RXIFRM *frm, void *ctx) {
 //;- Accessors                                                            
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_get_property(RXIFRM *frm, void *ctx) {
 	int propid = RXA_INT32(frm, 2);
 	double result = 0;
 
@@ -708,7 +823,7 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 	else if (ARG_Is_Mat(1)) {
 		REBHOB* hob = RXA_HANDLE_CONTEXT(frm, 1);
 		if (!hob) return RXR_NONE;
-		Mat *mat = (Mat*)hob->handle;
+		Mat *mat = (Mat*)HOB_PTR(hob);
 		if (!mat) return RXR_NONE;
 		REBSER* ser = hob->series;
 
@@ -716,18 +831,21 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 			case MAT_SIZE: {
 				Size size = mat->size();
 				RXA_TYPE(frm,1) = RXT_PAIR;
-				RXA_PAIR(frm,1).x = size.width;
-				RXA_PAIR(frm,1).y = size.height;
+				RXA_PAIR(frm,1).x = (float)size.width;
+				RXA_PAIR(frm,1).y = (float)size.height;
 				return RXR_VALUE;
 			}
 			case MAT_TYPE: {
+				RXA_ARG(frm,1).int64 = typeWordFromCv(mat->type());
+				if (!RXA_ARG(frm,1).int64) return RXR_NONE;
 				RXA_TYPE(frm,1) = RXT_WORD;
-				RXA_ARG(frm,1).int64 = type_words[mat->type() + W_TYPE_CV_8UC1];
 				return RXR_VALUE;
 			}
 			case MAT_DEPTH: {
-				RXA_TYPE(frm,1) = RXT_INTEGER;
-				RXA_ARG(frm,1).int64 = mat->depth();
+				// a word, like MAT_TYPE and the mat/depth accessor
+				RXA_ARG(frm,1).int64 = depthWordFromCv(mat->depth());
+				if (!RXA_ARG(frm,1).int64) return RXR_NONE;
+				RXA_TYPE(frm,1) = RXT_WORD;
 				return RXR_VALUE;
 			}
 			case MAT_CHANNELS: {
@@ -740,7 +858,7 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 					RXA_SERIES(frm, 1) = ser;
 					RXA_INDEX(frm, 1) = 0;
 				} else {
-					REBSER *bin = (REBSER *)RL_MAKE_STRING(mat->elemSize() * mat->cols * mat->rows, FALSE);
+					REBSER *bin = (REBSER *)RL_MAKE_STRING((u32)(mat->elemSize() * mat->cols * mat->rows), FALSE);
 					mat2ser(mat, bin, &RXA_ARG(frm,1));
 				}
 				RXA_TYPE  (frm, 1) = RXT_BINARY;
@@ -757,21 +875,18 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 
 				REBSER *bin = (REBSER *)RL_MAKE_IMAGE(tmp.cols, tmp.rows);
 				mat2ser(&tmp, bin, &RXA_ARG(frm,1));
+				// The tail in an image value is not in bytes, but in pixels!
+				SERIES_TAIL(bin) = tmp.cols * tmp.rows;
 				RXA_TYPE(frm, 1) = RXT_IMAGE;
-				RXA_ARG(frm, 1).width  = tmp.cols;
-				RXA_ARG(frm, 1).height = tmp.rows;
+				RXA_IMAGE_WIDTH(frm, 1)  = tmp.cols;
+				RXA_IMAGE_HEIGHT(frm, 1) = tmp.rows;
+				RXA_IMAGE_INDEX(frm, 1)  = 0;
 				return RXR_VALUE;
 			}
 			case MAT_VECTOR: {
-				if (ser) {
-					RXA_SERIES(frm, 1) = ser;
-					RXA_INDEX(frm, 1) = 0;
-					//TODO: propper casting from binary series to vector of type used by the Matrix
-					//     (which needs modification on Rebol side)
-				} else {
-					REBSER *vec = new_Reb_Vector(mat->cols * mat->rows * mat->channels(), mat->depth());
-					mat2ser(mat, vec, &RXA_ARG(frm,1));
-				}
+				// Always a copy: a shared buffer is a byte series with no
+				// element type, which is not a vector.
+				if (!mat2vector(mat, &RXA_ARG(frm,1))) return RXR_NONE;
 				RXA_TYPE  (frm, 1) = RXT_VECTOR;
 				return RXR_VALUE;
 			}
@@ -785,7 +900,7 @@ COMMAND cmd_get_property(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_set_property(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_set_property(RXIFRM *frm, void *ctx) {
 	int propid   = RXA_INT32(frm, 2);
 	double value = RXA_DEC64(frm, 3);
 	bool result = FALSE;
@@ -804,7 +919,7 @@ COMMAND cmd_set_property(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_read(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_read(RXIFRM *frm, void *ctx) {
 	VideoCapture *cap;
 	Mat *frame;
 
@@ -830,7 +945,7 @@ COMMAND cmd_read(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_write(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_write(RXIFRM *frm, void *ctx) {
 	VideoWriter *writer;
 
 	if(!ARG_Is_VideoWriter(1))
@@ -862,7 +977,7 @@ COMMAND cmd_write(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/d4/da8/group__imgcodecs.html           
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_imread(RXIFRM *frm, void *ctx) {
 	Mat image;
 	String filename = ARG_String(1);
 	int flags = (ARG_Is_Integer(4) ? RXA_INT32(frm,4) : IMREAD_UNCHANGED);
@@ -885,6 +1000,7 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 		RXA_ARG(frm, 1).width  = image.cols;
 		RXA_ARG(frm, 1).height = image.rows;
 		RXA_ARG(frm, 1).image  = reb_image;
+		RXA_IMAGE_INDEX(frm, 1) = 0;
 	}
 	
 	EXCEPTION_CATCH
@@ -892,7 +1008,7 @@ COMMAND cmd_imread(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_imreadmulti(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_imreadmulti(RXIFRM *frm, void *ctx) {
 	vector<Mat> images;
 	String filename = ARG_String(1);
 	int flags = (ARG_Is_Integer(4) ? RXA_INT32(frm,4) : IMREAD_UNCHANGED);
@@ -902,7 +1018,7 @@ COMMAND cmd_imreadmulti(RXIFRM *frm, void *ctx) {
 	EXCEPTION_CATCH
 
 	int n;
-	int num = images.size();
+	int num = (int)images.size();
 	REBSER *blk = (REBSER*)RL_MAKE_BLOCK(num);
 	RXIARG val;
 
@@ -923,6 +1039,7 @@ COMMAND cmd_imreadmulti(RXIFRM *frm, void *ctx) {
 			val.width  = image.cols;
 			val.height = image.rows;
 			val.image  = reb_image;
+			val.image_index = 0;
 			RL_SET_VALUE(blk, n, val, RXT_IMAGE);
 		}
 	}
@@ -931,26 +1048,13 @@ COMMAND cmd_imreadmulti(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_imwrite(RXIFRM *frm, void *ctx) {
 	String name = ARG_String(1);
 	bool result = false;
 	vector<int> params = vector<int>();
 
 	EXCEPTION_TRY
-	// Prepare optional parameters
-	if (RXA_TYPE(frm, 4) == RXT_BLOCK) {
-		REBSER *cmds;
-		REBCNT index, type;
-		RXIARG arg1,arg2;
-		cmds = (REBSER*)RXA_SERIES(frm, 4);
-		index = RXA_INDEX(frm, 4);
-		while (index+1 < cmds->tail
-			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg1)
-			&& RXT_INTEGER == RL_GET_VALUE_RESOLVED(cmds, index++, &arg2)) {
-			params.push_back(arg1.int32a);
-			params.push_back(arg2.int32a);
-		}
-	}
+	params_from_block(frm, 4, params);
 
 	if (ARG_Is_Mat(2)) {
 		if (!ARG_Mat(2)) return RXR_FALSE;
@@ -967,23 +1071,93 @@ COMMAND cmd_imwrite(RXIFRM *frm, void *ctx) {
 	return result ? RXR_VALUE : RXR_FALSE;
 }
 
+COMMAND cmd_opencv_imdecode(RXIFRM *frm, void *ctx) {
+	REBSER *bin  = (REBSER*)RXA_SERIES(frm, 1);
+	REBCNT index = RXA_INDEX(frm, 1);
+	int flags = (ARG_Is_Integer(4) ? RXA_INT32(frm,4) : IMREAD_UNCHANGED);
+	Mat image;
+
+	if (index >= SERIES_TAIL(bin)) return RXR_NONE;
+
+	EXCEPTION_TRY
+	// Wraps the binary from its index - no copy.
+	Mat buf(1, (int)(SERIES_TAIL(bin) - index), CV_8UC1, SERIES_SKIP(bin, index));
+	image = imdecode(buf, flags);
+	if (image.empty()) return RXR_NONE;
+	if (ARG_Is_None(2)) {
+		if (RXR_VALUE != initRXHandle(frm, 1, new Mat(image), Handle_cvMat, NULL))
+			return RXR_FALSE;
+	}
+	else {
+		if (!mat2image(image, &RXA_ARG(frm, 1))) return RXR_NONE;
+		RXA_TYPE(frm, 1) = RXT_IMAGE;
+	}
+	EXCEPTION_CATCH
+
+	return RXR_VALUE;
+}
+
+COMMAND cmd_opencv_imencode(RXIFRM *frm, void *ctx) {
+	String ext;
+	vector<int> params;
+	vector<uchar> out;
+	bool ok = false;
+
+	if (RXA_TYPE(frm, 1) == RXT_WORD) {
+		// 'png -> ".png", as `encode 'png` names the codec
+		REBYTE *name = RL_WORD_STRING(RXA_WORD(frm, 1)); // allocates a copy
+		if (name) {
+			ext = String((const char*)name);
+			free(name);
+		}
+	}
+	else ext = ARG_String(1);
+
+	if (ext.empty()) RETURN_ERROR(ERR_NO_EXT);
+	if (ext[0] != '.') ext = "." + ext; // accept "png" as well as %.png
+
+	EXCEPTION_TRY
+	params_from_block(frm, 4, params);
+
+	if (ARG_Is_Mat(2)) {
+		ok = imencode(ext, *ARG_Mat(2), out, params);
+	}
+	else if (ARG_Is_Image(2)) { // Rebol image is BGRA, as OpenCV expects
+		RXIARG arg = RXA_ARG(frm, 2);
+		Mat image(arg.height, arg.width, CV_8UC4, ((REBSER*)arg.series)->data);
+		ok = imencode(ext, image, out, params);
+	}
+	else RETURN_ERROR(ERR_INVALID_MAT);
+	EXCEPTION_CATCH
+
+	if (!ok || out.empty()) return RXR_NONE;
+
+	REBSER *ser = (REBSER *)RL_MAKE_STRING((REBLEN)out.size(), FALSE);
+	memcpy(ser->data, out.data(), out.size());
+	SERIES_TAIL(ser) = (REBLEN)out.size();
+	RXA_TYPE  (frm, 1) = RXT_BINARY;
+	RXA_SERIES(frm, 1) = ser;
+	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
+}
+
 //;-----------------------------------------------------------------------
 //;- Geometric Image Transformations                                      
 //;- https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html  
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_resize(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_resize(RXIFRM *frm, void *ctx) {
 	Mat *src;
 	Mat *dst;
 	Size size;
 	int interpolation = INTER_LINEAR;
 	bool newHandle = FALSE;
 
-	if (ARG_Is_Mat(1) && ARG_Mat(1)) { 
+	if (ARG_Is_Mat(1)) {
 		src = ARG_Mat(1);
 	} else if (ARG_Is_Image(1)) { // input is Rebol image
 		src = new_Mat_From_Image_Arg(frm, 1); // delete before return!
-	} else return RXR_NONE;
+	} else RETURN_ERROR(ERR_INVALID_MAT);
 
 	if (ARG_Is_Mat(4) && ARG_Mat(4)) { // /into handle
 		dst = ARG_Mat(4);
@@ -997,8 +1171,8 @@ COMMAND cmd_resize(RXIFRM *frm, void *ctx) {
 	} else {
 		double scale = RXA_DEC64(frm, 2);
 		size = src->size();
-		size.width *= scale;
-		size.height *= scale;
+		size.width  = (int)(size.width  * scale);
+		size.height = (int)(size.height * scale);
 	}
 
 	if (ARG_Is_Integer(6)) {
@@ -1030,7 +1204,7 @@ COMMAND cmd_resize(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/d4/d86/group__imgproc__filter.html     
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_bilateralFilter(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_bilateralFilter(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
 	int d             = ARG_Int(3);
@@ -1048,7 +1222,7 @@ COMMAND cmd_bilateralFilter(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_blur(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
 	Size ksize        = ARG_Size(3);
@@ -1065,7 +1239,7 @@ COMMAND cmd_blur(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_dilate(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_dilate(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
 	Mat *kernel       = ARG_Mat(3);
@@ -1082,7 +1256,7 @@ COMMAND cmd_dilate(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_erode(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_erode(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
 	Mat *kernel       = ARG_Mat(3);
@@ -1099,7 +1273,7 @@ COMMAND cmd_erode(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_filter2D(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_filter2D(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
 	int ddepth        = ARG_Int(3);
@@ -1118,7 +1292,7 @@ COMMAND cmd_filter2D(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_GaussianBlur(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
 	Size ksize        = ARG_Size(3);
@@ -1136,7 +1310,7 @@ COMMAND cmd_GaussianBlur(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_getGaborKernel(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getGaborKernel(RXIFRM *frm, void *ctx) {
 	Size 	ksize  = ARG_Size(1);
 	double 	sigma  = ARG_Double(2);
 	double 	theta  = ARG_Double(3);
@@ -1153,7 +1327,7 @@ COMMAND cmd_getGaborKernel(RXIFRM *frm, void *ctx) {
 	return initRXHandle(frm, 1, kernel, Handle_cvMat, NULL);
 }
 
-COMMAND cmd_getStructuringElement(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getStructuringElement(RXIFRM *frm, void *ctx) {
 	int shape     = ARG_Int(1);
 	Size ksize    = ARG_Size(2);
 	Point anchor  = ARG_Point(3);
@@ -1166,7 +1340,7 @@ COMMAND cmd_getStructuringElement(RXIFRM *frm, void *ctx) {
 	return initRXHandle(frm, 1, dst, Handle_cvMat, NULL);
 }
 
-COMMAND cmd_Laplacian(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_Laplacian(RXIFRM *frm, void *ctx) {
 	Mat *src       = ARG_Mat(1);
 	Mat *dst       = ARG_Mat_As(2, src);
 	int ddepth     = ARG_Int(3);
@@ -1185,7 +1359,7 @@ COMMAND cmd_Laplacian(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_medianBlur(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_medianBlur(RXIFRM *frm, void *ctx) {
 	Mat *src       = ARG_Mat(1);
 	Mat *dst       = ARG_Mat_As(2, src);
 	int ksize      = ARG_Int(3);
@@ -1206,7 +1380,7 @@ COMMAND cmd_medianBlur(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/d8/d01/group__imgproc__color__conversions.html
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_cvtColor(RXIFRM *frm, void *ctx) {
 	Mat *src       = ARG_Mat(1);
 	Mat *dst       = ARG_Mat_As(2, src);
 	int code       = ARG_Int(3);
@@ -1226,7 +1400,7 @@ COMMAND cmd_cvtColor(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/d3/d50/group__imgproc__colormap.html                           
 //;-----------------------------------------------------------------------------------------------
 
-COMMAND cmd_applyColorMap(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_applyColorMap(RXIFRM *frm, void *ctx) {
 	Mat *src       = ARG_Mat(1);
 	Mat *dst       = ARG_Mat_As(2, src);
 	int colormap   = ARG_Int(3);
@@ -1246,7 +1420,7 @@ COMMAND cmd_applyColorMap(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/dd/d1a/group__imgproc__feature.html                            
 //;-----------------------------------------------------------------------------------------------
 
-COMMAND cmd_Canny(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_Canny(RXIFRM *frm, void *ctx) {
 	Mat *src       = ARG_Mat(1);
 	Mat *dst       = ARG_Mat_As(2, src);
 	double threshold1 = ARG_Double(3);
@@ -1268,7 +1442,7 @@ COMMAND cmd_Canny(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html     
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_threshold(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_threshold(RXIFRM *frm, void *ctx) {
 	Mat *src = ARG_Mat(1);
 	Mat *dst = ARG_Mat_As(2, src);
 	double thresh = ARG_Double(3);
@@ -1342,32 +1516,33 @@ static int mat_math_op(RXIFRM *frm, void *ctx, int op) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_bitwise_and(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_bitwise_and(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, BITWISE_AND);
 }
-COMMAND cmd_bitwise_or(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_bitwise_or(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, BITWISE_OR);
 }
-COMMAND cmd_bitwise_xor(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_bitwise_xor(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, BITWISE_XOR);
 }
-COMMAND cmd_add(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_add(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, MATH_ADD);
 }
-COMMAND cmd_subtract(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_subtract(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, MATH_SUBTRACT);
 }
-COMMAND cmd_multiply(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_multiply(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, MATH_MULTIPLY);
 }
-COMMAND cmd_divide(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_divide(RXIFRM *frm, void *ctx) {
 	return mat_math_op(frm, ctx, MATH_DIVIDE);
 }
 
-COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_bitwise_not(RXIFRM *frm, void *ctx) {
 	Mat *src  = ARG_Mat(1);
 	Mat *dst  = ARG_Mat_As(2, src);
-	Mat *mask = ARG_Mat(3);
+	// Slot 3 is the /mask refinement itself, its argument is in slot 4.
+	Mat *mask = RXA_REF(frm, 3) ? ARG_Mat(4) : NULL;
 
 	if (!src || !dst ) return RXR_NONE;
 
@@ -1380,7 +1555,7 @@ COMMAND cmd_bitwise_not(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_absdiff(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_absdiff(RXIFRM *frm, void *ctx) {
 	//TODO: should work also with Scalar (Rebol's tuple)
 	Mat *src1    = ARG_Mat(1);
 	Mat *src2    = ARG_Mat(2);
@@ -1396,7 +1571,7 @@ COMMAND cmd_absdiff(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_addWeighted(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_addWeighted(RXIFRM *frm, void *ctx) {
 	Mat *src1    = ARG_Mat(1);
 	double alpha = ARG_Double(2);
 	Mat *src2    = ARG_Mat(3);
@@ -1414,7 +1589,7 @@ COMMAND cmd_addWeighted(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_convertScaleAbs(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_convertScaleAbs(RXIFRM *frm, void *ctx) {
 	Mat *src     = ARG_Mat   (1);
 	Mat *dst     = ARG_Mat_As(2, src);
 	double alpha = ARG_Double(3);
@@ -1430,7 +1605,7 @@ COMMAND cmd_convertScaleAbs(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
-COMMAND cmd_flip(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_flip(RXIFRM *frm, void *ctx) {
 	Mat *src     = ARG_Mat   (1);
 	Mat *dst     = ARG_Mat_As(2, src);
 	int flipCode = ARG_Int(3);
@@ -1445,7 +1620,7 @@ COMMAND cmd_flip(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
-COMMAND cmd_invert(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_invert(RXIFRM *frm, void *ctx) {
 	Mat *src     = ARG_Mat   (1);
 	Mat *dst     = ARG_Mat_As(2, src);
 	int flipCode = ARG_Int(3);
@@ -1460,7 +1635,7 @@ COMMAND cmd_invert(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
-COMMAND cmd_max(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_max(RXIFRM *frm, void *ctx) {
 	Mat *src1 = ARG_Mat(1);
 	Mat *src2 = ARG_Mat(2);
 	Mat *dst  = ARG_Mat_As(3, src1);
@@ -1475,7 +1650,7 @@ COMMAND cmd_max(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
-COMMAND cmd_mean(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_mean(RXIFRM *frm, void *ctx) {
 	Scalar scalar;
 	REBINT channels;
 	RXIARG val;
@@ -1508,7 +1683,7 @@ COMMAND cmd_mean(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
-COMMAND cmd_min(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_min(RXIFRM *frm, void *ctx) {
 	Mat *src1 = ARG_Mat(1);
 	Mat *src2 = ARG_Mat(2);
 	Mat *dst  = ARG_Mat_As(3, src1);
@@ -1523,7 +1698,7 @@ COMMAND cmd_min(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;	
 }
 
-COMMAND cmd_minMaxLoc(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_minMaxLoc(RXIFRM *frm, void *ctx) {
 	Mat *src = ARG_Mat(1);
 	double minVal; 
 	double maxVal; 
@@ -1556,7 +1731,7 @@ COMMAND cmd_minMaxLoc(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_normalize(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_normalize(RXIFRM *frm, void *ctx) {
 	Mat *src          = ARG_Mat(1);
 	Mat *dst          = ARG_Mat_As(2, src);
 	double alpha      = ARG_Double(3);
@@ -1577,7 +1752,7 @@ COMMAND cmd_normalize(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_transform(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_transform(RXIFRM *frm, void *ctx) {
 	Mat *src     = ARG_Mat   (1);
 	Mat *dst     = ARG_Mat_As(2, src);
 	Mat *m       = ARG_Mat   (3);
@@ -1598,7 +1773,7 @@ COMMAND cmd_transform(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/d3/d63/classcv_1_1Mat.html             
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_convertTo(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_convertTo(RXIFRM *frm, void *ctx) {
 	Mat *src     = ARG_Mat   (1);
 	Mat *dst     = ARG_Mat_As(2, src);
 	int    rtype = ARG_MatType(3);
@@ -1621,12 +1796,18 @@ COMMAND cmd_convertTo(RXIFRM *frm, void *ctx) {
 //;- https://docs.opencv.org/4.6.0/d7/dfc/group__highgui.html             
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_startWindowThread(RXIFRM *frm, void *ctx) {
+// HighGUI is optional: the self-contained (static) build leaves it out, so it
+// does not depend on GTK/Cocoa/Win32 UI code - windows belong to Rebol/GUI
+// there. The commands stay in the spec so the command table is the same for
+// every build; without HighGUI they report that instead of doing nothing.
+#ifdef HAVE_OPENCV_HIGHGUI
+
+COMMAND cmd_opencv_startWindowThread(RXIFRM *frm, void *ctx) {
 	startWindowThread();
 	return RXR_UNSET;
 }
 
-COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_imshow(RXIFRM *frm, void *ctx) {
 	Mat *image  = ARG_Mat(1);
 	// check if name was provided or use default
 	String name = (RXA_TYPE(frm, 3) == RXT_NONE) ? "Image" : ARG_String(3);
@@ -1649,73 +1830,73 @@ COMMAND cmd_imshow(RXIFRM *frm, void *ctx) {
 	return RXR_TRUE;
 }
 
-COMMAND cmd_pollKey(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_pollKey(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_INTEGER;
 	RXA_ARG(frm, 1).int64 = pollKey();
 	return RXR_VALUE;
 }
 
-COMMAND cmd_waitKey(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_waitKey(RXIFRM *frm, void *ctx) {
 	RXA_ARG(frm, 1).int64 = waitKey(RXA_ARG(frm, 1).int32a); // Wait for a keystroke in the window
 	return RXR_VALUE;
 }
 
 
-COMMAND cmd_namedWindow(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_namedWindow(RXIFRM *frm, void *ctx) {
 	namedWindow(ARG_String(1), WINDOW_NORMAL );
 	pollKey(); // OpenCV bug on macOS... window would not resize without it!
 	return RXR_UNSET;
 }
 
-COMMAND cmd_resizeWindow(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_resizeWindow(RXIFRM *frm, void *ctx) {
 	resizeWindow(ARG_String(1), PAIR_X(frm,2), PAIR_Y(frm,2));
 	return RXR_UNSET;
 }
 
-COMMAND cmd_moveWindow(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_moveWindow(RXIFRM *frm, void *ctx) {
 	moveWindow(ARG_String(1), PAIR_X(frm,2), PAIR_Y(frm,2));
 	return RXR_UNSET;
 }
 
-COMMAND cmd_getWindowImageSize(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getWindowImageSize(RXIFRM *frm, void *ctx) {
 	Rect rect = getWindowImageRect(ARG_String(1));
 	RXA_TYPE(frm, 1) = RXT_PAIR;
-	RXA_PAIR(frm,1).x = rect.width;
-	RXA_PAIR(frm,1).y = rect.height;
+	RXA_PAIR(frm,1).x = (float)rect.width;
+	RXA_PAIR(frm,1).y = (float)rect.height;
 	return RXR_VALUE;
 }
 
-COMMAND cmd_getWindowImagePos(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getWindowImagePos(RXIFRM *frm, void *ctx) {
 	Rect rect = getWindowImageRect(ARG_String(1));
 	RXA_TYPE(frm, 1) = RXT_PAIR;
-	RXA_PAIR(frm,1).x = rect.x;
-	RXA_PAIR(frm,1).y = rect.y;
+	RXA_PAIR(frm,1).x = (float)rect.x;
+	RXA_PAIR(frm,1).y = (float)rect.y;
 	return RXR_VALUE;
 }
 
-COMMAND cmd_getWindowProperty(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getWindowProperty(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_DECIMAL;
 	RXA_DEC64(frm, 1) = getWindowProperty(ARG_String(1), ARG_Int(2));
 	return RXR_VALUE;
 }
 
-COMMAND cmd_setWindowProperty(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setWindowProperty(RXIFRM *frm, void *ctx) {
 	setWindowProperty(ARG_String(1), ARG_Int(2), ARG_Int(3));
 	return RXR_UNSET;
 }
 
-COMMAND cmd_setWindowTitle(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setWindowTitle(RXIFRM *frm, void *ctx) {
 	setWindowTitle(ARG_String(1), ARG_String(2));
 	return RXR_UNSET;
 }
 
-COMMAND cmd_destroyAllWindows(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_destroyAllWindows(RXIFRM *frm, void *ctx) {
 	destroyAllWindows();
 	pollKey();
 	return RXR_UNSET;
 }
 
-COMMAND cmd_destroyWindow(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_destroyWindow(RXIFRM *frm, void *ctx) {
 	destroyWindow(ARG_String(1));
 	return RXR_UNSET;
 }
@@ -1736,7 +1917,7 @@ static void rebTrackbarCallback(int pos, void* userdata) {
 	RL_CALLBACK(cbi);
 }
 
-COMMAND cmd_createTrackbar(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_createTrackbar(RXIFRM *frm, void *ctx) {
 	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(Handle_cvTrackbar);
 	debug_print("new hob: %p handle: %p (cvTrackbar)\n", hob, hob->data);
 	if (hob == NULL) return RXR_FALSE;
@@ -1772,25 +1953,25 @@ COMMAND cmd_createTrackbar(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
-COMMAND cmd_setTrackbarMax(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setTrackbarMax(RXIFRM *frm, void *ctx) {
 	CTX_TRACKBAR* bar = ARG_Trackbar(1);
 	if (!bar) return RXR_FALSE;
 	setTrackbarMax(*bar->name, *bar->window, ARG_Int(2));
 	return RXR_VALUE;
 }
-COMMAND cmd_setTrackbarMin(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setTrackbarMin(RXIFRM *frm, void *ctx) {
 	CTX_TRACKBAR* bar = ARG_Trackbar(1);
 	if (!bar) return RXR_FALSE;
 	setTrackbarMin(*bar->name, *bar->window, ARG_Int(2));
 	return RXR_VALUE;
 }
-COMMAND cmd_setTrackbarPos(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setTrackbarPos(RXIFRM *frm, void *ctx) {
 	CTX_TRACKBAR* bar = ARG_Trackbar(1);
 	if (!bar) return RXR_FALSE;
 	setTrackbarPos(*bar->name, *bar->window, ARG_Int(2));
 	return RXR_VALUE;
 }
-COMMAND cmd_getTrackbarPos(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getTrackbarPos(RXIFRM *frm, void *ctx) {
 	CTX_TRACKBAR* bar = ARG_Trackbar(1);
 	if (!bar) return RXR_FALSE;
 	RXA_TYPE(frm, 1) = RXT_INTEGER;
@@ -1799,7 +1980,7 @@ COMMAND cmd_getTrackbarPos(RXIFRM *frm, void *ctx) {
 }
 
 
-COMMAND cmd_selectROI(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_selectROI(RXIFRM *frm, void *ctx) {
 	Mat *image  = ARG_Mat(1);
 	Rect rect;
 
@@ -1853,7 +2034,7 @@ static void rebMouseCallback(int event, int x, int y, int flags, void* userdata)
 	RL_CALLBACK(cbi);
 }
 
-COMMAND cmd_setMouseCallback(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setMouseCallback(RXIFRM *frm, void *ctx) {
 	REBHOB* hob = RL_MAKE_HANDLE_CONTEXT(Handle_cvMouseCallback);
 	if (hob == NULL) return RXR_FALSE;
 
@@ -1889,28 +2070,67 @@ COMMAND cmd_setMouseCallback(RXIFRM *frm, void *ctx) {
 	return RXR_VALUE;
 }
 
+#else // !HAVE_OPENCV_HIGHGUI
+
+static const char* ERR_NO_HIGHGUI = "Not available in this build (no highgui)!";
+#define NO_HIGHGUI(name) \
+	COMMAND cmd_opencv_##name(RXIFRM *frm, void *ctx) { RETURN_ERROR(ERR_NO_HIGHGUI); }
+
+NO_HIGHGUI(startWindowThread)
+NO_HIGHGUI(imshow)
+NO_HIGHGUI(pollKey)
+NO_HIGHGUI(waitKey)
+NO_HIGHGUI(namedWindow)
+NO_HIGHGUI(resizeWindow)
+NO_HIGHGUI(moveWindow)
+NO_HIGHGUI(getWindowImageSize)
+NO_HIGHGUI(getWindowImagePos)
+NO_HIGHGUI(getWindowProperty)
+NO_HIGHGUI(setWindowProperty)
+NO_HIGHGUI(setWindowTitle)
+NO_HIGHGUI(destroyAllWindows)
+NO_HIGHGUI(destroyWindow)
+NO_HIGHGUI(createTrackbar)
+NO_HIGHGUI(setTrackbarMax)
+NO_HIGHGUI(setTrackbarMin)
+NO_HIGHGUI(setTrackbarPos)
+NO_HIGHGUI(getTrackbarPos)
+NO_HIGHGUI(selectROI)
+NO_HIGHGUI(setMouseCallback)
+
+#endif // HAVE_OPENCV_HIGHGUI
+
 //;-----------------------------------------------------------------------
 //;- Utilities                                                            
 //;-----------------------------------------------------------------------
 
-COMMAND cmd_getTickCount(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getTickCount(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_INTEGER;
 	RXA_INT64(frm, 1) = getTickCount();
 	return RXR_VALUE;
 }
-COMMAND cmd_getTickFrequency(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getTickFrequency(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_DECIMAL;
 	RXA_DEC64(frm, 1) = getTickFrequency();
 	return RXR_VALUE;
 }
-COMMAND cmd_getNumThreads(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_getNumThreads(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_INTEGER;
 	RXA_INT64(frm, 1) = getNumThreads();
 	return RXR_VALUE;
 }
-COMMAND cmd_getVersionString(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setNumThreads(RXIFRM *frm, void *ctx) {
+	int previous = getNumThreads();
+	EXCEPTION_TRY
+	setNumThreads(RXA_INT32(frm, 1)); // <0 resets to the default, 0 disables threading
+	EXCEPTION_CATCH
+	RXA_INT64(frm, 1) = previous;
+	RXA_TYPE (frm, 1) = RXT_INTEGER;
+	return RXR_VALUE;
+}
+COMMAND cmd_opencv_getVersionString(RXIFRM *frm, void *ctx) {
 	String version = getVersionString();
-	int len = version.length();
+	int len = (int)version.length();
 	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
 	memcpy(ser->data, version.c_str(),  len);
 	SERIES_TAIL(ser) = len;
@@ -1919,9 +2139,127 @@ COMMAND cmd_getVersionString(RXIFRM *frm, void *ctx) {
 	RXA_INDEX (frm, 1) = 0;
 	return RXR_VALUE;
 }
-COMMAND cmd_getBuildInformation(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_version(RXIFRM *frm, void *ctx) {
+	// Asked at run time, so a shared build reports the library actually
+	// loaded, not the headers the extension was compiled with.
+	RXA_TYPE(frm, 1) = RXT_TUPLE;
+	RXA_TUPLE(frm, 1)[0] = (REBYTE)getVersionMajor();
+	RXA_TUPLE(frm, 1)[1] = (REBYTE)getVersionMinor();
+	RXA_TUPLE(frm, 1)[2] = (REBYTE)getVersionRevision();
+	RXA_TUPLE_LEN(frm, 1) = 3;
+	return RXR_VALUE;
+}
+//-- info helpers ---------------------------------------------------------
+
+static REBSER* make_string(const std::string &str) {
+	REBLEN len = (REBLEN)str.length();
+	REBSER *ser = (REBSER *)RL_MAKE_STRING(len, FALSE);
+	memcpy(ser->data, str.c_str(), len);
+	SERIES_TAIL(ser) = len;
+	return ser;
+}
+
+// Appends `key: value` to the block.
+static void info_put(REBSER *blk, const char *key, RXIARG val, REBCNT type) {
+	RXIARG word;
+	word.int64  = 0;
+	word.int32a = RL_MAP_WORD((REBYTE*)key);
+	RL_SET_VALUE(blk, SERIES_TAIL(blk), word, RXT_SET_WORD);
+	RL_SET_VALUE(blk, SERIES_TAIL(blk), val, type);
+}
+static void info_put_int(REBSER *blk, const char *key, i64 num) {
+	RXIARG val;
+	val.int64 = num;
+	info_put(blk, key, val, RXT_INTEGER);
+}
+static void info_put_series(REBSER *blk, const char *key, REBSER *ser, REBCNT type) {
+	RXIARG val;
+	val.series = ser;
+	val.index  = 0;
+	info_put(blk, key, val, type);
+}
+
+// Video backend names as a block of words (FFMPEG, AVFOUNDATION, CV_MJPEG...).
+static REBSER* backends_block(const std::vector<VideoCaptureAPIs> &apis) {
+	REBSER *blk = (REBSER*)RL_MAKE_BLOCK((u32)apis.size());
+	RXIARG val;
+	for (size_t i = 0; i < apis.size(); i++) {
+		String name = videoio_registry::getBackendName(apis[i]);
+		val.int64  = 0;
+		val.int32a = RL_MAP_WORD((REBYTE*)name.c_str());
+		RL_SET_VALUE(blk, SERIES_TAIL(blk), val, RXT_WORD);
+	}
+	return blk;
+}
+
+// The threading backend is not public API; the build information names it
+// on its "Parallel framework:" line.
+static std::string parallel_framework() {
+	std::string info = getBuildInformation();
+	const char *label = "Parallel framework:";
+	size_t p = info.find(label);
+	if (p == std::string::npos) return "";
+	p = info.find_first_not_of(" \t", p + strlen(label));
+	if (p == std::string::npos) return "";
+	size_t e = info.find_first_of("\r\n", p);
+	std::string str = info.substr(p, e == std::string::npos ? std::string::npos : e - p);
+	size_t last = str.find_last_not_of(" \t");
+	return (last == std::string::npos) ? "" : str.substr(0, last + 1);
+}
+
+COMMAND cmd_opencv_info(RXIFRM *frm, void *ctx) {
+	REBSER *blk;
+	RXIARG val;
+
+	EXCEPTION_TRY
+	blk = (REBSER*)RL_MAKE_BLOCK(20);
+
+	val.int64 = 0;
+	val.tuple_len = 3;
+	val.tuple_bytes[0] = (REBYTE)getVersionMajor();
+	val.tuple_bytes[1] = (REBYTE)getVersionMinor();
+	val.tuple_bytes[2] = (REBYTE)getVersionRevision();
+	info_put(blk, "version", val, RXT_TUPLE);
+
+	info_put_int(blk, "cpus", getNumberOfCPUs());
+	info_put_int(blk, "threads", getNumThreads());
+
+	val.int64  = 0;
+	val.int32a = useOptimized() ? 1 : 0;
+	info_put(blk, "optimized", val, RXT_LOGIC);
+
+	info_put_series(blk, "parallel",       make_string(parallel_framework()), RXT_STRING);
+	info_put_series(blk, "cpu-features",   make_string(getCPUFeaturesLine()), RXT_STRING);
+	info_put_series(blk, "video-backends", backends_block(videoio_registry::getBackends()),       RXT_BLOCK);
+	info_put_series(blk, "video-cameras",  backends_block(videoio_registry::getCameraBackends()), RXT_BLOCK);
+	info_put_series(blk, "video-streams",  backends_block(videoio_registry::getStreamBackends()), RXT_BLOCK);
+	info_put_series(blk, "video-writers",  backends_block(videoio_registry::getWriterBackends()), RXT_BLOCK);
+	EXCEPTION_CATCH
+
+	RXA_TYPE  (frm, 1) = RXT_BLOCK;
+	RXA_SERIES(frm, 1) = blk;
+	RXA_INDEX (frm, 1) = 0;
+	return RXR_VALUE;
+}
+
+COMMAND cmd_opencv_setLogLevel(RXIFRM *frm, void *ctx) {
+	int level = RXA_INT32(frm, 1);
+	if (level < utils::logging::LOG_LEVEL_SILENT || level > utils::logging::LOG_LEVEL_VERBOSE)
+		RETURN_ERROR(ERR_LOG_LEVEL);
+	// Returns the previous level, so it can be restored.
+	RXA_INT64(frm, 1) = (i64)utils::logging::setLogLevel((utils::logging::LogLevel)level);
+	RXA_TYPE (frm, 1) = RXT_INTEGER;
+	return RXR_VALUE;
+}
+COMMAND cmd_opencv_getLogLevel(RXIFRM *frm, void *ctx) {
+	RXA_INT64(frm, 1) = (i64)utils::logging::getLogLevel();
+	RXA_TYPE (frm, 1) = RXT_INTEGER;
+	return RXR_VALUE;
+}
+
+COMMAND cmd_opencv_getBuildInformation(RXIFRM *frm, void *ctx) {
 	String str = getBuildInformation();
-	int len = str.length();
+	int len = (int)str.length();
 	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);
 	memcpy(ser->data, str.c_str(),  len);
 	SERIES_TAIL(ser) = len;
@@ -1930,18 +2268,18 @@ COMMAND cmd_getBuildInformation(RXIFRM *frm, void *ctx) {
 	RXA_INDEX (frm, 1) = 0;
 	return RXR_VALUE;
 }
-COMMAND cmd_useOptimized(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_useOptimized(RXIFRM *frm, void *ctx) {
 	RXA_TYPE(frm, 1) = RXT_LOGIC;
 	RXA_LOGIC(frm, 1) = useOptimized();
 	return RXR_VALUE;
 }
-COMMAND cmd_setUseOptimized(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_setUseOptimized(RXIFRM *frm, void *ctx) {
 	setUseOptimized(RXA_LOGIC(frm, 1));
 	return RXR_VALUE;
 }
 
 
-COMMAND cmd_qrcode_encode(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_qrcode_encode(RXIFRM *frm, void *ctx) {
 	Mat *result;
 	String text = ARG_String(1);
 
@@ -1961,7 +2299,7 @@ COMMAND cmd_qrcode_encode(RXIFRM *frm, void *ctx) {
     return RXR_VALUE;
 }
 
-COMMAND cmd_qrcode_decode(RXIFRM *frm, void *ctx) {
+COMMAND cmd_opencv_qrcode_decode(RXIFRM *frm, void *ctx) {
 	Mat *img = ARG_Mat(1);
 	String str;
 	vector<Point> corners;
@@ -1987,7 +2325,7 @@ COMMAND cmd_qrcode_decode(RXIFRM *frm, void *ctx) {
 	}
 	EXCEPTION_CATCH
 	
-	int len = str.length();
+	int len = (int)str.length();
 	if (len == 0) return RXR_NONE;
 
 	REBSER *ser = (REBSER *)RL_MAKE_STRING(len , FALSE);

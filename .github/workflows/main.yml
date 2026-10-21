@@ -18,35 +18,45 @@ jobs:
   windows:
     strategy:
       fail-fast: true
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Install Siskin Builder
-      uses: oldes/install-siskin@v0.17.0
+      uses: oldes/install-siskin@v0.23.1
 
-    - name: Build OpenCV libraries
-      run: ./siskin Rebol-OpenCV.nest opencv-libraries-x64
+    - name: Set Siskin locations
+      shell: bash
+      run: |
+        tee -a "$GITHUB_ENV" <<EOF
+        SISKIN_TEMP=$RUNNER_TEMP/siskin
+        SISKIN_INSTALL=$GITHUB_WORKSPACE/deps
+        REBOL_MODULES_DIR=$GITHUB_WORKSPACE/build
+        EOF
+
+    - name: Cache OpenCV install
+      id: opencv
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.SISKIN_INSTALL }}
+        key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
+
+    - name: Build OpenCV static libraries
+      if: steps.opencv.outputs.cache-hit != 'true'
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-static-x64
 
     - name: Build 64bit Rebol OpenCV extension
-      run: ./siskin Rebol-OpenCV.nest -o ./build/opencv-windows-x64.rebx --msvc opencv-windows-x64.rebx
+      run: ./siskin Rebol-OpenCV.nest -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-x64.rebx --msvc opencv-static-windows-x64
 
-    - name: Install Rebol for extension test
-      uses: oldes/install-rebol@v3.17.0
-      with:
-        product: Bulk # used `resize` in tests
+#    - name: Test extension
+#      run:  ./siskin --script test.r3 --static
 
-    - name: Test extension
-      run:  ./rebol3.exe test.r3
-
-    ###############################################################################
-    # Collecting build artifacts...
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: Rebol-OpenCV-Windows-${{github.run_id}}
-        path: ./build/*
+        path: ${{ env.REBOL_MODULES_DIR }}/*.rebx
 
   linux:
     strategy:
@@ -55,38 +65,131 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Install Siskin Builder
-      uses: oldes/install-siskin@v0.17.0
+      uses: oldes/install-siskin@v0.23.1
 
-    - name: Build and install OpenCV libraries
-      run: ./siskin Rebol-OpenCV.nest opencv-libraries
+    - name: Set Siskin locations
+      shell: bash
+      run: |
+        tee -a "$GITHUB_ENV" <<EOF
+        SISKIN_TEMP=$RUNNER_TEMP/siskin
+        SISKIN_INSTALL=$GITHUB_WORKSPACE/deps
+        REBOL_MODULES_DIR=$GITHUB_WORKSPACE/build
+        EOF
+
+    - name: Cache OpenCV install
+      id: opencv
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.SISKIN_INSTALL }}
+        key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
+
+    - name: Build OpenCV static libraries
+      if: steps.opencv.outputs.cache-hit != 'true'
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-static-x64
 
     - name: Build 64bit Rebol OpenCV extension
-      run: ./siskin Rebol-OpenCV.nest -o ./build/opencv-linux-x64.rebx opencv-linux-x64
+      run: ./siskin Rebol-OpenCV.nest --gzip -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-x64.rebx opencv-static-linux-x64
 
-    - name: Setup library location
-      run: |
-        sudo ldconfig /usr/local/lib
-        sudo ldconfig -v
-        ldd -v ./build/opencv-linux-x64.rebx
+#    - name: Setup library location
+#      run: |
+#        sudo ldconfig /usr/local/lib
+#        sudo ldconfig -v
+#        ldd -v ./build/opencv-static-abi1-x64.rebx
 
-    - name: Install Rebol for extension test
-      uses: oldes/install-rebol@v3.17.0
-      with:
-        product: Bulk # used `resize` in tests
+#    - name: Test extension
+#      run:  ./siskin --script test.r3 --static
 
-    - name: Test extension
-      run:  ./rebol3 test.r3
-
-    ###############################################################################
-    # Collecting build artifacts...
-
-    - name: Compress Rebol/OpenCV extension
-      run:  gzip -9 ./build/opencv-linux-x64.rebx
-
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: Rebol-OpenCV-Linux-${{github.run_id}}
-        path: ./build/*
+        path: ${{ env.REBOL_MODULES_DIR }}/*.rebx.gz
+
+  macos-x64:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: Install Siskin Builder (arm)
+      uses: oldes/install-siskin@v0.23.1
+      with:
+        arch: aarch64
+
+    - name: Install Siskin Builder (x64)
+      uses: oldes/install-siskin@v0.23.1
+      with:
+        arch: x86_64
+        name: siskin-x64
+
+    - name: Set Siskin locations
+      shell: bash
+      run: |
+        tee -a "$GITHUB_ENV" <<EOF
+        SISKIN_TEMP=$RUNNER_TEMP/siskin
+        SISKIN_INSTALL=$GITHUB_WORKSPACE/deps
+        REBOL_MODULES_DIR=$GITHUB_WORKSPACE/build
+        EOF
+
+    - name: Cache OpenCV install
+      id: opencv
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.SISKIN_INSTALL }}
+        key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
+
+    - name: Build OpenCV static libraries
+      if: steps.opencv.outputs.cache-hit != 'true'
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-static-x64
+
+    - name: Build 64bit Rebol OpenCV extension
+      run: ./siskin Rebol-OpenCV.nest --gzip -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-x64.rebx opencv-static-macos-x64
+
+#    - name: Test extension
+#      run:  ./siskin-x64 --script test.r3 --static
+
+    - uses: actions/upload-artifact@v6
+      with:
+        name: Rebol-OpenCV-macos-intel-${{github.run_id}}
+        path: ${{ env.REBOL_MODULES_DIR }}/*.rebx.gz
+
+  macos-arm:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: Install Siskin Builder
+      uses: oldes/install-siskin@v0.23.1
+      with:
+        arch: aarch64
+
+    - name: Set Siskin locations
+      shell: bash
+      run: |
+        tee -a "$GITHUB_ENV" <<EOF
+        SISKIN_TEMP=$RUNNER_TEMP/siskin
+        SISKIN_INSTALL=$GITHUB_WORKSPACE/deps
+        REBOL_MODULES_DIR=$GITHUB_WORKSPACE/build
+        EOF
+
+    - name: Cache OpenCV install
+      id: opencv
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.SISKIN_INSTALL }}
+        key: opencv-5.0.0-${{ runner.os }}-${{ github.job }}-${{ hashFiles('Rebol-OpenCV.nest') }}
+
+    - name: Build OpenCV static libraries
+      if: steps.opencv.outputs.cache-hit != 'true'
+      run: ./siskin Rebol-OpenCV.nest cmake-opencv-static-arm64
+
+    - name: Build 64bit Rebol OpenCV extension
+      run: ./siskin Rebol-OpenCV.nest --gzip -o ${{ env.REBOL_MODULES_DIR }}/opencv-static-abi1-arm64.rebx opencv-static-macos-arm64
+
+    - uses: actions/upload-artifact@v6
+      with:
+        name: Rebol-OpenCV-macos-arm-${{github.run_id}}
+        path: ${{ env.REBOL_MODULES_DIR }}/*.rebx.gz

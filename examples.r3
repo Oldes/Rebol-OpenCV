@@ -491,7 +491,7 @@ on-code-error: func[err][
 ]
 
 output: make string! 30000
-readme: func[val][ append output val  val ]
+readme: func[val][ append output any [val ""]  val ]
 
 num: 0
 emit-comment: func[str][
@@ -513,43 +513,31 @@ emit-code: func[str][
     ]]
 ]
 
-readme {
-[![Rebol-OpenCV CI](https://github.com/Oldes/Rebol-OpenCV/actions/workflows/main.yml/badge.svg)](https://github.com/Oldes/Rebol-OpenCV/actions/workflows/main.yml)
-[![Gitter](https://badges.gitter.im/rebol3/community.svg)](https://app.gitter.im/#/room/#Rebol3:gitter.im)
-
-# Rebol/OpenCV
-
-Initial implementation of the OpenCV extension for [Rebol3](https://github.com/Oldes/Rebol3) (3.14.0 or newer).
-
-So far it is considered just like a proof of concept and tested only on macOS with [OpenCV installed using homebrew](https://formulae.brew.sh/formula/opencv)!
-
-
-When building on macOS, the setup expects, that OpenCV includes and libs are accessible. So it is recommanded to use something like:
-```
-ln -s /opt/homebrew/Cellar/opencv/4.6.0/include/opencv4/opencv2 /usr/local/include/opencv2
-ln -s /opt/homebrew/Cellar/opencv/4.6.0/lib /usr/local/lib/opencv
-```
-To import the extension from Rebol on macOS, the Rebol must be signed with entitlemens containing `com.apple.security.cs.disable-library-validation` as `true`. 
-
-Feature requests are welcome.
-
-For list of currently supported extension commands and other values, read [Commands.md](Commands.md).
-
-## Usage
+readme.md: %README.md
+usage-note: {
+* * * *
+This file was generated using [examples.r3](examples.r3) script.
 }
+current-footer: ""
 
+unless exists? readme.md [ quit ]
+
+text: deline read/string readme.md
+parse text [
+    copy current-header: thru "^/## Usage^/"
+    thru usage-note
+    copy current-footer: to end
+]
+
+readme current-header
 parse examples [ any [
       'comment set str: string! (emit-comment str)
     |['example set str: string! (emit-heading str)
                set str: string! (emit-code str)]
     | skip
 ]]
-
-readme {
-
-* * * *
-This file was generated using [examples.r3](examples.r3) script.
-}
+readme usage-note
+readme current-footer
 
 write %README.md output
 

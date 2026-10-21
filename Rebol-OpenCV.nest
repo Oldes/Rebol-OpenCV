@@ -1,12 +1,14 @@
 ;-    .-.                                                                       
-;-   /'v'\   SISKIN-Builder 3.9.0 project file                                  
+;-   /'v'\   SISKIN-Builder project file                                        
 ;-  (/uOu\)  https://github.com/Siskin-framework/Builder/                       
 ;-===="="=======================================================================
+needs: [siskin 0.23.0]
 
-github: @opencv
+github: opencv/opencv /5.0.0
+;github: opencv/opencv_extra
 
 compiler: clang
-version: 4.13.0
+version: 5.0.0
 
 ;define: USE_TRACES
 
@@ -14,23 +16,38 @@ version: 4.13.0
 #if Windows? [
 	define: TO_WINDOWS
 	define: _CRT_SECURE_NO_WARNINGS
+	set-env CMAKE_GEN: {-G "Visual Studio 17 2022"}
 ]
 #if macOS?   [
 	define: TO_OSX
 	define: HAS_BOOL
+	set-env CMAKE_GEN: ""
 ]
 #if Linux? [
 	define: TO_LINUX
 	compiler: gcc
+	set-env CMAKE_GEN: ""
 ]
 
 define: ENDIAN_LITTLE
+;; Selects the amalgamated `rebol-extension.h` in the generated header.
 define: REB_EXT
 
 target-x86: [
+	;- On linux needs:  sudo apt install gcc-multilib g++-multilib
 	arch: x86
-	#if Windows? [ defines: [ TO_WIN32 _WIN32 ] ]
-	#if Linux?   [ defines: [ TO_LINUX_X86    ] ]
+	#if macOS?   [ fail "It is not possible to make 32bit build on macos" ]
+	#if Posix?   [
+		set CMAKE_ARCH: "-DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32"
+		include: %$SISKIN_INSTALL/x86/include/opencv5/
+		library: %$SISKIN_INSTALL/x86/lib/
+	]
+	#if Windows? [
+		flags: "-arch x86_64"
+		include: %$SISKIN_INSTALL/x86/include/
+		library: %$SISKIN_INSTALL/x86/Win32/vc17/lib/
+		set CMAKE_ARCH: "-A Win32 -DCMAKE_ASM_COMPILER=CMAKE_ASM_COMPILER-NOTFOUND"
+	]
 ]
 target-x64: [
 	arch: x64
@@ -38,123 +55,402 @@ target-x64: [
 		_FILE_OFFSET_BITS=64
 		__LP64__ ; has long (integer) 64 bits
 	]
-	#if Windows? [ defines: [ TO_WIN32_X64 _WIN32 ] ]
-	#if Linux?   [ defines: [ TO_LINUX_X64        ] ]
-	#if macOS?   [ defines: [ TO_OSX_X64          ] flags: ["-arch x86_64"] ]
+	#if Windows? [ set CMAKE_ARCH: "-A x64 -DCMAKE_ASM_COMPILER=CMAKE_ASM_COMPILER-NOTFOUND" ]
+	#if Posix?   [ set CMAKE_ARCH: ""]
+	#if macOS?   [
+		flags: ["-arch x86_64"] 
+		set CMAKE_ARCH: [
+			"-DCMAKE_OSX_SYSROOT=macosx"
+			"-DCMAKE_OSX_ARCHITECTURES=x86_64"
+			"-DCMAKE_APPLE_SILICON_PROCESSOR=x86_64" ;; make CMake treat the build as x86_64, not the arm64 host
+			"-DWITH_KLEIDICV=OFF"                    ;; ARM-only HAL
+			"-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"    ;; AVVideoCodecTypeH264 needs at least 10.13
+		]
+	]
+	#if Posix?   [
+		include: %$SISKIN_INSTALL/x64/include/opencv5/
+		library: %$SISKIN_INSTALL/x64/lib/
+	]
+	#if Windows? [
+		include: %$SISKIN_INSTALL/x64/include/
+		library: %$SISKIN_INSTALL/x64/x64/vc17/lib/
+	]
 ]
 target-arm64: [
 	arch: arm64
-	;flags: ["-arch arm64"]
-	flags: "-target arm64-apple-darwin"
 	define: _FILE_OFFSET_BITS=64
 	define: __LP64__ ; has long (integer) 64 bits
 	define: __arm64__
-	define: TO_OSX_X64
+	#if Posix? [
+		#either macOS? [
+			flags: "-target arm64-apple-darwin"
+			set CMAKE_ARCH: [
+				"-DCMAKE_OSX_SYSROOT=macosx"
+				"-DCMAKE_OSX_ARCHITECTURES=arm64"
+				"-DCMAKE_SYSTEM_NAME=Darwin"        ;; cross-compiling: CMAKE_SYSTEM_PROCESSOR is used only then
+				"-DCMAKE_SYSTEM_PROCESSOR=arm64"    ;; NEON etc. instead of the host's SSE/AVX
+				"-DWITH_IPP=OFF"                    ;; Intel-only
+				"-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"
+				"-DACCELERATE_NEW_LAPACK:BOOL=ON"
+			]
+		][
+			;- Needs:  sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+			set CMAKE_ARCH: [
+				"-DCMAKE_SYSTEM_NAME=Linux"
+				"-DCMAKE_SYSTEM_PROCESSOR=aarch64"
+				"-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc"
+				"-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++"
+			]
+		]
+		include: %$SISKIN_INSTALL/arm64/include/opencv5/
+		library: %$SISKIN_INSTALL/arm64/lib/
+	]
+	#if Windows? [
+		set CMAKE_ARCH: "-A arm64" 
+		include: %$SISKIN_INSTALL/arm64/include/
+		library: %$SISKIN_INSTALL/arm64/aarch64/vc17/lib/
+	]
 ]
 ;----------------------------------------------------------------
 
 flags:   [-O2 shared]
+include: %src/
 
 #if Posix? [
-	cflags: [-fPIC -pthread ]
+	cflags: [-fPIC -pthread -fno-common]
 	;libraries: [%pthread]
 ]
 
 #if posix? [
-	cppflag: "-std=c++11"
+	cppflag: "-std=c++17" ;; OpenCV5 needs 17 (OpenCV4 was 11)
 	lflag:   "-lstdc++"
-	include: %/usr/local/include/opencv4/
-	library: %/usr/local/lib/
-	library: %opencv_core
-	library: %opencv_features2d
-	library: %opencv_highgui
-	library: %opencv_imgcodecs
-	library: %opencv_imgproc
-	library: %opencv_videoio
-	library: %opencv_objdetect
 ]
 
 #if Windows?  [
 	compiler: clang
-	include: %build/include/
-	library: %opencv_core4130
-	library: %opencv_features2d4130
-	library: %opencv_highgui4130
-	library: %opencv_imgcodecs4130
-	library: %opencv_imgproc4130
-	library: %opencv_videoio4130
-	library: %opencv_objdetect4130
 	upx: on
 ]
 
-make-extension: [
-	files: [
-		%src/opencv-rebol-extension.c
-		%src/opencv-commands.cpp
-		%src/opencv-commands-table.c
+;- Linking against the shared OpenCV libraries (installed in $SISKIN_INSTALL/<arch>)
+;; Only the modules the extension calls - their own dependencies are resolved
+;; by the OpenCV libraries themselves.
+opencv-dynamic: [
+	#if posix? [
+		library: %opencv_core
+		library: %opencv_highgui
+		library: %opencv_imgcodecs
+		library: %opencv_imgproc
+		library: %opencv_videoio
+		library: %opencv_objdetect
 	]
-	;- generate main extension header --------------------------------
-	do %src/opencv-rebol-extension.r3 
+	#if Windows? [
+		library: %opencv_core500
+		library: %opencv_highgui500
+		library: %opencv_imgcodecs500
+		library: %opencv_imgproc500
+		library: %opencv_videoio500
+		library: %opencv_objdetect500
+	]
+]
+
+;- Linking a self-contained .rebx (installed in $SISKIN_INSTALL/<arch>-static)
+;; One opencv_world library plus the bundled 3rd party libraries. Order matters
+;; for the GNU linker: world first, the libraries it depends on after it.
+;;
+;; The list follows `lib/pkgconfig/opencv5.pc` (Libs.private) of the install;
+;; on Windows compare with the `staticlib` folder. The names follow the CMake
+;; target names, so Posix gets a doubled `lib` prefix (liblibpng.a -> %libpng).
+;; quirc (QR decoding) is compiled into opencv_world, it is not a separate archive.
+;; tegra_hal (the ARM NEON HAL) exists only in arm64 builds - see the arm64 eggs.
+opencv-static: [
+	#if posix? [
+		library: %opencv_world
+		library: %libjpeg-turbo
+		library: %libwebp
+		library: %libpng
+		library: %libtiff
+		library: %libclapack
+		library: %zlib
+	]
+	#if Linux? [
+		;; GNU ld hides all symbols coming from static archives, so OpenCV and
+		;; its bundled zlib/png/... cannot clash with other extensions or the host.
+		lflag: "-Wl,--exclude-libs,ALL"
+		lflag: "-Wl,--gc-sections"
+		library: %dl
+		library: %pthread
+	]
+	#if macOS? [
+		;; Export only the extension entry points.
+		lflag: "-Wl,-exported_symbol,_RX_Init -Wl,-exported_symbol,_RX_Quit -Wl,-exported_symbol,_RX_Call -Wl,-exported_symbol,_RX_Abi"
+		lflag: "-Wl,-dead_strip"
+		framework: [
+			AppKit OpenGL AVFoundation CoreMedia CoreVideo CoreFoundation
+			Foundation QuartzCore CoreGraphics Accelerate
+		]
+	]
+	#if Windows? [
+		library: %opencv_world500
+		library: %libjpeg-turbo
+		library: %libwebp
+		library: %libpng
+		library: %libtiff
+		library: %libclapack
+		library: %zlib
+		;; system libraries used by videoio (MSMF, DirectShow)
+		library: %user32
+		library: %advapi32
+		library: %shlwapi
+		library: %ole32
+		library: %oleaut32
+		library: %uuid
+		library: %strmiids
+		library: %mfplat
+		library: %mf
+		library: %mfreadwrite
+		library: %mfuuid
+	]
+]
+
+make-extension: [
+	;- generate the extension header, command table ---
+	do %make-extension.r3 [%src/opencv.reb "--commands"]
+	files: [
+		%src/opencv.c
+		%src/opencv-commands.cpp
+		%src/gen-opencv.c
+	]
+]
+
+cmake-spec: [
+	set-env CMAKE_COMMON: [
+		"-DCMAKE_BUILD_TYPE=Release"
+		"-DCMAKE_VERBOSE_MAKEFILE=OFF"
+		"-DBUILD_PERF_TESTS=OFF"
+		"-DBUILD_TESTS=OFF"
+		"-DBUILD_DOCS=OFF"
+		"-DBUILD_EXAMPLES=OFF"
+		"-DINSTALL_CREATE_DISTRIB=OFF"
+		"-DOPENCV_GENERATE_PKGCONFIG=OFF"
+	;	"-DOPENCV_ENABLE_NONFREE=ON"
+		"-DOPENCV_FORCE_3RDPARTY_BUILD=ON"       ;; bundled zlib/png/jpeg/tiff/webp, built static
+	;- Components used:
+		"-DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,objdetect"
+	;- Unused parts:
+		"-DWITH_CUDA=OFF"        ;; your Linux egg sets it ON - large, slow to build, and nothing uses it
+		"-DWITH_OPENCL=OFF"      ;; only used through UMat, the extension uses Mat
+		"-DWITH_PROTOBUF=OFF"    ;; dnn only
+		"-DWITH_ADE=OFF"         ;; G-API only
+		"-DWITH_ITT=OFF"         ;; Intel profiling hooks
+		"-DWITH_GDAL=OFF"
+		"-DWITH_OPENEXR=OFF"     ;; unless you want .exr in imread
+		"-DWITH_MLAS=OFF"
+	;- Image codecs:
+		"-DWITH_QUIRC=ON"        ;; QR decoding (qrcode-decode); without it decode returns empty
+		"-DWITH_TIFF=ON"         ;; imreadmulti test uses image/2page.tiff
+		"-DWITH_PNG=ON"
+		"-DWITH_JPEG=ON"
+		"-DWITH_WEBP=ON"
+	;- Video:
+		"-DWITH_FFMPEG=OFF"      ;; handle only MJPG/AVI, plus cameras through the OS backend.
+	;	"-DVIDEOIO_ENABLE_PLUGINS=OFF" ;; to build the backends into the library
+	;- Camera beckends (keep defaults)
+	;	"-DWITH_AVFOUNDATION=OFF"   ;; macOS
+	;	"-DWITH_MSMF=OFF"           ;; Windows
+	;	"-DWITH_V4L=OFF"            ;; Linux
+	;- HighGUI
+	;	"-DWITH_GTK=OFF"
+	;	"-DWITH_QT=OFF"
+	;- Python bindings are not used:
+		"-DBUILD_opencv_python3=OFF"
+		"-DBUILD_opencv_python2=OFF"         ;; OpenCV 4 only, 5.x has no Python 2
+		"-DBUILD_opencv_python_bindings_generator=OFF"
+		"-DBUILD_opencv_python_tests=OFF"
+		"-DOPENCV_PYTHON_SKIP_DETECTION=ON"  ;; don't even look for Python interpreters
+	;- Java bindings are not used:
+		"-DBUILD_JAVA=OFF"
+		"-DBUILD_opencv_java_bindings_generator=OFF"
+		"-DBUILD_opencv_js_bindings_generator=OFF"
+		"-DBUILD_opencv_objc_bindings_generator=OFF"
+	;- For a redistributable .rebx:
+	;	"-DOPENCV_FORCE_3RDPARTY_BUILD=ON"      ;; bundled zlib/png/jpeg/tiff/webp instead of whatever the build machine has
+	;	"-DCPU_BASELINE=SSE3"                   ;; default on x64; don't set it to AVX2 or "native", or the .rebx
+	;	"-DCPU_DISPATCH=SSE4_1;AVX2;AVX512_SKX" ;; won't load on older CPUs - dispatch still uses AVX2 at run time
+	;- Above defined based on target
+		"$CMAKE_ARCH"
+	]
+]
+
+cmake-static: [
+	set-env CMAKE_STATIC: [
+		"-DBUILD_SHARED_LIBS=OFF"
+		"-DCMAKE_POSITION_INDEPENDENT_CODE=ON"   ;; the archives end up inside a shared .rebx
+		"-DBUILD_opencv_world=ON"                ;; one library - no module link order to get right
+		"-DOPENCV_FORCE_3RDPARTY_BUILD=ON"       ;; bundled zlib/png/jpeg/tiff/webp, built static
+		"-DOPENCV_GENERATE_PKGCONFIG=OFF"        ;; opencv5.pc lists the exact static link line
+		"-DVIDEOIO_ENABLE_PLUGINS=ON"            ;; used bellow to enable external FFMPEG
+	;- no highgui: windows are Rebol/GUI's job, and the .rebx needs no GTK/Cocoa UI
+	;- (given after CMAKE_COMMON, so this BUILD_LIST wins)
+		"-DBUILD_LIST=core,imgproc,imgcodecs,videoio,objdetect"
+		"-DBUILD_opencv_highgui=OFF"     ;; BUILD_LIST alone trips modules/world (ocv_highgui_configure_target)
+	;- fewer 3rd party archives to link (enable later and add them to opencv-static):
+		"-DWITH_IPP=OFF"                         ;; ippicv/ippiw
+		"-DWITH_OPENJPEG=OFF"                    ;; JPEG 2000 ...
+		"-DWITH_JASPER=OFF"                      ;; ... and its fallback codec
+		"-DWITH_KLEIDICV=OFF"                    ;; ARM HAL (arm64)
+	;- Windows: the extension is built with the DLL CRT (/MD), OpenCV defaults to the
+	;- static one (/MT) - they must match or the link fails with LNK2038.
+		"-DBUILD_WITH_STATIC_CRT=OFF"
+	;- Enable runtime video plugin
+		"-DWITH_FFMPEG=ON"
+		"-DVIDEOIO_PLUGIN_LIST=ffmpeg"
+	]
 ]
 
 eggs: only [
-	#if (find [Linux OpenBSD FreeBSD NetBSD DragonflyBSD] system/platform) [
-		"Build OpenCV libraries (cmake)" [
-			;@@ https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html
-			name: %opencv-libraries
-			cmd %tmp/linux/ "cmake -G ^"Unix Makefiles^" ../../opencv/ -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/linux/ "sudo make install -j8"
-		]
-	] 
-	#if Windows? [
-		"Build OpenCV libraries (cmake) x86" [
-			name: %opencv-libraries-x86
-			cmd %tmp/x86/ "cmake ../../opencv/ -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=..\..\build\ -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x86/ "cmake --build . --config release -j 8"
-			cmd %tmp/x86/ "cmake --build . --target install --config release"
-		]
-		"Build OpenCV libraries (cmake) x64" [
-			name: %opencv-libraries-x64
-			cmd %tmp/x64/ "cmake ../../opencv/ -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=..\..\build\ -DBUILD_PERF_TESTS:BOOL=OFF -DBUILD_TESTS:BOOL=OFF -DBUILD_DOCS:BOOL=OFF -DWITH_CUDA:BOOL=ON -DBUILD_EXAMPLES:BOOL=OFF -DINSTALL_CREATE_DISTRIB=OFF"
-			cmd %tmp/x64/ "cmake --build . --config release -j 8"
-			cmd %tmp/x64/ "cmake --build . --target install --config release"
-		]
+	"Cmake OpenCV - x86" [
+		name: %cmake-opencv-x86
+		:target-x86 :cmake-spec
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-x86 -S opencv/ $CMAKE_COMMON"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-x86 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-x86 --config release --prefix $SISKIN_INSTALL/x86"
+	]
+	"Cmake OpenCV - x64" [
+		name: %cmake-opencv-x64
+		:target-x64 :cmake-spec
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-x64 -S opencv/ $CMAKE_COMMON"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-x64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-x64 --config release --prefix $SISKIN_INSTALL/x64"
+	]
+	"Cmake OpenCV - arm64" [
+		name: %cmake-opencv-arm64
+		:target-arm64 :cmake-spec
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-arm64 -S opencv/ $CMAKE_COMMON"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-arm64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-arm64 --config release --prefix $SISKIN_INSTALL/arm64"
+	]
 
+	"Cmake OpenCV static - x86" [
+		name: %cmake-opencv-static-x86
+		:target-x86 :cmake-spec :cmake-static
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x86 $CMAKE_GEN -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-x86 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x86 --config release --prefix $SISKIN_INSTALL/x86-static"
+	]
+	"Cmake OpenCV static - x64" [
+		name: %cmake-opencv-static-x64
+		:target-x64 :cmake-spec :cmake-static
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-x64 $CMAKE_GEN -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-x64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-x64 --config release --prefix $SISKIN_INSTALL/x64-static"
+	]
+	"Cmake OpenCV static - arm64" [
+		name: %cmake-opencv-static-arm64
+		:target-arm64 :cmake-spec :cmake-static
+		cmd "cmake --fresh -B $SISKIN_TEMP/opencv5-static-arm64 $CMAKE_GEN -S opencv/ $CMAKE_COMMON $CMAKE_STATIC"
+		cmd "cmake --build    $SISKIN_TEMP/opencv5-static-arm64 --config release -j 8"
+		cmd "cmake --install  $SISKIN_TEMP/opencv5-static-arm64 --config release --prefix $SISKIN_INSTALL/arm64-static"
+	]
+
+	;- Extension linked against the shared OpenCV libraries -----------------
+	#if Windows? [
 		"Rebol openCV extension: windows_x86" [
-			name: %opencv-windows-x86.rebx
-			library: %build/x86/vc17/lib/
-			:make-extension
-			:target-x86
+			name: %opencv-windows-x86
+			:make-extension :target-x86 :opencv-dynamic
 		]
 		"Rebol openCV extension: windows_x64" [
-			name: %opencv-windows-x64.rebx
-			library: %build/x64/vc17/lib/
-			:make-extension
-			:target-x64
+			name: %opencv-windows-x64
+			:make-extension :target-x64 :opencv-dynamic
+		]
+		"Rebol openCV extension: windows_arm64" [
+			name: %opencv-windows-arm64
+			:make-extension :target-arm64 :opencv-dynamic
 		]
 	]
 	#if macOS? [
 		"Rebol openCV extension: macos_x64" [
 			name: %opencv-macos-x64
-			:make-extension
-			:target-x64
+			:make-extension :target-x64 :opencv-dynamic
+			lflag: "-Wl,-install_name,@rpath/opencv-abi1-x64.rebx"
+		;	lflag: "-Wl,-rpath,$SISKIN_INSTALL/x64/lib"     ;; dev install
+			lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
 		]
 		"Rebol openCV extension: macos_arm64" [
 			name: %opencv-macos-arm64
-			:make-extension
-			:target-arm64
+			:make-extension :target-arm64 :opencv-dynamic
+			lflag: "-Wl,-install_name,@rpath/opencv-abi1-arm64.rebx"
+		;	lflag: "-Wl,-rpath,$SISKIN_INSTALL/arm64/lib"   ;; dev install
+			lflag: "-Wl,-rpath,@loader_path"                ;; dylibs placed next to the .rebx
 		]
 	]
 	#if Linux? [
 		"Rebol openCV extension: linux_x86" [
 			name: %opencv-linux-x86
-			:make-extension
-			:target-x86
+			:make-extension :target-x86 :opencv-dynamic
 		]
 		"Rebol openCV extension: linux_x64" [
 			name: %opencv-linux-x64
-			:make-extension
-			:target-x64
+			:make-extension :target-x64 :opencv-dynamic
+		]
+	]
+
+	;- Self-contained extension (static OpenCV) ------------------------------
+	;; The static install's headers must come first: its opencv2/opencv_modules.hpp
+	;; differs (no HAVE_OPENCV_HIGHGUI), and the target adds the shared install's
+	;; folders as well. Egg-level paths are emitted before the target's ones.
+	;; Linking is safe either way - the static names (opencv_world, zlib,
+	;; libpng...) do not exist in the shared install.
+	#if Windows? [
+		"Rebol openCV extension: windows_x86 (static)" [
+			name: %opencv-static-windows-x86
+			include: %$SISKIN_INSTALL/x86-static/include/
+			library: %$SISKIN_INSTALL/x86-static/x86/vc17/staticlib/
+			:make-extension :target-x86 :opencv-static
+		]
+		"Rebol openCV extension: windows_x64 (static)" [
+			name: %opencv-static-windows-x64
+			include: %$SISKIN_INSTALL/x64-static/include/
+			library: %$SISKIN_INSTALL/x64-static/x64/vc17/staticlib/
+			:make-extension :target-x64 :opencv-static
+		]
+		"Rebol openCV extension: windows_arm64 (static)" [
+			name: %opencv-static-windows-arm64
+			include: %$SISKIN_INSTALL/arm64-static/include/
+			library: %$SISKIN_INSTALL/arm64-static/aarch64/vc17/staticlib/
+			:make-extension :target-arm64 :opencv-static
+		]
+	]
+	#if macOS? [
+		"Rebol openCV extension: macos_x64 (static)" [
+			name: %opencv-static-macos-x64
+			include: %$SISKIN_INSTALL/x64-static/include/opencv5/
+			library: %$SISKIN_INSTALL/x64-static/lib/
+			library: %$SISKIN_INSTALL/x64-static/lib/opencv5/3rdparty/
+			:make-extension :target-x64 :opencv-static
+		]
+		"Rebol openCV extension: macos_arm64 (static)" [
+			name: %opencv-static-macos-arm64
+			include: %$SISKIN_INSTALL/arm64-static/include/opencv5/
+			library: %$SISKIN_INSTALL/arm64-static/lib/
+			library: %$SISKIN_INSTALL/arm64-static/lib/opencv5/3rdparty/
+			library: %tegra_hal ;; ARM NEON HAL (carotene)
+			:make-extension :target-arm64 :opencv-static
+		]
+	]
+	#if Linux? [
+		"Rebol openCV extension: linux_x86 (static)" [
+			name: %opencv-static-linux-x86
+			include: %$SISKIN_INSTALL/x86-static/include/opencv5/
+			library: %$SISKIN_INSTALL/x86-static/lib/
+			library: %$SISKIN_INSTALL/x86-static/lib/opencv5/3rdparty/
+			:make-extension :target-x86 :opencv-static
+		]
+		"Rebol openCV extension: linux_x64 (static)" [
+			name: %opencv-static-linux-x64
+			include: %$SISKIN_INSTALL/x64-static/include/opencv5/
+			library: %$SISKIN_INSTALL/x64-static/lib/
+			library: %$SISKIN_INSTALL/x64-static/lib/opencv5/3rdparty/
+			:make-extension :target-x64 :opencv-static
 		]
 	]
 ]

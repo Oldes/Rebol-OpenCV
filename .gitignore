@@ -9,3 +9,4 @@
 !/Rebol-OpenCV.nest
 !/*.md
 !/*.r3
+*/gen-*
